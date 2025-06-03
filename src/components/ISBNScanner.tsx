@@ -41,14 +41,28 @@ export default function ISBNScanner() {
   useEffect(() => {
     // Initialize ZXing scanner
     console.log('Initializing ZXing scanner...')
-    const reader = new BrowserMultiFormatReader()
-    setCodeReader(reader)
-    console.log('ZXing scanner ready')
+    try {
+      const reader = new BrowserMultiFormatReader()
+      setCodeReader(reader)
+      console.log('ZXing scanner initialized successfully:', !!reader)
+    } catch (error) {
+      console.error('Failed to initialize ZXing scanner:', error)
+      setError('Failed to initialize barcode scanner. Please refresh the page.')
+    }
   }, [])
 
   const startScanner = async () => {
-    if (!scannerRef.current || !codeReader) {
-      setError('Scanner not available. Please use manual ISBN entry.')
+    console.log('startScanner called')
+    console.log('scannerRef.current:', !!scannerRef.current)
+    console.log('codeReader:', !!codeReader)
+    
+    if (!scannerRef.current) {
+      setError('Scanner element not found. Please refresh the page.')
+      return
+    }
+    
+    if (!codeReader) {
+      setError('ZXing scanner not initialized. Please refresh the page.')
       return
     }
 
@@ -239,10 +253,18 @@ export default function ISBNScanner() {
       
       {!isScanning && !scannedBook && (
         <div>
+          <div style={{ marginBottom: '1rem', padding: '0.5rem', background: '#f0f0f0', borderRadius: '0.25rem', fontSize: '0.8em' }}>
+            <strong>Debug Status:</strong><br />
+            Scanner Element: {scannerRef.current ? '✅ Ready' : '❌ Not Found'}<br />
+            ZXing Reader: {codeReader ? '✅ Initialized' : '❌ Not Ready'}<br />
+            Loading: {isScannerLoading ? 'Yes' : 'No'}<br />
+            Scanning: {isScanning ? 'Yes' : 'No'}
+          </div>
+          
           <button 
             className="btn" 
             onClick={startScanner}
-            disabled={isScannerLoading || isScanning}
+            disabled={isScannerLoading || isScanning || !codeReader}
             style={{ marginBottom: '1rem' }}
           >
             {isScannerLoading ? 'Starting Camera...' : isScanning ? 'Scanning...' : 'Start Camera Scanner'}
