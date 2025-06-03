@@ -301,13 +301,13 @@ export default function ISBNScanner() {
                   <p><strong>Browser:</strong> {navigator.userAgent.includes('iPhone') ? 'iPhone' : navigator.userAgent.includes('Android') ? 'Android' : 'Desktop'}</p>
                   <p><strong>HTTPS:</strong> {location.protocol === 'https:' ? 'Yes ✅' : 'No ❌ (Required for camera)'}</p>
                   <p><strong>MediaDevices:</strong> {navigator.mediaDevices ? 'Available ✅' : 'Not Available ❌'}</p>
-                  <p><strong>getUserMedia:</strong> {navigator.mediaDevices?.getUserMedia ? 'Available ✅' : 'Not Available ❌'}</p>
+                  <p><strong>getUserMedia:</strong> {typeof navigator.mediaDevices?.getUserMedia === 'function' ? 'Available ✅' : 'Not Available ❌'}</p>
                   
                   <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: '#f8f9fa', borderRadius: '0.25rem' }}>
                     <p style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>Camera Permission Help:</p>
                     <p>• Make sure to allow camera access when prompted</p>
-                    <p>• iOS Safari: Settings > Safari > Camera > Allow</p>
-                    <p>• iOS Chrome: Long-press reload button > Request Desktop Site (try this)</p>
+                    <p>• iOS Safari: Settings &gt; Safari &gt; Camera &gt; Allow</p>
+                    <p>• iOS Chrome: Long-press reload button &gt; Request Desktop Site (try this)</p>
                     <p>• Check if another app is using the camera</p>
                   </div>
                 </div>
