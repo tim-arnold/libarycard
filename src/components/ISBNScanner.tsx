@@ -7,6 +7,7 @@ import { saveBook as saveBookAPI } from '@/lib/api'
 declare global {
   interface Window {
     Quagga: any
+    BarcodeDetector: any
   }
 }
 
@@ -91,8 +92,8 @@ export default function ISBNScanner() {
     }
   }, [])
 
-  const startScanner = () => {
-    if (!window.Quagga || !scannerRef.current) {
+  const startScanner = async () => {
+    if (!scannerRef.current) {
       setError('Scanner not available. Please use manual ISBN entry.')
       return
     }
@@ -100,51 +101,145 @@ export default function ISBNScanner() {
     setIsScanning(true)
     setError('')
 
-    window.Quagga.init({
-      inputStream: {
-        name: "Live",
-        type: "LiveStream",
-        target: scannerRef.current,
-        constraints: {
-          width: { min: 320, ideal: 640, max: 1280 },
-          height: { min: 240, ideal: 480, max: 720 },
-          facingMode: "environment",
-          aspectRatio: { min: 1, max: 2 }
-        }
-      },
-      locator: {
-        patchSize: "medium",
-        halfSample: true
-      },
-      numOfWorkers: navigator.hardwareConcurrency || 2,
-      decoder: {
-        readers: ["ean_reader", "ean_8_reader", "ean_5_reader"]
-      },
-      locate: true
-    }, (err: any) => {
-      if (err) {
-        console.error('Scanner initialization error:', err)
-        setError('Failed to access camera. Please check permissions and try manual ISBN entry.')
+    try {
+      // Try native BarcodeDetector first (better mobile support)
+      if ('BarcodeDetector' in window) {
+        await startNativeBarcodeDetector()
+      } else if (typeof window !== 'undefined' && window.Quagga) {
+        await startQuaggaScanner()
+      } else {
+        setError('Camera scanning not supported on this device. Please use manual ISBN entry.')
         setIsScanning(false)
-        return
       }
-      console.log('Scanner initialized successfully')
-      window.Quagga.start()
-    })
+    } catch (error) {
+      console.error('Scanner error:', error)
+      setError('Failed to start camera. Please use manual ISBN entry.')
+      setIsScanning(false)
+    }
+  }
 
-    window.Quagga.onDetected((data: any) => {
-      const isbn = data.codeResult.code
-      console.log('ISBN detected:', isbn)
-      stopScanner()
-      handleISBNDetected(isbn)
+  const startNativeBarcodeDetector = async () => {
+    try {
+      const barcodeDetector = new window.BarcodeDetector({
+        formats: ['ean_13', 'ean_8']
+      })
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        }
+      })
+
+      if (scannerRef.current) {
+        const video = document.createElement('video')
+        video.srcObject = stream
+        video.autoplay = true
+        video.playsInline = true
+        video.style.width = '100%'
+        video.style.maxWidth = '640px'
+        
+        scannerRef.current.innerHTML = ''
+        scannerRef.current.appendChild(video)
+
+        const detectBarcodes = async () => {
+          if (!video.videoWidth || !video.videoHeight) return
+
+          try {
+            const barcodes = await barcodeDetector.detect(video)
+            if (barcodes.length > 0) {
+              const isbn = barcodes[0].rawValue
+              console.log('Native barcode detected:', isbn)
+              stopScanner()
+              handleISBNDetected(isbn)
+              return
+            }
+          } catch (e) {
+            // Continue scanning
+          }
+
+          if (isScanning) {
+            setTimeout(detectBarcodes, 200)
+          }
+        }
+
+        video.onloadedmetadata = () => {
+          detectBarcodes()
+        }
+      }
+    } catch (error) {
+      console.error('Native barcode detector failed:', error)
+      throw error
+    }
+  }
+
+  const startQuaggaScanner = async () => {
+    return new Promise<void>((resolve, reject) => {
+      window.Quagga.init({
+        inputStream: {
+          name: "Live",
+          type: "LiveStream",
+          target: scannerRef.current,
+          constraints: {
+            width: { min: 320, ideal: 640, max: 1280 },
+            height: { min: 240, ideal: 480, max: 720 },
+            facingMode: "environment",
+            aspectRatio: { min: 1, max: 2 }
+          }
+        },
+        locator: {
+          patchSize: "medium",
+          halfSample: true
+        },
+        numOfWorkers: 1, // Reduce for mobile
+        decoder: {
+          readers: ["ean_reader", "ean_8_reader"]
+        },
+        locate: true
+      }, (err: any) => {
+        if (err) {
+          console.error('Quagga initialization error:', err)
+          reject(err)
+          return
+        }
+        console.log('Quagga scanner initialized successfully')
+        window.Quagga.start()
+        resolve()
+      })
+
+      window.Quagga.onDetected((data: any) => {
+        const isbn = data.codeResult.code
+        console.log('Quagga ISBN detected:', isbn)
+        stopScanner()
+        handleISBNDetected(isbn)
+      })
     })
   }
 
   const stopScanner = () => {
-    if (window.Quagga) {
-      window.Quagga.stop()
-    }
     setIsScanning(false)
+    
+    // Stop Quagga if running
+    if (typeof window !== 'undefined' && window.Quagga) {
+      try {
+        window.Quagga.stop()
+      } catch (e) {
+        console.log('Quagga stop error (ignored):', e)
+      }
+    }
+    
+    // Stop native video streams
+    if (scannerRef.current) {
+      const videos = scannerRef.current.querySelectorAll('video')
+      videos.forEach(video => {
+        if (video.srcObject) {
+          const stream = video.srcObject as MediaStream
+          stream.getTracks().forEach(track => track.stop())
+        }
+      })
+      scannerRef.current.innerHTML = ''
+    }
   }
 
   const handleISBNDetected = async (isbn: string) => {
