@@ -1,10 +1,8 @@
 import type { Book } from '@/components/ISBNScanner'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787'
-
 export async function saveBook(book: Omit<Book, 'id'>): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE}/api/books`, {
+    const response = await fetch('/api/books', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -26,7 +24,7 @@ export async function saveBook(book: Omit<Book, 'id'>): Promise<boolean> {
 
 export async function getBooks(): Promise<Book[]> {
   try {
-    const response = await fetch(`${API_BASE}/api/books`)
+    const response = await fetch('/api/books')
     if (response.ok) {
       return await response.json()
     }
@@ -40,7 +38,7 @@ export async function getBooks(): Promise<Book[]> {
 
 export async function updateBook(id: string | number, updates: Partial<Book>): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE}/api/books/${id}`, {
+    const response = await fetch(`/api/books/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -63,7 +61,7 @@ export async function updateBook(id: string | number, updates: Partial<Book>): P
 
 export async function deleteBook(id: string | number): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE}/api/books/${id}`, {
+    const response = await fetch(`/api/books/${id}`, {
       method: 'DELETE',
     })
     return response.ok

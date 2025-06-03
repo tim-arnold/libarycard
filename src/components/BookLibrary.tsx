@@ -43,7 +43,7 @@ export default function BookLibrary() {
     }
 
     if (locationFilter) {
-      filtered = filtered.filter(book => book.location === locationFilter)
+      filtered = filtered.filter(book => book.location_name === locationFilter)
     }
 
     if (categoryFilter) {
@@ -68,10 +68,10 @@ export default function BookLibrary() {
   }
 
   const updateBookLocation = async (bookId: string, newLocation: string) => {
-    const success = await updateBook(bookId, { location: newLocation })
+    const success = await updateBook(bookId, { location_name: newLocation })
     if (success) {
       const updatedBooks = books.map(book =>
-        book.id === bookId ? { ...book, location: newLocation } : book
+        book.id === bookId ? { ...book, location_name: newLocation } : book
       )
       setBooks(updatedBooks)
     }
@@ -93,7 +93,7 @@ export default function BookLibrary() {
   ).sort()
 
   const booksByLocation = LOCATIONS.reduce((acc, location) => {
-    acc[location] = books.filter(book => book.location === location).length
+    acc[location] = books.filter(book => book.location_name === location).length
     return acc
   }, {} as Record<string, number>)
 
@@ -205,7 +205,7 @@ export default function BookLibrary() {
                 <div style={{ marginBottom: '0.5rem' }}>
                   <strong>Location:</strong>
                   <select
-                    value={book.location || ''}
+                    value={book.location_name || ''}
                     onChange={(e) => updateBookLocation(book.id, e.target.value)}
                     style={{ 
                       marginLeft: '0.5rem',

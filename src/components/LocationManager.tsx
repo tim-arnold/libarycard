@@ -190,6 +190,95 @@ export default function LocationManager() {
     setShowCreateForm(true)
   }
 
+  // Shelf management functions
+  const createShelf = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedLocation || !newShelfName.trim()) return
+
+    try {
+      const response = await fetch(`/api/locations/${selectedLocation.id}/shelves`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newShelfName.trim(),
+        }),
+      })
+
+      if (response.ok) {
+        const newShelf = await response.json()
+        setShelves([...shelves, newShelf])
+        setNewShelfName('')
+        setShowShelfForm(false)
+      } else {
+        setError('Failed to create shelf')
+      }
+    } catch (error) {
+      console.error('Failed to create shelf:', error)
+      setError('Failed to create shelf')
+    }
+  }
+
+  const updateShelf = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedLocation || !editingShelf || !newShelfName.trim()) return
+
+    try {
+      const response = await fetch(`/api/locations/${selectedLocation.id}/shelves?shelfId=${editingShelf.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newShelfName.trim(),
+        }),
+      })
+
+      if (response.ok) {
+        const updatedShelf = await response.json()
+        setShelves(shelves.map(shelf => 
+          shelf.id === editingShelf.id ? updatedShelf : shelf
+        ))
+        setEditingShelf(null)
+        setNewShelfName('')
+        setShowShelfForm(false)
+      } else {
+        setError('Failed to update shelf')
+      }
+    } catch (error) {
+      console.error('Failed to update shelf:', error)
+      setError('Failed to update shelf')
+    }
+  }
+
+  const deleteShelf = async (shelfId: number) => {
+    if (!selectedLocation || !confirm('Are you sure you want to delete this shelf?')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/locations/${selectedLocation.id}/shelves?shelfId=${shelfId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setShelves(shelves.filter(shelf => shelf.id !== shelfId))
+      } else {
+        setError('Failed to delete shelf')
+      }
+    } catch (error) {
+      console.error('Failed to delete shelf:', error)
+      setError('Failed to delete shelf')
+    }
+  }
+
+  const startEditShelf = (shelf: Shelf) => {
+    setEditingShelf(shelf)
+    setNewShelfName(shelf.name)
+    setShowShelfForm(true)
+  }
+
   if (loading) {
     return (
       <div className="card">
@@ -293,16 +382,56 @@ export default function LocationManager() {
 
           {selectedLocation && (
             <div>
-              <h3>Shelves in {selectedLocation.name}</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3>Shelves in {selectedLocation.name}</h3>
+                <button 
+                  onClick={() => setShowShelfForm(true)} 
+                  className="btn"
+                  style={{ fontSize: '0.9em', padding: '0.5rem 1rem' }}
+                >
+                  + Add Shelf
+                </button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
                 {shelves.map(shelf => (
                   <div key={shelf.id} style={{ 
                     padding: '0.75rem', 
                     background: '#f5f5f5', 
                     borderRadius: '0.25rem',
-                    textAlign: 'center'
+                    position: 'relative'
                   }}>
-                    <strong>{shelf.name}</strong>
+                    <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
+                      <strong>{shelf.name}</strong>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
+                      <button
+                        onClick={() => startEditShelf(shelf)}
+                        style={{
+                          fontSize: '0.7em',
+                          padding: '0.2rem 0.4rem',
+                          background: '#e0e0e0',
+                          border: '1px solid #ccc',
+                          borderRadius: '0.2rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => deleteShelf(shelf.id)}
+                        style={{
+                          fontSize: '0.7em',
+                          padding: '0.2rem 0.4rem',
+                          background: '#ff6666',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '0.2rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -388,6 +517,70 @@ export default function LocationManager() {
                 </button>
                 <button type="submit" className="btn">
                   {editingLocation ? 'Update Location' : 'Create Location'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showShelfForm && (
+        <div style={{ 
+          position: 'fixed', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0, 
+          background: 'rgba(0,0,0,0.5)', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{ 
+            background: 'white', 
+            padding: '2rem', 
+            borderRadius: '0.5rem', 
+            maxWidth: '400px', 
+            width: '90%' 
+          }}>
+            <h3 style={{ marginBottom: '1rem' }}>
+              {editingShelf ? 'Edit Shelf' : 'Add New Shelf'}
+            </h3>
+            <form onSubmit={editingShelf ? updateShelf : createShelf}>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                  Shelf Name *
+                </label>
+                <input
+                  type="text"
+                  value={newShelfName}
+                  onChange={(e) => setNewShelfName(e.target.value)}
+                  placeholder="e.g., Fiction, Cookbooks, Reference"
+                  required
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.5rem', 
+                    border: '1px solid #ccc', 
+                    borderRadius: '0.25rem' 
+                  }}
+                />
+              </div>
+              
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setShowShelfForm(false)
+                    setEditingShelf(null)
+                    setNewShelfName('')
+                  }}
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn">
+                  {editingShelf ? 'Update Shelf' : 'Add Shelf'}
                 </button>
               </div>
             </form>

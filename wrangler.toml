@@ -1,6 +1,7 @@
 name = "libarycard-api"
 main = "workers/index.ts"
 compatibility_date = "2024-01-01"
+account_id = "4bef1453ad78da6e3bb7e83b421e26df"
 
 [[d1_databases]]
 binding = "DB"
@@ -10,5 +11,15 @@ database_id = "368ab7bc-fb42-4607-a4cf-761dc7795284"
 [env.production]
 vars = { ENVIRONMENT = "production" }
 
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "libarycard-db"
+database_id = "368ab7bc-fb42-4607-a4cf-761dc7795284"
+
 [env.staging]
 vars = { ENVIRONMENT = "staging" }
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "libarycard-db"
+database_id = "368ab7bc-fb42-4607-a4cf-761dc7795284"

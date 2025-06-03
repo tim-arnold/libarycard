@@ -14,29 +14,41 @@ export interface Book {
   thumbnail?: string
   publishedDate?: string
   categories?: string[]
-  location?: string
+  shelf_id?: number
   tags?: string[]
+  location_name?: string
+  shelf_name?: string
 }
 
-const LOCATIONS = [
-  'basement',
-  "julie's room",
-  "tim's room", 
-  'bench',
-  "julie's office",
-  'little library'
-]
+interface Location {
+  id: number
+  name: string
+  description?: string
+  owner_id: string
+  created_at: string
+}
+
+interface Shelf {
+  id: number
+  name: string
+  location_id: number
+  created_at: string
+}
+
 
 export default function ISBNScanner() {
   const scannerRef = useRef<HTMLDivElement>(null)
   const [isScanning, setIsScanning] = useState(false)
   const [scannedBook, setScannedBook] = useState<Book | null>(null)
-  const [selectedLocation, setSelectedLocation] = useState<string>('')
+  const [locations, setLocations] = useState<Location[]>([])
+  const [allShelves, setAllShelves] = useState<Shelf[]>([])
+  const [selectedShelfId, setSelectedShelfId] = useState<number | null>(null)
   const [customTags, setCustomTags] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
   const [isScannerLoading, setIsScannerLoading] = useState(false)
   const [error, setError] = useState<string>('')
   const [codeReader, setCodeReader] = useState<BrowserMultiFormatReader | null>(null)
+  const [loadingData, setLoadingData] = useState(true)
 
   useEffect(() => {
     // Initialize ZXing scanner
@@ -49,7 +61,36 @@ export default function ISBNScanner() {
       console.error('Failed to initialize ZXing scanner:', error)
       setError('Failed to initialize barcode scanner. Please refresh the page.')
     }
+
+    // Load locations and shelves
+    loadLocationsAndShelves()
   }, [])
+
+  const loadLocationsAndShelves = async () => {
+    try {
+      setLoadingData(true)
+      const locationsResponse = await fetch('/api/locations')
+      if (locationsResponse.ok) {
+        const locationsData = await locationsResponse.json()
+        setLocations(locationsData)
+        
+        // Load shelves for all locations
+        const allShelvesData: Shelf[] = []
+        for (const location of locationsData) {
+          const shelvesResponse = await fetch(`/api/locations/${location.id}/shelves`)
+          if (shelvesResponse.ok) {
+            const shelvesData = await shelvesResponse.json()
+            allShelvesData.push(...shelvesData)
+          }
+        }
+        setAllShelves(allShelvesData)
+      }
+    } catch (error) {
+      console.error('Failed to load locations and shelves:', error)
+    } finally {
+      setLoadingData(false)
+    }
+  }
 
   const startScanner = async () => {
     console.log('startScanner called')
@@ -218,11 +259,11 @@ export default function ISBNScanner() {
   }
 
   const saveBook = async () => {
-    if (!scannedBook) return
+    if (!scannedBook || !selectedShelfId) return
 
     const bookToSave = {
       ...scannedBook,
-      location: selectedLocation,
+      shelf_id: selectedShelfId,
       tags: customTags.split(',').map(tag => tag.trim()).filter(Boolean)
     }
 
@@ -230,7 +271,7 @@ export default function ISBNScanner() {
     
     if (success) {
       setScannedBook(null)
-      setSelectedLocation('')
+      setSelectedShelfId(null)
       setCustomTags('')
       alert('Book saved to library!')
     } else {
@@ -370,22 +411,36 @@ export default function ISBNScanner() {
 
           <div style={{ marginTop: '1rem' }}>
             <label>
-              <strong>Location:</strong>
-              <select 
-                value={selectedLocation} 
-                onChange={(e) => setSelectedLocation(e.target.value)}
-                style={{ 
-                  marginLeft: '0.5rem', 
-                  padding: '0.25rem',
-                  border: '1px solid #ccc',
-                  borderRadius: '0.25rem'
-                }}
-              >
-                <option value="">Select location...</option>
-                {LOCATIONS.map(location => (
-                  <option key={location} value={location}>{location}</option>
-                ))}
-              </select>
+              <strong>Shelf:</strong>
+              {loadingData ? (
+                <span style={{ marginLeft: '0.5rem', color: '#666' }}>Loading shelves...</span>
+              ) : (
+                <select 
+                  value={selectedShelfId || ''} 
+                  onChange={(e) => setSelectedShelfId(e.target.value ? parseInt(e.target.value) : null)}
+                  style={{ 
+                    marginLeft: '0.5rem', 
+                    padding: '0.25rem',
+                    border: '1px solid #ccc',
+                    borderRadius: '0.25rem',
+                    minWidth: '200px'
+                  }}
+                >
+                  <option value="">Select shelf...</option>
+                  {locations.map(location => (
+                    <optgroup key={location.id} label={location.name}>
+                      {allShelves
+                        .filter(shelf => shelf.location_id === location.id)
+                        .map(shelf => (
+                          <option key={shelf.id} value={shelf.id}>
+                            {shelf.name}
+                          </option>
+                        ))
+                      }
+                    </optgroup>
+                  ))}
+                </select>
+              )}
             </label>
           </div>
 
@@ -412,7 +467,7 @@ export default function ISBNScanner() {
             <button 
               className="btn" 
               onClick={saveBook}
-              disabled={!selectedLocation}
+              disabled={!selectedShelfId}
               style={{ marginRight: '0.5rem' }}
             >
               Save to Library

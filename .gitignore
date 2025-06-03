@@ -31,3 +31,7 @@ yarn-error.log*
 
 # Wrangler (Cloudflare Workers)
 .wrangler/
+# Worker backup files
+workers/index-backup.ts
+workers/updated-index.ts
+workers/node_modules/
