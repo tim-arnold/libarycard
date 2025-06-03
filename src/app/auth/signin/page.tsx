@@ -156,6 +156,21 @@ function SignInForm() {
           Sign in to start managing your book collection
         </p>
 
+        {process.env.NODE_ENV === 'development' && (
+          <div style={{ 
+            padding: '1rem', 
+            marginBottom: '1rem', 
+            backgroundColor: '#fff3cd', 
+            color: '#856404', 
+            borderRadius: '4px',
+            border: '1px solid #ffeaa7',
+            fontSize: '0.9rem'
+          }}>
+            <strong>Development Mode:</strong> Email verification is simulated. 
+            After creating an account, you can sign in immediately with your credentials.
+          </div>
+        )}
+
         {message && (
           <div style={{ 
             padding: '1rem', 
@@ -166,6 +181,12 @@ function SignInForm() {
             border: '1px solid #c3e6cb'
           }}>
             {message}
+            {process.env.NODE_ENV === 'development' && (
+              <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                <strong>Development Mode:</strong> No email was actually sent. 
+                You can now sign in with your email and the strong password you just created!
+              </div>
+            )}
           </div>
         )}
 
