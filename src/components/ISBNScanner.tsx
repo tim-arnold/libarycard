@@ -45,24 +45,46 @@ export default function ISBNScanner() {
 
   useEffect(() => {
     const loadScanner = async () => {
+      console.log('Starting to load scanner library...')
+      
       try {
+        // Check if already loaded
+        if (window.Html5QrcodeScanner) {
+          console.log('html5-qrcode already loaded')
+          setIsQuaggaLoading(false)
+          return
+        }
+
         // Load html5-qrcode library for better mobile support
         const script = document.createElement('script')
-        script.src = 'https://unpkg.com/html5-qrcode@2.3.4/minified/html5-qrcode.min.js'
+        script.src = 'https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js'
+        script.async = true
+        script.defer = true
         
         const loadPromise = new Promise((resolve, reject) => {
           script.onload = () => {
-            console.log('html5-qrcode loaded successfully')
-            setIsQuaggaLoading(false)
-            resolve(true)
+            console.log('html5-qrcode script loaded, checking global...')
+            // Give it a moment to initialize
+            setTimeout(() => {
+              if (window.Html5QrcodeScanner) {
+                console.log('html5-qrcode loaded successfully')
+                setIsQuaggaLoading(false)
+                resolve(true)
+              } else {
+                console.error('html5-qrcode script loaded but global not available')
+                setIsQuaggaLoading(false)
+                reject(new Error('Scanner library initialization failed'))
+              }
+            }, 100)
           }
-          script.onerror = () => {
-            console.error('Failed to load html5-qrcode')
+          script.onerror = (e) => {
+            console.error('Failed to load html5-qrcode script:', e)
             setIsQuaggaLoading(false)
             reject(new Error('Failed to load scanner library'))
           }
         })
 
+        console.log('Appending script to head...')
         document.head.appendChild(script)
         await loadPromise
       } catch (error) {
@@ -224,6 +246,28 @@ export default function ISBNScanner() {
           >
             {isQuaggaLoading ? 'Loading Scanner...' : 'Start Camera Scanner'}
           </button>
+          
+          {isQuaggaLoading && (
+            <p style={{ fontSize: '0.8em', color: '#666' }}>
+              Loading barcode scanner library...
+            </p>
+          )}
+          
+          {error && !isQuaggaLoading && (
+            <div style={{ marginBottom: '1rem', padding: '0.5rem', background: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '0.25rem' }}>
+              <p style={{ fontSize: '0.9em', color: '#856404' }}>
+                {error}
+              </p>
+              <details style={{ marginTop: '0.5rem' }}>
+                <summary style={{ fontSize: '0.8em', cursor: 'pointer' }}>Debug Info</summary>
+                <div style={{ fontSize: '0.7em', marginTop: '0.25rem' }}>
+                  <p>Navigator: {navigator.userAgent}</p>
+                  <p>HTTPS: {location.protocol === 'https:' ? 'Yes' : 'No'}</p>
+                  <p>MediaDevices: {navigator.mediaDevices ? 'Available' : 'Not Available'}</p>
+                </div>
+              </details>
+            </div>
+          )}
           
           <form onSubmit={manualISBNEntry} style={{ marginTop: '1rem' }}>
             <input

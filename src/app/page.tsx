@@ -26,7 +26,7 @@ export default function Home() {
           className={`btn ${activeTab === 'library' ? '' : 'btn-secondary'}`}
           onClick={() => setActiveTab('library')}
         >
-          📖 My Libary
+          📖 My Library
         </button>
       </nav>
 
