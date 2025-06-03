@@ -55,43 +55,67 @@ export default function ISBNScanner() {
           return
         }
 
-        // Load html5-qrcode library for better mobile support
-        const script = document.createElement('script')
-        script.src = 'https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js'
-        script.async = true
-        script.defer = true
+        // Try multiple CDNs for html5-qrcode library
+        const cdnUrls = [
+          'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/minified/html5-qrcode.min.js',
+          'https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js',
+          'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js'
+        ]
         
-        const loadPromise = new Promise((resolve, reject) => {
-          script.onload = () => {
-            console.log('html5-qrcode script loaded, checking global...')
-            // Give it a moment to initialize
-            setTimeout(() => {
-              if (window.Html5QrcodeScanner) {
-                console.log('html5-qrcode loaded successfully')
-                setIsQuaggaLoading(false)
-                resolve(true)
-              } else {
-                console.error('html5-qrcode script loaded but global not available')
-                setIsQuaggaLoading(false)
-                reject(new Error('Scanner library initialization failed'))
-              }
-            }, 100)
+        for (let i = 0; i < cdnUrls.length; i++) {
+          const url = cdnUrls[i]
+          console.log(`Trying CDN ${i + 1}/${cdnUrls.length}: ${url}`)
+          
+          try {
+            await loadScriptFromUrl(url)
+            console.log(`Successfully loaded from CDN ${i + 1}`)
+            break
+          } catch (error) {
+            console.error(`CDN ${i + 1} failed:`, error)
+            if (i === cdnUrls.length - 1) {
+              throw new Error('All CDNs failed to load scanner library')
+            }
           }
-          script.onerror = (e) => {
-            console.error('Failed to load html5-qrcode script:', e)
-            setIsQuaggaLoading(false)
-            reject(new Error('Failed to load scanner library'))
-          }
-        })
-
-        console.log('Appending script to head...')
-        document.head.appendChild(script)
-        await loadPromise
+        }
       } catch (error) {
         console.error('Error loading scanner:', error)
         setIsQuaggaLoading(false)
         setError('Camera scanner unavailable. Please use manual ISBN entry.')
       }
+    }
+
+    const loadScriptFromUrl = (url: string): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        script.defer = true
+        
+        script.onload = () => {
+          console.log('Script loaded, checking global...')
+          // Give it a moment to initialize
+          setTimeout(() => {
+            if (window.Html5QrcodeScanner) {
+              console.log('html5-qrcode loaded successfully')
+              setIsQuaggaLoading(false)
+              resolve()
+            } else {
+              console.error('Script loaded but global not available')
+              document.head.removeChild(script)
+              reject(new Error('Scanner library initialization failed'))
+            }
+          }, 100)
+        }
+        
+        script.onerror = (e) => {
+          console.error('Failed to load script:', e)
+          document.head.removeChild(script)
+          reject(new Error('Failed to load script'))
+        }
+
+        console.log('Appending script to head...')
+        document.head.appendChild(script)
+      })
     }
 
     loadScanner()
