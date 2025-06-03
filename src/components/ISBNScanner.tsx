@@ -3,13 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchBookData } from '@/lib/bookApi'
 import { saveBook as saveBookAPI } from '@/lib/api'
-
-declare global {
-  interface Window {
-    Html5Qrcode: any
-    Html5QrcodeScanner: any
-  }
-}
+import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library'
 
 export interface Book {
   id: string
@@ -40,97 +34,29 @@ export default function ISBNScanner() {
   const [selectedLocation, setSelectedLocation] = useState<string>('')
   const [customTags, setCustomTags] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
-  const [isQuaggaLoading, setIsQuaggaLoading] = useState(true)
+  const [isScannerLoading, setIsScannerLoading] = useState(false)
   const [error, setError] = useState<string>('')
+  const [codeReader, setCodeReader] = useState<BrowserMultiFormatReader | null>(null)
 
   useEffect(() => {
-    const loadScanner = async () => {
-      console.log('Starting to load scanner library...')
-      
-      try {
-        // Check if already loaded
-        if (window.Html5QrcodeScanner) {
-          console.log('html5-qrcode already loaded')
-          setIsQuaggaLoading(false)
-          return
-        }
-
-        // Try multiple CDNs for html5-qrcode library
-        const cdnUrls = [
-          'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/minified/html5-qrcode.min.js',
-          'https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js',
-          'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js'
-        ]
-        
-        for (let i = 0; i < cdnUrls.length; i++) {
-          const url = cdnUrls[i]
-          console.log(`Trying CDN ${i + 1}/${cdnUrls.length}: ${url}`)
-          
-          try {
-            await loadScriptFromUrl(url)
-            console.log(`Successfully loaded from CDN ${i + 1}`)
-            break
-          } catch (error) {
-            console.error(`CDN ${i + 1} failed:`, error)
-            if (i === cdnUrls.length - 1) {
-              throw new Error('All CDNs failed to load scanner library')
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error loading scanner:', error)
-        setIsQuaggaLoading(false)
-        setError('Camera scanner unavailable. Please use manual ISBN entry.')
-      }
-    }
-
-    const loadScriptFromUrl = (url: string): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        const script = document.createElement('script')
-        script.src = url
-        script.async = true
-        script.defer = true
-        
-        script.onload = () => {
-          console.log('Script loaded, checking global...')
-          // Give it a moment to initialize
-          setTimeout(() => {
-            if (window.Html5QrcodeScanner) {
-              console.log('html5-qrcode loaded successfully')
-              setIsQuaggaLoading(false)
-              resolve()
-            } else {
-              console.error('Script loaded but global not available')
-              document.head.removeChild(script)
-              reject(new Error('Scanner library initialization failed'))
-            }
-          }, 100)
-        }
-        
-        script.onerror = (e) => {
-          console.error('Failed to load script:', e)
-          document.head.removeChild(script)
-          reject(new Error('Failed to load script'))
-        }
-
-        console.log('Appending script to head...')
-        document.head.appendChild(script)
-      })
-    }
-
-    loadScanner()
+    // Initialize ZXing scanner
+    console.log('Initializing ZXing scanner...')
+    const reader = new BrowserMultiFormatReader()
+    setCodeReader(reader)
+    console.log('ZXing scanner ready')
   }, [])
 
   const startScanner = async () => {
-    if (!scannerRef.current) {
+    if (!scannerRef.current || !codeReader) {
       setError('Scanner not available. Please use manual ISBN entry.')
       return
     }
 
     setIsScanning(true)
+    setIsScannerLoading(true)
     setError('')
 
-    console.log('Starting scanner...')
+    console.log('Starting ZXing scanner...')
     console.log('Navigator mediaDevices available:', !!navigator.mediaDevices)
     console.log('getUserMedia available:', !!navigator.mediaDevices?.getUserMedia)
 
@@ -139,6 +65,7 @@ export default function ISBNScanner() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         setError('Camera not supported in this browser. Please use manual ISBN entry.')
         setIsScanning(false)
+        setIsScannerLoading(false)
         return
       }
 
@@ -146,8 +73,8 @@ export default function ISBNScanner() {
       console.log('Requesting camera permission...')
       await requestCameraPermission()
       
-      // Try to start the html5-qrcode scanner
-      await startHtml5QrcodeScanner()
+      // Start ZXing scanner
+      await startZXingScanner()
       
     } catch (error: any) {
       console.error('Scanner error:', error)
@@ -159,6 +86,7 @@ export default function ISBNScanner() {
         setError(`Camera error: ${error.message || 'Unknown error'}. Please allow camera access and try again.`)
       }
       setIsScanning(false)
+      setIsScannerLoading(false)
     }
   }
 
@@ -189,47 +117,48 @@ export default function ISBNScanner() {
     }
   }
 
-  const startHtml5QrcodeScanner = async () => {
-    if (!window.Html5QrcodeScanner || !scannerRef.current) {
-      throw new Error('Scanner library not loaded or DOM element not available')
+  const startZXingScanner = async () => {
+    if (!codeReader || !scannerRef.current) {
+      throw new Error('Scanner not available or DOM element not available')
     }
 
     try {
-      // Make sure we have an ID for the scanner
-      if (!scannerRef.current.id) {
-        scannerRef.current.id = 'barcode-reader'
-      }
-
-      const html5QrcodeScanner = new window.Html5QrcodeScanner(
-        scannerRef.current.id,
-        { 
-          fps: 10,
-          qrbox: { width: 300, height: 150 },
-          supportedScanTypes: ['SCAN_TYPE_BARCODE'],
-          formatsToSupport: ['EAN_13', 'EAN_8'],
-          rememberLastUsedCamera: true,
-          showTorchButtonIfSupported: true
-        },
-        false
+      console.log('Starting ZXing barcode scanning...')
+      
+      // Create video element for camera preview
+      const videoElement = document.createElement('video')
+      videoElement.style.width = '100%'
+      videoElement.style.maxWidth = '640px'
+      videoElement.style.height = 'auto'
+      videoElement.playsInline = true
+      
+      // Clear any existing content and add video
+      scannerRef.current.innerHTML = ''
+      scannerRef.current.appendChild(videoElement)
+      
+      // Start continuous scanning
+      console.log('Starting continuous decode from video device...')
+      await codeReader.decodeFromVideoDevice(
+        null, // Use default camera
+        videoElement,
+        (result, error) => {
+          if (result) {
+            console.log('ZXing barcode detected:', result.getText())
+            stopScanner()
+            handleISBNDetected(result.getText())
+          }
+          if (error && !(error instanceof NotFoundException)) {
+            console.log('ZXing scan error (continuing):', error)
+          }
+        }
       )
-
-      const onScanSuccess = (decodedText: string) => {
-        console.log('Barcode scanned:', decodedText)
-        html5QrcodeScanner.clear()
-        setIsScanning(false)
-        handleISBNDetected(decodedText)
-      }
-
-      const onScanFailure = (error: string) => {
-        // Ignore scan failures, they're normal during scanning
-        console.log('Scan attempt failed:', error)
-      }
-
-      html5QrcodeScanner.render(onScanSuccess, onScanFailure)
-      console.log('html5-qrcode scanner started successfully')
+      
+      setIsScannerLoading(false)
+      console.log('ZXing scanner started successfully')
       
     } catch (error) {
-      console.error('html5-qrcode scanner failed:', error)
+      console.error('ZXing scanner failed:', error)
+      setIsScannerLoading(false)
       throw error
     }
   }
@@ -237,6 +166,17 @@ export default function ISBNScanner() {
 
   const stopScanner = () => {
     setIsScanning(false)
+    setIsScannerLoading(false)
+    
+    // Stop ZXing scanner
+    if (codeReader) {
+      try {
+        codeReader.reset()
+        console.log('ZXing scanner stopped and reset')
+      } catch (e) {
+        console.log('ZXing stop error (ignored):', e)
+      }
+    }
     
     // Clear the scanner element
     if (scannerRef.current) {
@@ -302,19 +242,19 @@ export default function ISBNScanner() {
           <button 
             className="btn" 
             onClick={startScanner}
-            disabled={isQuaggaLoading}
+            disabled={isScannerLoading || isScanning}
             style={{ marginBottom: '1rem' }}
           >
-            {isQuaggaLoading ? 'Loading Scanner...' : 'Start Camera Scanner'}
+            {isScannerLoading ? 'Starting Camera...' : isScanning ? 'Scanning...' : 'Start Camera Scanner'}
           </button>
           
-          {isQuaggaLoading && (
+          {isScannerLoading && (
             <p style={{ fontSize: '0.8em', color: '#666' }}>
-              Loading barcode scanner library...
+              Initializing camera and scanner...
             </p>
           )}
           
-          {error && !isQuaggaLoading && (
+          {error && !isScannerLoading && (
             <div style={{ marginBottom: '1rem', padding: '0.5rem', background: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '0.25rem' }}>
               <p style={{ fontSize: '0.9em', color: '#856404' }}>
                 {error}

@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@zxing/library": "^0.21.3",
     "axios": "^1.6.0",
     "next": "^14.0.0",
     "quagga": "^0.12.1",
