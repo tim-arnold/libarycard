@@ -1,0 +1,13 @@
+name = "libarycard-api"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "libarycard-db"
+database_id = "your-database-id-here"
+
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+[env.staging]
+vars = { ENVIRONMENT = "staging" }
