@@ -1,9 +1,14 @@
--- Users table for Google OAuth
+-- Users table for multiple auth providers
 CREATE TABLE IF NOT EXISTS users (
-  id TEXT PRIMARY KEY, -- Google user ID
+  id TEXT PRIMARY KEY, -- UUID for email/password users, Google ID for OAuth users
   email TEXT UNIQUE NOT NULL,
   first_name TEXT,
   last_name TEXT,
+  password_hash TEXT, -- NULL for OAuth users
+  auth_provider TEXT DEFAULT 'email', -- 'email' or 'google'
+  email_verified BOOLEAN DEFAULT FALSE,
+  email_verification_token TEXT,
+  email_verification_expires DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

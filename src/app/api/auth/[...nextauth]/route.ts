@@ -1,5 +1,7 @@
 import NextAuth from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
+import CredentialsProvider from 'next-auth/providers/credentials'
+import bcrypt from 'bcryptjs'
 
 declare module 'next-auth' {
   interface Session {
@@ -8,8 +10,16 @@ declare module 'next-auth' {
       name?: string | null
       email?: string | null
       image?: string | null
+      authProvider?: string
     }
     accessToken?: string
+  }
+  
+  interface User {
+    id: string
+    email: string
+    name?: string
+    authProvider?: string
   }
 }
 
@@ -18,6 +28,46 @@ const handler = NextAuth({
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+    CredentialsProvider({
+      name: 'email',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null
+        }
+
+        try {
+          // Call our API to verify credentials
+          const response = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/verify`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password,
+            }),
+          })
+
+          if (response.ok) {
+            const user = await response.json()
+            return {
+              id: user.id,
+              email: user.email,
+              name: `${user.first_name} ${user.last_name}`.trim(),
+              authProvider: 'email'
+            }
+          }
+        } catch (error) {
+          console.error('Auth error:', error)
+        }
+        
+        return null
+      }
     })
   ],
   callbacks: {
@@ -25,15 +75,19 @@ const handler = NextAuth({
       if (account && user) {
         token.accessToken = account.access_token
         token.userId = user.id
+        token.authProvider = (user as any).authProvider || 'google'
       }
       return token
     },
     async session({ session, token }) {
       if (session.user && token.userId) {
-        // Store user in database on first login
-        await storeUser(session.user, token.userId as string)
+        // Store user in database on first login (Google OAuth only)
+        if (token.authProvider === 'google') {
+          await storeUser(session.user, token.userId as string)
+        }
         
         session.user.id = token.userId as string
+        session.user.authProvider = token.authProvider as string
         session.accessToken = token.accessToken as string
       }
       return session
@@ -56,6 +110,8 @@ async function storeUser(user: any, userId: string) {
         email: user.email,
         first_name: user.name?.split(' ')[0] || '',
         last_name: user.name?.split(' ').slice(1).join(' ') || '',
+        auth_provider: 'google',
+        email_verified: true, // Google accounts are pre-verified
       }),
     })
     
