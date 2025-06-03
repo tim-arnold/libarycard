@@ -6,8 +6,8 @@ import { saveBook as saveBookAPI } from '@/lib/api'
 
 declare global {
   interface Window {
-    Quagga: any
-    BarcodeDetector: any
+    Html5Qrcode: any
+    Html5QrcodeScanner: any
   }
 }
 
@@ -44,52 +44,35 @@ export default function ISBNScanner() {
   const [error, setError] = useState<string>('')
 
   useEffect(() => {
-    const loadQuagga = async () => {
-      // Check if already loaded
-      if (window.Quagga) {
-        console.log('Quagga already loaded')
-        setIsQuaggaLoading(false)
-        return
-      }
-
+    const loadScanner = async () => {
       try {
+        // Load html5-qrcode library for better mobile support
         const script = document.createElement('script')
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js'
+        script.src = 'https://unpkg.com/html5-qrcode@2.3.4/minified/html5-qrcode.min.js'
         
         const loadPromise = new Promise((resolve, reject) => {
           script.onload = () => {
-            console.log('Quagga loaded successfully')
+            console.log('html5-qrcode loaded successfully')
             setIsQuaggaLoading(false)
             resolve(true)
           }
           script.onerror = () => {
-            console.error('Failed to load Quagga.js')
+            console.error('Failed to load html5-qrcode')
             setIsQuaggaLoading(false)
-            reject(new Error('Failed to load Quagga.js'))
+            reject(new Error('Failed to load scanner library'))
           }
         })
 
         document.head.appendChild(script)
         await loadPromise
       } catch (error) {
-        console.error('Error loading Quagga:', error)
+        console.error('Error loading scanner:', error)
         setIsQuaggaLoading(false)
         setError('Camera scanner unavailable. Please use manual ISBN entry.')
       }
     }
 
-    loadQuagga()
-
-    return () => {
-      // Cleanup if needed
-      if (window.Quagga) {
-        try {
-          window.Quagga.stop()
-        } catch (e) {
-          // Ignore cleanup errors
-        }
-      }
-    }
+    loadScanner()
   }, [])
 
   const startScanner = async () => {
@@ -101,74 +84,69 @@ export default function ISBNScanner() {
     setIsScanning(true)
     setError('')
 
+    console.log('Starting scanner...')
+    console.log('Navigator mediaDevices available:', !!navigator.mediaDevices)
+    console.log('getUserMedia available:', !!navigator.mediaDevices?.getUserMedia)
+
     try {
-      // Check if we can access the camera first
-      const hasCamera = await checkCameraAccess()
-      if (!hasCamera) {
-        setError('Camera access denied or not available. Please use manual ISBN entry.')
+      // Check basic browser support first
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setError('Camera not supported in this browser. Please use manual ISBN entry.')
         setIsScanning(false)
         return
       }
 
-      // Try simple video capture first (most compatible)
-      await startSimpleVideoCapture()
+      // Try to start the html5-qrcode scanner
+      await startHtml5QrcodeScanner()
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Scanner error:', error)
-      setError('Failed to start camera. Please use manual ISBN entry.')
+      setError(`Camera error: ${error.message || 'Unknown error'}. Please allow camera access and try again.`)
       setIsScanning(false)
     }
   }
 
-  const checkCameraAccess = async (): Promise<boolean> => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      })
-      // Stop the test stream
-      stream.getTracks().forEach(track => track.stop())
-      return true
-    } catch (error) {
-      console.error('Camera access check failed:', error)
-      return false
+  const startHtml5QrcodeScanner = async () => {
+    if (!window.Html5QrcodeScanner || !scannerRef.current) {
+      throw new Error('Scanner library not loaded or DOM element not available')
     }
-  }
 
-  const startSimpleVideoCapture = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 640 },
-          height: { ideal: 480 }
-        }
-      })
-
-      if (scannerRef.current) {
-        const video = document.createElement('video')
-        video.srcObject = stream
-        video.autoplay = true
-        video.playsInline = true
-        video.style.width = '100%'
-        video.style.maxWidth = '640px'
-        video.style.border = '2px solid #0070f3'
-        
-        scannerRef.current.innerHTML = `
-          <div style="text-align: center; margin-bottom: 1rem;">
-            <p style="color: #666; font-size: 0.9em; margin-bottom: 0.5rem;">
-              📱 Camera active - Position barcode in view
-            </p>
-            <p style="color: #0070f3; font-size: 0.8em;">
-              Read the numbers below the barcode and enter manually ⬇️
-            </p>
-          </div>
-        `
-        scannerRef.current.appendChild(video)
-
-        console.log('Simple video capture started successfully')
+      // Make sure we have an ID for the scanner
+      if (!scannerRef.current.id) {
+        scannerRef.current.id = 'barcode-reader'
       }
+
+      const html5QrcodeScanner = new window.Html5QrcodeScanner(
+        scannerRef.current.id,
+        { 
+          fps: 10,
+          qrbox: { width: 300, height: 150 },
+          supportedScanTypes: ['SCAN_TYPE_BARCODE'],
+          formatsToSupport: ['EAN_13', 'EAN_8'],
+          rememberLastUsedCamera: true,
+          showTorchButtonIfSupported: true
+        },
+        false
+      )
+
+      const onScanSuccess = (decodedText: string) => {
+        console.log('Barcode scanned:', decodedText)
+        html5QrcodeScanner.clear()
+        setIsScanning(false)
+        handleISBNDetected(decodedText)
+      }
+
+      const onScanFailure = (error: string) => {
+        // Ignore scan failures, they're normal during scanning
+        console.log('Scan attempt failed:', error)
+      }
+
+      html5QrcodeScanner.render(onScanSuccess, onScanFailure)
+      console.log('html5-qrcode scanner started successfully')
+      
     } catch (error) {
-      console.error('Simple video capture failed:', error)
+      console.error('html5-qrcode scanner failed:', error)
       throw error
     }
   }
@@ -177,24 +155,8 @@ export default function ISBNScanner() {
   const stopScanner = () => {
     setIsScanning(false)
     
-    // Stop Quagga if running
-    if (typeof window !== 'undefined' && window.Quagga) {
-      try {
-        window.Quagga.stop()
-      } catch (e) {
-        console.log('Quagga stop error (ignored):', e)
-      }
-    }
-    
-    // Stop native video streams
+    // Clear the scanner element
     if (scannerRef.current) {
-      const videos = scannerRef.current.querySelectorAll('video')
-      videos.forEach(video => {
-        if (video.srcObject) {
-          const stream = video.srcObject as MediaStream
-          stream.getTracks().forEach(track => track.stop())
-        }
-      })
       scannerRef.current.innerHTML = ''
     }
   }
