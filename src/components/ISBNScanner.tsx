@@ -118,13 +118,50 @@ export default function ISBNScanner() {
         return
       }
 
+      // Request camera permission first (iOS requirement)
+      console.log('Requesting camera permission...')
+      await requestCameraPermission()
+      
       // Try to start the html5-qrcode scanner
       await startHtml5QrcodeScanner()
       
     } catch (error: any) {
       console.error('Scanner error:', error)
-      setError(`Camera error: ${error.message || 'Unknown error'}. Please allow camera access and try again.`)
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        setError('Camera permission denied. Please allow camera access in your browser settings and try again.')
+      } else if (error.name === 'NotFoundError') {
+        setError('No camera found on this device. Please use manual ISBN entry.')
+      } else {
+        setError(`Camera error: ${error.message || 'Unknown error'}. Please allow camera access and try again.`)
+      }
       setIsScanning(false)
+    }
+  }
+
+  const requestCameraPermission = async () => {
+    try {
+      console.log('Testing camera access...')
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        }
+      })
+      
+      console.log('Camera permission granted, stopping test stream...')
+      // Stop the test stream immediately
+      stream.getTracks().forEach(track => {
+        track.stop()
+        console.log('Stopped track:', track.label)
+      })
+      
+      console.log('Camera permission test completed successfully')
+    } catch (error: any) {
+      console.error('Camera permission failed:', error)
+      console.error('Error name:', error.name)
+      console.error('Error message:', error.message)
+      throw error
     }
   }
 
@@ -259,11 +296,20 @@ export default function ISBNScanner() {
                 {error}
               </p>
               <details style={{ marginTop: '0.5rem' }}>
-                <summary style={{ fontSize: '0.8em', cursor: 'pointer' }}>Debug Info</summary>
+                <summary style={{ fontSize: '0.8em', cursor: 'pointer' }}>Debug Info & Help</summary>
                 <div style={{ fontSize: '0.7em', marginTop: '0.25rem' }}>
-                  <p>Navigator: {navigator.userAgent}</p>
-                  <p>HTTPS: {location.protocol === 'https:' ? 'Yes' : 'No'}</p>
-                  <p>MediaDevices: {navigator.mediaDevices ? 'Available' : 'Not Available'}</p>
+                  <p><strong>Browser:</strong> {navigator.userAgent.includes('iPhone') ? 'iPhone' : navigator.userAgent.includes('Android') ? 'Android' : 'Desktop'}</p>
+                  <p><strong>HTTPS:</strong> {location.protocol === 'https:' ? 'Yes ✅' : 'No ❌ (Required for camera)'}</p>
+                  <p><strong>MediaDevices:</strong> {navigator.mediaDevices ? 'Available ✅' : 'Not Available ❌'}</p>
+                  <p><strong>getUserMedia:</strong> {navigator.mediaDevices?.getUserMedia ? 'Available ✅' : 'Not Available ❌'}</p>
+                  
+                  <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: '#f8f9fa', borderRadius: '0.25rem' }}>
+                    <p style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>Camera Permission Help:</p>
+                    <p>• Make sure to allow camera access when prompted</p>
+                    <p>• iOS Safari: Settings > Safari > Camera > Allow</p>
+                    <p>• iOS Chrome: Long-press reload button > Request Desktop Site (try this)</p>
+                    <p>• Check if another app is using the camera</p>
+                  </div>
                 </div>
               </details>
             </div>
