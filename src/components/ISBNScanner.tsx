@@ -39,19 +39,54 @@ export default function ISBNScanner() {
   const [selectedLocation, setSelectedLocation] = useState<string>('')
   const [customTags, setCustomTags] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isQuaggaLoading, setIsQuaggaLoading] = useState(true)
   const [error, setError] = useState<string>('')
 
   useEffect(() => {
-    const script = document.createElement('script')
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js'
-    script.onload = () => {
-      console.log('Quagga loaded')
+    const loadQuagga = async () => {
+      // Check if already loaded
+      if (window.Quagga) {
+        console.log('Quagga already loaded')
+        setIsQuaggaLoading(false)
+        return
+      }
+
+      try {
+        const script = document.createElement('script')
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js'
+        
+        const loadPromise = new Promise((resolve, reject) => {
+          script.onload = () => {
+            console.log('Quagga loaded successfully')
+            setIsQuaggaLoading(false)
+            resolve(true)
+          }
+          script.onerror = () => {
+            console.error('Failed to load Quagga.js')
+            setIsQuaggaLoading(false)
+            reject(new Error('Failed to load Quagga.js'))
+          }
+        })
+
+        document.head.appendChild(script)
+        await loadPromise
+      } catch (error) {
+        console.error('Error loading Quagga:', error)
+        setIsQuaggaLoading(false)
+        setError('Camera scanner unavailable. Please use manual ISBN entry.')
+      }
     }
-    document.head.appendChild(script)
+
+    loadQuagga()
 
     return () => {
-      if (document.head.contains(script)) {
-        document.head.removeChild(script)
+      // Cleanup if needed
+      if (window.Quagga) {
+        try {
+          window.Quagga.stop()
+        } catch (e) {
+          // Ignore cleanup errors
+        }
       }
     }
   }, [])
@@ -170,9 +205,10 @@ export default function ISBNScanner() {
           <button 
             className="btn" 
             onClick={startScanner}
+            disabled={isQuaggaLoading}
             style={{ marginBottom: '1rem' }}
           >
-            Start Camera Scanner
+            {isQuaggaLoading ? 'Loading Scanner...' : 'Start Camera Scanner'}
           </button>
           
           <form onSubmit={manualISBNEntry} style={{ marginTop: '1rem' }}>
