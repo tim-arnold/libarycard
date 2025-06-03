@@ -35,6 +35,10 @@ export default function LocationManager() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newLocationName, setNewLocationName] = useState('')
   const [newLocationDescription, setNewLocationDescription] = useState('')
+  const [editingLocation, setEditingLocation] = useState<Location | null>(null)
+  const [editingShelf, setEditingShelf] = useState<Shelf | null>(null)
+  const [showShelfForm, setShowShelfForm] = useState(false)
+  const [newShelfName, setNewShelfName] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -106,7 +110,7 @@ export default function LocationManager() {
         setNewLocationDescription('')
         setShowCreateForm(false)
         // The API will create default shelves, so reload them
-        loadShelves(newLocation.id)
+        await loadShelves(newLocation.id)
       } else {
         setError('Failed to create location')
       }
@@ -114,6 +118,76 @@ export default function LocationManager() {
       console.error('Failed to create location:', error)
       setError('Failed to create location')
     }
+  }
+
+  const updateLocation = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingLocation || !newLocationName.trim()) return
+
+    try {
+      const response = await fetch(`/api/locations?id=${editingLocation.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newLocationName.trim(),
+          description: newLocationDescription.trim() || null,
+        }),
+      })
+
+      if (response.ok) {
+        const updatedLocation = await response.json()
+        setLocations(locations.map(loc => 
+          loc.id === editingLocation.id ? updatedLocation : loc
+        ))
+        if (selectedLocation?.id === editingLocation.id) {
+          setSelectedLocation(updatedLocation)
+        }
+        setEditingLocation(null)
+        setNewLocationName('')
+        setNewLocationDescription('')
+        setShowCreateForm(false)
+      } else {
+        setError('Failed to update location')
+      }
+    } catch (error) {
+      console.error('Failed to update location:', error)
+      setError('Failed to update location')
+    }
+  }
+
+  const deleteLocation = async (locationId: number) => {
+    if (!confirm('Are you sure you want to delete this location? This will also delete all its shelves.')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/locations?id=${locationId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        const updatedLocations = locations.filter(loc => loc.id !== locationId)
+        setLocations(updatedLocations)
+        if (selectedLocation?.id === locationId) {
+          setSelectedLocation(updatedLocations[0] || null)
+          setShelves([])
+        }
+      } else {
+        setError('Failed to delete location')
+      }
+    } catch (error) {
+      console.error('Failed to delete location:', error)
+      setError('Failed to delete location')
+    }
+  }
+
+  const startEditLocation = (location: Location) => {
+    setEditingLocation(location)
+    setNewLocationName(location.name)
+    setNewLocationDescription(location.description || '')
+    setShowCreateForm(true)
   }
 
   if (loading) {
@@ -160,23 +234,58 @@ export default function LocationManager() {
               </button>
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
               {locations.map(location => (
                 <div 
                   key={location.id}
-                  onClick={() => setSelectedLocation(location)}
                   style={{
                     padding: '1rem',
                     border: selectedLocation?.id === location.id ? '2px solid #0070f3' : '1px solid #e0e0e0',
                     borderRadius: '0.5rem',
-                    cursor: 'pointer',
                     transition: 'border-color 0.2s'
                   }}
                 >
-                  <h4 style={{ margin: '0 0 0.5rem 0' }}>{location.name}</h4>
-                  {location.description && (
-                    <p style={{ fontSize: '0.9em', color: '#666', margin: 0 }}>{location.description}</p>
-                  )}
+                  <div onClick={() => setSelectedLocation(location)} style={{ cursor: 'pointer', marginBottom: '0.5rem' }}>
+                    <h4 style={{ margin: '0 0 0.5rem 0' }}>{location.name}</h4>
+                    {location.description && (
+                      <p style={{ fontSize: '0.9em', color: '#666', margin: 0 }}>{location.description}</p>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        startEditLocation(location)
+                      }}
+                      style={{
+                        fontSize: '0.8em',
+                        padding: '0.25rem 0.5rem',
+                        background: '#f0f0f0',
+                        border: '1px solid #ccc',
+                        borderRadius: '0.25rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        deleteLocation(location.id)
+                      }}
+                      style={{
+                        fontSize: '0.8em',
+                        padding: '0.25rem 0.5rem',
+                        background: '#ff4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '0.25rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -222,8 +331,10 @@ export default function LocationManager() {
             maxWidth: '400px', 
             width: '90%' 
           }}>
-            <h3 style={{ marginBottom: '1rem' }}>Create New Location</h3>
-            <form onSubmit={createLocation}>
+            <h3 style={{ marginBottom: '1rem' }}>
+              {editingLocation ? 'Edit Location' : 'Create New Location'}
+            </h3>
+            <form onSubmit={editingLocation ? updateLocation : createLocation}>
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
                   Location Name *
@@ -265,13 +376,18 @@ export default function LocationManager() {
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                 <button 
                   type="button"
-                  onClick={() => setShowCreateForm(false)}
+                  onClick={() => {
+                    setShowCreateForm(false)
+                    setEditingLocation(null)
+                    setNewLocationName('')
+                    setNewLocationDescription('')
+                  }}
                   className="btn btn-secondary"
                 >
                   Cancel
                 </button>
                 <button type="submit" className="btn">
-                  Create Location
+                  {editingLocation ? 'Update Location' : 'Create Location'}
                 </button>
               </div>
             </form>

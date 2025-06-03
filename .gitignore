@@ -28,3 +28,6 @@ yarn-error.log*
 # Temporary
 /tmp
 /out-tsc
+
+# Wrangler (Cloudflare Workers)
+.wrangler/
