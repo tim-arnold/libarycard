@@ -57,7 +57,10 @@ export default function ISBNScanner() {
   }, [])
 
   const startScanner = () => {
-    if (!window.Quagga || !scannerRef.current) return
+    if (!window.Quagga || !scannerRef.current) {
+      setError('Scanner not available. Please use manual ISBN entry.')
+      return
+    }
 
     setIsScanning(true)
     setError('')
@@ -68,21 +71,29 @@ export default function ISBNScanner() {
         type: "LiveStream",
         target: scannerRef.current,
         constraints: {
-          width: 640,
-          height: 480,
-          facingMode: "environment"
+          width: { min: 320, ideal: 640, max: 1280 },
+          height: { min: 240, ideal: 480, max: 720 },
+          facingMode: "environment",
+          aspectRatio: { min: 1, max: 2 }
         }
       },
+      locator: {
+        patchSize: "medium",
+        halfSample: true
+      },
+      numOfWorkers: navigator.hardwareConcurrency || 2,
       decoder: {
-        readers: ["ean_reader", "ean_8_reader"]
-      }
+        readers: ["ean_reader", "ean_8_reader", "ean_5_reader"]
+      },
+      locate: true
     }, (err: any) => {
       if (err) {
         console.error('Scanner initialization error:', err)
-        setError('Failed to access camera')
+        setError('Failed to access camera. Please check permissions and try manual ISBN entry.')
         setIsScanning(false)
         return
       }
+      console.log('Scanner initialized successfully')
       window.Quagga.start()
     })
 

@@ -89,13 +89,13 @@ async function createBook(request: Request, env: Env, corsHeaders: Record<string
   await stmt.bind(
     book.isbn,
     book.title,
-    JSON.stringify(book.authors),
-    book.description,
-    book.thumbnail,
-    book.published_date,
-    JSON.stringify(book.categories),
-    book.location,
-    JSON.stringify(book.tags)
+    JSON.stringify(book.authors || []),
+    book.description || null,
+    book.thumbnail || null,
+    book.published_date || null,
+    JSON.stringify(book.categories || []),
+    book.location || null,
+    JSON.stringify(book.tags || [])
   ).run();
 
   return new Response(JSON.stringify({ success: true }), {
