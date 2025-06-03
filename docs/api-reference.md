@@ -1,26 +1,216 @@
 # API Reference
 
-This document describes the LibraryCard API endpoints provided by the Cloudflare Worker.
+This document describes the LibaryCard API endpoints provided by the Cloudflare Worker.
 
 ## Base URL
 
 ```
-https://libarycard-api.your-account.workers.dev
+https://libarycard-api.tim-arnold.workers.dev
 ```
 
 ## Authentication
 
-Currently, the API does not require authentication. Consider adding API keys or authentication for production use.
+The API uses Bearer token authentication with user email as the token for development. In production, this would be replaced with proper JWT tokens from NextAuth.
 
-## Endpoints
+All endpoints (except user creation) require authentication:
+
+```http
+Authorization: Bearer user@example.com
+```
+
+## User Management
+
+### POST /api/users
+
+Create or update a user account. This is called automatically when users sign in with Google OAuth.
+
+#### Request
+```http
+POST /api/users
+Content-Type: application/json
+
+{
+  "id": "user@example.com",
+  "email": "user@example.com",
+  "first_name": "John",
+  "last_name": "Doe"
+}
+```
+
+#### Response
+```json
+{
+  "success": true
+}
+```
+
+## Location Management
+
+### GET /api/locations
+
+Get all locations accessible to the authenticated user (owned or shared).
+
+#### Request
+```http
+GET /api/locations
+Authorization: Bearer user@example.com
+```
+
+#### Response
+```json
+[
+  {
+    "id": 1,
+    "name": "Home Library",
+    "description": "Main house book collection",
+    "owner_id": "user@example.com",
+    "created_at": "2024-01-15T10:30:00Z"
+  }
+]
+```
+
+### POST /api/locations
+
+Create a new location. Automatically creates a "my first shelf" shelf.
+
+#### Request
+```http
+POST /api/locations
+Authorization: Bearer user@example.com
+Content-Type: application/json
+
+{
+  "name": "Home Library",
+  "description": "Main house book collection"
+}
+```
+
+#### Response
+```json
+{
+  "id": 1,
+  "name": "Home Library",
+  "description": "Main house book collection",
+  "owner_id": "user@example.com"
+}
+```
+
+### PUT /api/locations?id=:id
+
+Update a location's details.
+
+#### Request
+```http
+PUT /api/locations?id=1
+Authorization: Bearer user@example.com
+Content-Type: application/json
+
+{
+  "name": "Updated Library Name",
+  "description": "Updated description"
+}
+```
+
+### DELETE /api/locations?id=:id
+
+Delete a location and all its shelves.
+
+#### Request
+```http
+DELETE /api/locations?id=1
+Authorization: Bearer user@example.com
+```
+
+## Shelf Management
+
+### GET /api/locations/:id/shelves
+
+Get all shelves in a specific location.
+
+#### Request
+```http
+GET /api/locations/1/shelves
+Authorization: Bearer user@example.com
+```
+
+#### Response
+```json
+[
+  {
+    "id": 1,
+    "name": "my first shelf",
+    "location_id": 1,
+    "created_at": "2024-01-15T10:30:00Z"
+  },
+  {
+    "id": 2,
+    "name": "Fiction",
+    "location_id": 1,
+    "created_at": "2024-01-15T11:00:00Z"
+  }
+]
+```
+
+### POST /api/locations/:id/shelves
+
+Create a new shelf in a location.
+
+#### Request
+```http
+POST /api/locations/1/shelves
+Authorization: Bearer user@example.com
+Content-Type: application/json
+
+{
+  "name": "Science Fiction"
+}
+```
+
+#### Response
+```json
+{
+  "id": 3,
+  "name": "Science Fiction",
+  "location_id": 1,
+  "created_at": "2024-01-15T12:00:00Z"
+}
+```
+
+### PUT /api/locations/:id/shelves?shelfId=:shelfId
+
+Update a shelf's name.
+
+#### Request
+```http
+PUT /api/locations/1/shelves?shelfId=2
+Authorization: Bearer user@example.com
+Content-Type: application/json
+
+{
+  "name": "Fantasy & Fiction"
+}
+```
+
+### DELETE /api/locations/:id/shelves?shelfId=:shelfId
+
+Delete a shelf.
+
+#### Request
+```http
+DELETE /api/locations/1/shelves?shelfId=2
+Authorization: Bearer user@example.com
+```
+
+## Book Management
 
 ### GET /api/books
 
-Retrieve all books in the library.
+Get all books accessible to the authenticated user.
 
 #### Request
 ```http
 GET /api/books
+Authorization: Bearer user@example.com
 ```
 
 #### Response
@@ -35,18 +225,15 @@ GET /api/books
     "thumbnail": "https://covers.openlibrary.org/b/id/123-M.jpg",
     "published_date": "2023",
     "categories": ["Fiction", "Mystery"],
-    "location": "basement",
+    "shelf_id": 1,
     "tags": ["fiction", "favorite"],
-    "created_at": "2024-01-15T10:30:00Z"
+    "added_by": "user@example.com",
+    "created_at": "2024-01-15T10:30:00Z",
+    "shelf_name": "Fiction",
+    "location_name": "Home Library"
   }
 ]
 ```
-
-#### Status Codes
-- `200 OK`: Success
-- `500 Internal Server Error`: Database error
-
----
 
 ### POST /api/books
 
@@ -55,6 +242,7 @@ Add a new book to the library.
 #### Request
 ```http
 POST /api/books
+Authorization: Bearer user@example.com
 Content-Type: application/json
 
 {
@@ -65,7 +253,7 @@ Content-Type: application/json
   "thumbnail": "https://covers.openlibrary.org/b/id/123-M.jpg",
   "published_date": "2023",
   "categories": ["Fiction", "Mystery"],
-  "location": "basement",
+  "shelf_id": 1,
   "tags": ["fiction", "favorite"]
 }
 ```
@@ -80,56 +268,24 @@ Content-Type: application/json
 - `thumbnail`: String - Cover image URL
 - `published_date`: String - Publication date
 - `categories`: Array of strings - Book categories/genres
-- `location`: String - Physical location
+- `shelf_id`: Number - ID of the shelf to place the book
 - `tags`: Array of strings - Custom tags
-
-#### Response
-```json
-{
-  "success": true
-}
-```
-
-#### Status Codes
-- `200 OK`: Book added successfully
-- `400 Bad Request`: Invalid request data
-- `500 Internal Server Error`: Database error
-
----
 
 ### PUT /api/books/:id
 
-Update an existing book.
+Update an existing book (currently supports shelf_id and tags only).
 
 #### Request
 ```http
 PUT /api/books/1
+Authorization: Bearer user@example.com
 Content-Type: application/json
 
 {
-  "location": "julie's room",
+  "shelf_id": 2,
   "tags": ["fiction", "read", "favorite"]
 }
 ```
-
-#### Updatable Fields
-- `location`: String - Physical location
-- `tags`: Array of strings - Custom tags
-
-#### Response
-```json
-{
-  "success": true
-}
-```
-
-#### Status Codes
-- `200 OK`: Book updated successfully
-- `404 Not Found`: Book ID not found
-- `400 Bad Request`: Invalid request data
-- `500 Internal Server Error`: Database error
-
----
 
 ### DELETE /api/books/:id
 
@@ -138,24 +294,45 @@ Remove a book from the library.
 #### Request
 ```http
 DELETE /api/books/1
+Authorization: Bearer user@example.com
 ```
-
-#### Response
-```json
-{
-  "success": true
-}
-```
-
-#### Status Codes
-- `200 OK`: Book deleted successfully
-- `404 Not Found`: Book ID not found
-- `500 Internal Server Error`: Database error
 
 ## Data Types
 
-### Book Object
+### User Object
+```typescript
+interface User {
+  id: string;              // Email address
+  email: string;           // Email address
+  first_name?: string;     // First name from Google
+  last_name?: string;      // Last name from Google
+  created_at?: string;     // Timestamp
+  updated_at?: string;     // Timestamp
+}
+```
 
+### Location Object
+```typescript
+interface Location {
+  id?: number;             // Auto-generated ID
+  name: string;            // Location name
+  description?: string;    // Optional description
+  owner_id: string;        // User email who owns this location
+  created_at?: string;     // Timestamp
+}
+```
+
+### Shelf Object
+```typescript
+interface Shelf {
+  id?: number;             // Auto-generated ID
+  name: string;            // Shelf name
+  location_id: number;     // Parent location ID
+  created_at?: string;     // Timestamp
+}
+```
+
+### Book Object
 ```typescript
 interface Book {
   id?: number;              // Auto-generated ID
@@ -166,37 +343,31 @@ interface Book {
   thumbnail?: string;       // Cover image URL
   published_date?: string;  // Publication date
   categories?: string[];    // Genres/categories
-  location?: string;        // Physical location
+  shelf_id?: number;        // Shelf ID where book is located
   tags?: string[];          // Custom tags
-  created_at?: string;      // Timestamp (auto-generated)
+  added_by: string;         // User email who added the book
+  created_at?: string;      // Timestamp
+  shelf_name?: string;      // Shelf name (populated in GET responses)
+  location_name?: string;   // Location name (populated in GET responses)
 }
 ```
-
-### Location Values
-
-Valid location strings:
-- `"basement"`
-- `"julie's room"`
-- `"tim's room"`
-- `"bench"`
-- `"julie's office"`
-- `"little library"`
 
 ## Error Responses
 
 ### General Error Format
 ```json
 {
-  "error": "Error message description",
-  "code": "ERROR_CODE"
+  "error": "Error message description"
 }
 ```
 
-### Common Error Codes
-- `INVALID_REQUEST`: Malformed request
-- `MISSING_REQUIRED_FIELD`: Required field not provided
-- `BOOK_NOT_FOUND`: Book ID doesn't exist
-- `DATABASE_ERROR`: Internal database error
+### Common HTTP Status Codes
+- `200 OK`: Success
+- `400 Bad Request`: Invalid request data
+- `401 Unauthorized`: Missing or invalid authentication
+- `403 Forbidden`: Access denied to resource
+- `404 Not Found`: Resource not found
+- `500 Internal Server Error`: Database or server error
 
 ## CORS
 
@@ -205,18 +376,44 @@ The API includes CORS headers to allow browser requests:
 ```http
 Access-Control-Allow-Origin: *
 Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
-Access-Control-Allow-Headers: Content-Type
+Access-Control-Allow-Headers: Content-Type, Authorization
 ```
-
-## Rate Limiting
-
-Currently no rate limiting is implemented. Consider adding rate limiting for production use.
 
 ## Examples
 
-### Adding a Book
+### Complete Workflow Example
+
 ```bash
-curl -X POST https://libarycard-api.your-account.workers.dev/api/books \
+# 1. Create a user (called automatically by OAuth)
+curl -X POST https://libarycard-api.tim-arnold.workers.dev/api/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "user@example.com",
+    "email": "user@example.com", 
+    "first_name": "John",
+    "last_name": "Doe"
+  }'
+
+# 2. Create a location
+curl -X POST https://libarycard-api.tim-arnold.workers.dev/api/locations \
+  -H "Authorization: Bearer user@example.com" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Home Library",
+    "description": "Main collection at home"
+  }'
+
+# 3. Add a shelf to the location
+curl -X POST https://libarycard-api.tim-arnold.workers.dev/api/locations/1/shelves \
+  -H "Authorization: Bearer user@example.com" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Science Fiction"
+  }'
+
+# 4. Add a book to the shelf
+curl -X POST https://libarycard-api.tim-arnold.workers.dev/api/books \
+  -H "Authorization: Bearer user@example.com" \
   -H "Content-Type: application/json" \
   -d '{
     "isbn": "9780451524935",
@@ -224,58 +421,36 @@ curl -X POST https://libarycard-api.your-account.workers.dev/api/books \
     "authors": ["George Orwell"],
     "description": "A dystopian social science fiction novel...",
     "categories": ["Fiction", "Dystopian"],
-    "location": "basement",
+    "shelf_id": 1,
     "tags": ["classic", "dystopian"]
   }'
+
+# 5. Get all books
+curl -H "Authorization: Bearer user@example.com" \
+  https://libarycard-api.tim-arnold.workers.dev/api/books
 ```
 
-### Getting All Books
-```bash
-curl https://libarycard-api.your-account.workers.dev/api/books
-```
+## Security Considerations
 
-### Updating Book Location
-```bash
-curl -X PUT https://libarycard-api.your-account.workers.dev/api/books/1 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "location": "julie'\''s room",
-    "tags": ["classic", "dystopian", "read"]
-  }'
-```
+### Authentication
+- Currently uses email as Bearer token for simplicity
+- Production should implement proper JWT verification
+- All endpoints except `/api/users` require authentication
 
-### Deleting a Book
-```bash
-curl -X DELETE https://libarycard-api.your-account.workers.dev/api/books/1
-```
+### Authorization
+- Users can only access their own locations and books
+- Location owners have full control over their locations and shelves
+- Future: implement location sharing between users
 
-## Database Schema
+### Data Privacy
+- User emails are used only for identification
+- No sensitive personal data is stored
+- Book data is public information (ISBN lookups)
+- Users have full control over their data
 
-The API uses this SQLite schema:
+## Rate Limiting
 
-```sql
-CREATE TABLE books (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  isbn TEXT NOT NULL,
-  title TEXT NOT NULL,
-  authors TEXT NOT NULL,     -- JSON array
-  description TEXT,
-  thumbnail TEXT,
-  published_date TEXT,
-  categories TEXT,          -- JSON array
-  location TEXT,
-  tags TEXT,               -- JSON array
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-## Future Enhancements
-
-Potential API improvements:
-- Authentication/authorization
-- Rate limiting
-- Pagination for large libraries
-- Advanced search endpoints
-- Bulk operations
-- Reading status tracking
-- Book recommendations
+Currently no rate limiting is implemented. For production deployment, consider:
+- Request rate limits per user
+- Bulk operation limits
+- API key management for external integrations

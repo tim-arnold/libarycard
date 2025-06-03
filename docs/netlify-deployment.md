@@ -1,11 +1,11 @@
 # Netlify Deployment Guide
 
-This guide walks you through deploying LibraryCard to Netlify with your existing Cloudflare Workers API.
+This guide walks you through deploying LibaryCard to Netlify with your existing Cloudflare Workers API.
 
 ## Prerequisites
 
 1. **Netlify Account**: [Sign up for free](https://app.netlify.com/signup)
-2. **GitHub Repository**: Your LibraryCard repo (already done ✅)
+2. **GitHub Repository**: Your LibaryCard repo (already done ✅)
 3. **Cloudflare Worker**: Your API should be deployed and working (already done ✅)
 
 ## Step 1: Connect Repository to Netlify
@@ -161,7 +161,7 @@ git push origin main
 - Unlimited personal sites
 - Custom domains included
 
-**Perfect for personal use!** LibraryCard should easily fit within free limits.
+**Perfect for personal use!** LibaryCard should easily fit within free limits.
 
 ## Monitoring and Analytics
 
@@ -245,4 +245,4 @@ After successful deployment:
 4. **Monitor usage** and performance
 5. **Regular data exports** for backup
 
-Your LibraryCard app is now live and ready to manage your book collection! 🎉
+Your LibaryCard app is now live and ready to manage your book collection! 🎉

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchBookData } from '@/lib/bookApi'
 import { saveBook as saveBookAPI } from '@/lib/api'
-import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library'
+import { BrowserMultiFormatReader } from '@zxing/library'
 
 export interface Book {
   id: string
@@ -52,13 +52,10 @@ export default function ISBNScanner() {
 
   useEffect(() => {
     // Initialize ZXing scanner
-    console.log('Initializing ZXing scanner...')
     try {
       const reader = new BrowserMultiFormatReader()
       setCodeReader(reader)
-      console.log('ZXing scanner initialized successfully:', !!reader)
     } catch (error) {
-      console.error('Failed to initialize ZXing scanner:', error)
       setError('Failed to initialize barcode scanner. Please refresh the page.')
     }
 
@@ -86,17 +83,13 @@ export default function ISBNScanner() {
         setAllShelves(allShelvesData)
       }
     } catch (error) {
-      console.error('Failed to load locations and shelves:', error)
+      // Handle error silently
     } finally {
       setLoadingData(false)
     }
   }
 
   const startScanner = async () => {
-    console.log('startScanner called')
-    console.log('scannerRef.current:', !!scannerRef.current)
-    console.log('codeReader:', !!codeReader)
-    
     if (!scannerRef.current) {
       setError('Scanner element not found. Please refresh the page.')
       return
@@ -111,9 +104,6 @@ export default function ISBNScanner() {
     setIsScannerLoading(true)
     setError('')
 
-    console.log('Starting ZXing scanner...')
-    console.log('Navigator mediaDevices available:', !!navigator.mediaDevices)
-    console.log('getUserMedia available:', !!navigator.mediaDevices?.getUserMedia)
 
     try {
       // Check basic browser support first
@@ -125,14 +115,12 @@ export default function ISBNScanner() {
       }
 
       // Request camera permission first (iOS requirement)
-      console.log('Requesting camera permission...')
       await requestCameraPermission()
       
       // Start ZXing scanner
       await startZXingScanner()
       
     } catch (error: any) {
-      console.error('Scanner error:', error)
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
         setError('Camera permission denied. Please allow camera access in your browser settings and try again.')
       } else if (error.name === 'NotFoundError') {
@@ -147,7 +135,6 @@ export default function ISBNScanner() {
 
   const requestCameraPermission = async () => {
     try {
-      console.log('Testing camera access...')
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
@@ -156,18 +143,11 @@ export default function ISBNScanner() {
         }
       })
       
-      console.log('Camera permission granted, stopping test stream...')
       // Stop the test stream immediately
       stream.getTracks().forEach(track => {
         track.stop()
-        console.log('Stopped track:', track.label)
       })
-      
-      console.log('Camera permission test completed successfully')
     } catch (error: any) {
-      console.error('Camera permission failed:', error)
-      console.error('Error name:', error.name)
-      console.error('Error message:', error.message)
       throw error
     }
   }
@@ -178,7 +158,6 @@ export default function ISBNScanner() {
     }
 
     try {
-      console.log('Starting ZXing barcode scanning...')
       
       // Create video element for camera preview
       const videoElement = document.createElement('video')
@@ -192,27 +171,21 @@ export default function ISBNScanner() {
       scannerRef.current.appendChild(videoElement)
       
       // Start continuous scanning
-      console.log('Starting continuous decode from video device...')
       await codeReader.decodeFromVideoDevice(
         null, // Use default camera
         videoElement,
-        (result, error) => {
+        (result) => {
           if (result) {
-            console.log('ZXing barcode detected:', result.getText())
             stopScanner()
             handleISBNDetected(result.getText())
           }
-          if (error && !(error instanceof NotFoundException)) {
-            console.log('ZXing scan error (continuing):', error)
-          }
+          // Ignore scan errors - they're normal during scanning
         }
       )
       
       setIsScannerLoading(false)
-      console.log('ZXing scanner started successfully')
       
     } catch (error) {
-      console.error('ZXing scanner failed:', error)
       setIsScannerLoading(false)
       throw error
     }
@@ -227,9 +200,8 @@ export default function ISBNScanner() {
     if (codeReader) {
       try {
         codeReader.reset()
-        console.log('ZXing scanner stopped and reset')
       } catch (e) {
-        console.log('ZXing stop error (ignored):', e)
+        // Ignore stop errors
       }
     }
     
@@ -252,7 +224,6 @@ export default function ISBNScanner() {
       }
     } catch (err) {
       setError('Failed to fetch book data')
-      console.error('Book fetch error:', err)
     } finally {
       setIsLoading(false)
     }
@@ -294,14 +265,6 @@ export default function ISBNScanner() {
       
       {!isScanning && !scannedBook && (
         <div>
-          <div style={{ marginBottom: '1rem', padding: '0.5rem', background: '#f0f0f0', borderRadius: '0.25rem', fontSize: '0.8em' }}>
-            <strong>Debug Status:</strong><br />
-            Scanner Element: {scannerRef.current ? '✅ Ready' : '❌ Not Found'}<br />
-            ZXing Reader: {codeReader ? '✅ Initialized' : '❌ Not Ready'}<br />
-            Loading: {isScannerLoading ? 'Yes' : 'No'}<br />
-            Scanning: {isScanning ? 'Yes' : 'No'}
-          </div>
-          
           <button 
             className="btn" 
             onClick={startScanner}
@@ -322,23 +285,6 @@ export default function ISBNScanner() {
               <p style={{ fontSize: '0.9em', color: '#856404' }}>
                 {error}
               </p>
-              <details style={{ marginTop: '0.5rem' }}>
-                <summary style={{ fontSize: '0.8em', cursor: 'pointer' }}>Debug Info & Help</summary>
-                <div style={{ fontSize: '0.7em', marginTop: '0.25rem' }}>
-                  <p><strong>Browser:</strong> {navigator.userAgent.includes('iPhone') ? 'iPhone' : navigator.userAgent.includes('Android') ? 'Android' : 'Desktop'}</p>
-                  <p><strong>HTTPS:</strong> {location.protocol === 'https:' ? 'Yes ✅' : 'No ❌ (Required for camera)'}</p>
-                  <p><strong>MediaDevices:</strong> {navigator.mediaDevices ? 'Available ✅' : 'Not Available ❌'}</p>
-                  <p><strong>getUserMedia:</strong> {typeof navigator.mediaDevices?.getUserMedia === 'function' ? 'Available ✅' : 'Not Available ❌'}</p>
-                  
-                  <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: '#f8f9fa', borderRadius: '0.25rem' }}>
-                    <p style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>Camera Permission Help:</p>
-                    <p>• Make sure to allow camera access when prompted</p>
-                    <p>• iOS Safari: Settings &gt; Safari &gt; Camera &gt; Allow</p>
-                    <p>• iOS Chrome: Long-press reload button &gt; Request Desktop Site (try this)</p>
-                    <p>• Check if another app is using the camera</p>
-                  </div>
-                </div>
-              </details>
             </div>
           )}
           

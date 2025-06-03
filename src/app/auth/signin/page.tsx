@@ -30,7 +30,7 @@ export default function SignIn() {
   return (
     <div className="container" style={{ maxWidth: '400px', margin: '4rem auto', textAlign: 'center' }}>
       <div className="card">
-        <h1 style={{ marginBottom: '2rem' }}>📚 LibraryCard</h1>
+        <h1 style={{ marginBottom: '2rem' }}>📚 LibaryCard</h1>
         <p style={{ marginBottom: '2rem', color: '#666' }}>
           Sign in with Google to start managing your book collection
         </p>

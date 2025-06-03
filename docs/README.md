@@ -1,6 +1,6 @@
-# LibraryCard Documentation
+# LibaryCard Documentation
 
-Welcome to the LibraryCard documentation! This directory contains comprehensive guides for setting up, deploying, and using your personal book library management system.
+Welcome to the LibaryCard documentation! This directory contains comprehensive guides for setting up, deploying, and using your personal book library management system.
 
 ## Documentation Overview
 

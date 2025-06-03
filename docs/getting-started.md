@@ -1,6 +1,6 @@
-# Getting Started with LibraryCard
+# Getting Started with LibaryCard
 
-LibraryCard is a personal book library management system that lets you scan ISBN barcodes to automatically catalog your books with location tracking and custom tagging.
+LibaryCard is a personal book library management system that lets you scan ISBN barcodes to automatically catalog your books with location tracking and custom tagging.
 
 ## Quick Start
 

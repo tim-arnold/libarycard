@@ -1,26 +1,92 @@
 # Database Schema
 
-LibraryCard uses Cloudflare D1, a distributed SQLite database, to store book information and user data.
+LibaryCard uses Cloudflare D1, a distributed SQLite database, to store user accounts, locations, shelves, and book information in a multi-user architecture.
 
 ## Table Structure
 
+### Users Table
+
+Stores Google OAuth user information:
+
+```sql
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY, -- Google user ID (email)
+  email TEXT UNIQUE NOT NULL,
+  first_name TEXT,
+  last_name TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### Locations Table
+
+Physical locations where books are stored (e.g., "Home", "Office"):
+
+```sql
+CREATE TABLE IF NOT EXISTS locations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  description TEXT,
+  owner_id TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (owner_id) REFERENCES users(id)
+);
+```
+
+### Location Members Table
+
+For sharing locations between users (future feature):
+
+```sql
+CREATE TABLE IF NOT EXISTS location_members (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  location_id INTEGER NOT NULL,
+  user_id TEXT NOT NULL,
+  role TEXT DEFAULT 'member', -- 'owner', 'member'
+  invited_by TEXT,
+  joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (location_id) REFERENCES locations(id),
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  FOREIGN KEY (invited_by) REFERENCES users(id),
+  UNIQUE(location_id, user_id)
+);
+```
+
+### Shelves Table
+
+Shelves within locations (e.g., "Fiction", "Reference", "my first shelf"):
+
+```sql
+CREATE TABLE IF NOT EXISTS shelves (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  location_id INTEGER NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (location_id) REFERENCES locations(id)
+);
+```
+
 ### Books Table
 
-The main table storing all book information:
+Individual book records:
 
 ```sql
 CREATE TABLE IF NOT EXISTS books (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   isbn TEXT NOT NULL,
   title TEXT NOT NULL,
-  authors TEXT NOT NULL,
+  authors TEXT NOT NULL, -- JSON array
   description TEXT,
   thumbnail TEXT,
   published_date TEXT,
-  categories TEXT,
-  location TEXT,
-  tags TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  categories TEXT, -- JSON array
+  shelf_id INTEGER, -- Reference to shelves table
+  tags TEXT, -- JSON array
+  added_by TEXT NOT NULL, -- User who added the book
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (shelf_id) REFERENCES shelves(id),
+  FOREIGN KEY (added_by) REFERENCES users(id)
 );
 ```
 
@@ -29,362 +95,328 @@ CREATE TABLE IF NOT EXISTS books (
 Optimized indexes for common query patterns:
 
 ```sql
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_locations_owner ON locations(owner_id);
+CREATE INDEX idx_location_members_location ON location_members(location_id);
+CREATE INDEX idx_location_members_user ON location_members(user_id);
+CREATE INDEX idx_shelves_location ON shelves(location_id);
 CREATE INDEX idx_books_isbn ON books(isbn);
-CREATE INDEX idx_books_location ON books(location);
+CREATE INDEX idx_books_shelf ON books(shelf_id);
+CREATE INDEX idx_books_added_by ON books(added_by);
 CREATE INDEX idx_books_created_at ON books(created_at);
 ```
 
+## Data Relationships
+
+### Entity Relationship Diagram
+
+```
+users (1) ←→ (n) locations
+  ↓
+  (1) ←→ (n) location_members
+  ↓
+  (1) ←→ (n) books (added_by)
+
+locations (1) ←→ (n) shelves
+shelves (1) ←→ (n) books (shelf_id)
+```
+
+### Key Relationships
+
+1. **Users → Locations**: One user can own multiple locations
+2. **Users → Location Members**: Users can be members of shared locations (future)
+3. **Users → Books**: Users can add books to any accessible location
+4. **Locations → Shelves**: Each location contains multiple shelves
+5. **Shelves → Books**: Books are assigned to specific shelves
+
 ## Column Details
 
-### Primary Key
-- **id**: Auto-incrementing integer primary key
-  - Type: `INTEGER PRIMARY KEY AUTOINCREMENT`
-  - Usage: Unique identifier for each book
-  - Example: `1`, `2`, `3`
+### Users Table
 
-### Required Fields
-- **isbn**: International Standard Book Number
-  - Type: `TEXT NOT NULL`
-  - Format: 13-digit string (stored as text to preserve leading zeros)
-  - Example: `"9780451524935"`
+- **id**: User's email address (from Google OAuth)
+- **email**: Email address (unique constraint)
+- **first_name/last_name**: From Google profile
+- **created_at/updated_at**: Timestamp tracking
 
+### Locations Table
+
+- **id**: Auto-incrementing primary key
+- **name**: User-defined location name (e.g., "Home Library", "Office")
+- **description**: Optional description
+- **owner_id**: References users.id (email)
+
+### Shelves Table
+
+- **id**: Auto-incrementing primary key
+- **name**: Shelf name (e.g., "Fiction", "my first shelf")
+- **location_id**: Parent location reference
+
+### Books Table
+
+- **id**: Auto-incrementing primary key
+- **isbn**: 13-digit ISBN as text
 - **title**: Book title
-  - Type: `TEXT NOT NULL`
-  - Example: `"1984"`
-
-- **authors**: Book authors as JSON array
-  - Type: `TEXT NOT NULL`
-  - Format: JSON array of strings
-  - Example: `["George Orwell"]`, `["J.R.R. Tolkien", "Christopher Tolkien"]`
-
-### Optional Metadata
-- **description**: Book description/summary
-  - Type: `TEXT`
-  - Source: Google Books API or OpenLibrary
-  - Example: `"A dystopian social science fiction novel..."`
-
+- **authors**: JSON array of author names
+- **description**: Book description from API
 - **thumbnail**: Cover image URL
-  - Type: `TEXT`
-  - Source: Google Books or OpenLibrary
-  - Example: `"https://books.google.com/books/content?id=kotPYEqx7kMC&printsec=frontcover&img=1&zoom=1&source=gbs_api"`
-
 - **published_date**: Publication date
-  - Type: `TEXT`
-  - Format: Various (year, or full date)
-  - Example: `"1949"`, `"2023-01-15"`
+- **categories**: JSON array of genres/categories
+- **shelf_id**: Reference to shelves table (nullable)
+- **tags**: JSON array of user-defined tags
+- **added_by**: User email who added the book
 
-- **categories**: Book genres/categories as JSON array
-  - Type: `TEXT`
-  - Format: JSON array of strings
-  - Source: Automatically detected from book APIs
-  - Example: `["Fiction", "Dystopian", "Literature"]`
+## Default Data
 
-### User-Defined Fields
-- **location**: Physical location of the book
-  - Type: `TEXT`
-  - Valid values: `"basement"`, `"julie's room"`, `"tim's room"`, `"bench"`, `"julie's office"`, `"little library"`
-  - Example: `"basement"`
+### Automatic Shelf Creation
 
-- **tags**: Custom user tags as JSON array
-  - Type: `TEXT`
-  - Format: JSON array of strings
-  - Example: `["fiction", "classic", "read", "favorite"]`
+When a new location is created, it automatically gets one default shelf:
 
-### System Fields
-- **created_at**: Record creation timestamp
-  - Type: `DATETIME DEFAULT CURRENT_TIMESTAMP`
-  - Format: ISO 8601 datetime
-  - Example: `"2024-01-15T10:30:00Z"`
+```sql
+INSERT INTO shelves (name, location_id, created_at)
+VALUES ('my first shelf', NEW.location_id, datetime('now'));
+```
 
-## Data Formats
+Users can rename this shelf or add additional shelves as needed.
 
-### JSON Array Fields
+## JSON Data Formats
 
-Several fields store arrays as JSON strings:
-
-#### Authors
+### Authors Field
 ```json
 ["George Orwell"]
 ["J.K. Rowling"]
 ["Douglas Adams", "Christopher Cerf"]
 ```
 
-#### Categories
+### Categories Field
 ```json
 ["Fiction"]
 ["Science Fiction", "Humor"]
 ["History", "Biography", "Politics"]
 ```
 
-#### Tags
+### Tags Field
 ```json
 ["fiction", "read"]
 ["reference", "cookbook", "favorite"]
 ["children", "picture-book", "library"]
 ```
 
-## Query Examples
+## Common Queries
 
-### Basic Queries
-
-#### Get All Books
+### User's Books with Location Info
 ```sql
-SELECT * FROM books ORDER BY created_at DESC;
+SELECT b.*, s.name as shelf_name, l.name as location_name
+FROM books b
+LEFT JOIN shelves s ON b.shelf_id = s.id
+LEFT JOIN locations l ON s.location_id = l.id
+LEFT JOIN location_members lm ON l.id = lm.location_id
+WHERE b.added_by = ? OR l.owner_id = ? OR lm.user_id = ?
+ORDER BY b.created_at DESC;
 ```
 
-#### Find Book by ISBN
+### User's Locations
 ```sql
-SELECT * FROM books WHERE isbn = '9780451524935';
+SELECT l.* FROM locations l
+LEFT JOIN location_members lm ON l.id = lm.location_id
+WHERE l.owner_id = ? OR lm.user_id = ?
+ORDER BY l.created_at DESC;
 ```
 
-#### Books in Specific Location
+### Shelves in a Location
 ```sql
-SELECT * FROM books WHERE location = 'basement';
+SELECT * FROM shelves 
+WHERE location_id = ? 
+ORDER BY name;
 ```
 
-### JSON Queries
-
-SQLite supports JSON functions for array fields:
-
-#### Books by Specific Author
+### Books on a Specific Shelf
 ```sql
-SELECT * FROM books 
-WHERE JSON_EXTRACT(authors, '$[0]') = 'George Orwell'
-   OR authors LIKE '%"George Orwell"%';
+SELECT b.*, s.name as shelf_name, l.name as location_name
+FROM books b
+JOIN shelves s ON b.shelf_id = s.id
+JOIN locations l ON s.location_id = l.id
+WHERE s.id = ?
+ORDER BY b.title;
 ```
 
-#### Books with Specific Tag
+### Access Control Check
 ```sql
-SELECT * FROM books 
-WHERE tags LIKE '%"fiction"%';
-```
-
-#### Books in Specific Category
-```sql
-SELECT * FROM books 
-WHERE categories LIKE '%"Science Fiction"%';
-```
-
-### Aggregation Queries
-
-#### Count by Location
-```sql
-SELECT 
-  location, 
-  COUNT(*) as count 
-FROM books 
-WHERE location IS NOT NULL 
-GROUP BY location 
-ORDER BY count DESC;
-```
-
-#### Recent Additions
-```sql
-SELECT * FROM books 
-ORDER BY created_at DESC 
-LIMIT 10;
-```
-
-#### Books Without Location
-```sql
-SELECT * FROM books 
-WHERE location IS NULL OR location = '';
+-- Check if user has access to a location
+SELECT 1 FROM locations l
+LEFT JOIN location_members lm ON l.id = lm.location_id
+WHERE l.id = ? AND (l.owner_id = ? OR lm.user_id = ?);
 ```
 
 ## Data Validation
 
-### Application-Level Validation
-
-The API validates data before insertion:
+### Application-Level Constraints
 
 ```typescript
-// Required fields validation
+// User validation
+if (!user.id || !user.email) {
+  throw new Error('User ID and email required');
+}
+
+// Location validation
+if (!location.name || !location.owner_id) {
+  throw new Error('Location name and owner required');
+}
+
+// Shelf validation
+if (!shelf.name || !shelf.location_id) {
+  throw new Error('Shelf name and location required');
+}
+
+// Book validation
 if (!book.isbn || !book.title || !book.authors || book.authors.length === 0) {
-  throw new Error('Missing required fields');
+  throw new Error('ISBN, title, and authors required');
 }
 
 // ISBN format validation
 if (!/^\d{13}$/.test(book.isbn)) {
   throw new Error('Invalid ISBN format');
 }
-
-// Location validation
-const validLocations = [
-  'basement', 
-  "julie's room", 
-  "tim's room", 
-  'bench', 
-  "julie's office", 
-  'little library'
-];
-if (book.location && !validLocations.includes(book.location)) {
-  throw new Error('Invalid location');
-}
 ```
 
 ### Database Constraints
 
-- `NOT NULL` constraints on required fields
-- `PRIMARY KEY` ensures unique IDs
+- Foreign key constraints ensure referential integrity
+- Unique constraints prevent duplicate location memberships
+- NOT NULL constraints on required fields
 - Indexes improve query performance
 
-## Migration Strategy
+## Migration History
 
-### Schema Updates
+### Version 1.0 (Initial)
+- Simple books table with location as string field
 
-When updating the schema:
-
-1. **Update schema.sql** with new structure
-2. **Create migration script** for existing data
-3. **Test locally** before production deployment
-4. **Apply to production** during low-traffic periods
-
-### Example Migration
-
-Adding a new column:
-
-```sql
--- Migration: Add reading_status column
-ALTER TABLE books ADD COLUMN reading_status TEXT DEFAULT 'unread';
-
--- Update index if needed
-CREATE INDEX idx_books_reading_status ON books(reading_status);
-```
-
-## Backup and Recovery
-
-### Data Export
-
-Export all data for backup:
-
-```sql
--- Export as JSON (application level)
-SELECT json_group_array(
-  json_object(
-    'id', id,
-    'isbn', isbn,
-    'title', title,
-    'authors', json(authors),
-    'description', description,
-    'thumbnail', thumbnail,
-    'published_date', published_date,
-    'categories', json(categories),
-    'location', location,
-    'tags', json(tags),
-    'created_at', created_at
-  )
-) FROM books;
-```
-
-### Data Import
-
-Restore from backup:
-
-```sql
--- Insert individual records
-INSERT INTO books (
-  isbn, title, authors, description, thumbnail, 
-  published_date, categories, location, tags
-) VALUES (
-  '9780451524935',
-  '1984',
-  '["George Orwell"]',
-  'A dystopian novel...',
-  'https://...',
-  '1949',
-  '["Fiction", "Dystopian"]',
-  'basement',
-  '["classic", "read"]'
-);
-```
+### Version 2.0 (Current Multi-User)
+- Added users, locations, shelves, location_members tables
+- Migrated books.location to books.shelf_id relationship
+- Added authentication and access control
+- Implemented hierarchical location → shelf → book structure
 
 ## Performance Considerations
 
 ### Index Usage
 
-- **ISBN lookups**: Use `idx_books_isbn` for duplicate detection
-- **Location filtering**: Use `idx_books_location` for room-based queries
-- **Recent books**: Use `idx_books_created_at` for chronological sorting
+- **User lookups**: `idx_users_email` for authentication
+- **Location queries**: `idx_locations_owner` for user's locations
+- **Shelf queries**: `idx_shelves_location` for location's shelves  
+- **Book queries**: `idx_books_shelf`, `idx_books_added_by` for user's books
+- **ISBN lookups**: `idx_books_isbn` for duplicate detection
 
 ### Query Optimization
 
-- Use `LIMIT` for large result sets
-- Index frequently queried columns
-- Avoid `SELECT *` when possible
-- Use prepared statements for parameterized queries
+- Use prepared statements for all queries
+- LEFT JOIN for optional relationships (shelf_id can be null)
+- Limit result sets with appropriate WHERE clauses
+- Order by indexed columns when possible
 
-### Storage Limits
+### Storage Estimates
 
-Cloudflare D1 limits (free tier):
-- **Storage**: 25 GB total
-- **Reads**: 5 million per day
-- **Writes**: 100,000 per day
+Based on Cloudflare D1 free tier limits:
+- **25 GB total storage**
+- **5M reads/day, 100K writes/day**
 
-Estimated capacity:
-- ~250,000 books (assuming 100KB average per book with metadata)
-- Suitable for extensive personal libraries
+Estimated capacity per user:
+- ~100 locations per user
+- ~10 shelves per location (1,000 total)
+- ~25,000 books per user
+- Suitable for extensive personal/family libraries
 
-## Security Considerations
+## Security Model
 
-### SQL Injection Prevention
+### Access Control
 
-- Always use prepared statements
-- Validate input parameters
-- Escape special characters in JSON
+1. **User Isolation**: Users can only access their own data
+2. **Location Ownership**: Location owners control all shelves and can assign books
+3. **Book Attribution**: Books track who added them but are accessible by location members
+4. **Future Sharing**: location_members table ready for location sharing feature
 
 ### Data Privacy
 
-- No personal information stored
-- Only book metadata and user-defined locations/tags
-- ISBN numbers are public information
-- Export functionality gives users control of their data
+- Only email addresses stored for user identification
+- No sensitive personal information
+- Book data is public (ISBN-based)
+- Users control their location and shelf organization
 
-## Future Schema Enhancements
+## Backup and Recovery
 
-### Potential Additions
+### Data Export Query
+```sql
+-- Complete library export for a user
+SELECT json_object(
+  'user', json_object(
+    'id', u.id,
+    'email', u.email,
+    'first_name', u.first_name,
+    'last_name', u.last_name
+  ),
+  'locations', (
+    SELECT json_group_array(
+      json_object(
+        'id', l.id,
+        'name', l.name,
+        'description', l.description,
+        'shelves', (
+          SELECT json_group_array(
+            json_object(
+              'id', s.id,
+              'name', s.name,
+              'books', (
+                SELECT json_group_array(
+                  json_object(
+                    'id', b.id,
+                    'isbn', b.isbn,
+                    'title', b.title,
+                    'authors', json(b.authors),
+                    'description', b.description,
+                    'thumbnail', b.thumbnail,
+                    'published_date', b.published_date,
+                    'categories', json(b.categories),
+                    'tags', json(b.tags),
+                    'created_at', b.created_at
+                  )
+                )
+                FROM books b WHERE b.shelf_id = s.id
+              )
+            )
+          )
+          FROM shelves s WHERE s.location_id = l.id
+        )
+      )
+    )
+    FROM locations l WHERE l.owner_id = u.id
+  )
+)
+FROM users u
+WHERE u.id = ?;
+```
 
-1. **User Management**
-   ```sql
-   CREATE TABLE users (
-     id INTEGER PRIMARY KEY,
-     email TEXT UNIQUE,
-     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-   );
-   
-   -- Add user_id to books table
-   ALTER TABLE books ADD COLUMN user_id INTEGER REFERENCES users(id);
-   ```
+## Future Enhancements
 
-2. **Reading Progress**
-   ```sql
-   CREATE TABLE reading_sessions (
-     id INTEGER PRIMARY KEY,
-     book_id INTEGER REFERENCES books(id),
-     started_at DATETIME,
-     finished_at DATETIME,
-     rating INTEGER CHECK(rating >= 1 AND rating <= 5),
-     notes TEXT
-   );
-   ```
+### Planned Features
 
-3. **Book Lending**
-   ```sql
-   CREATE TABLE loans (
-     id INTEGER PRIMARY KEY,
-     book_id INTEGER REFERENCES books(id),
-     borrower_name TEXT,
-     loaned_at DATETIME,
-     returned_at DATETIME
-   );
-   ```
+1. **Location Sharing**
+   - Enable location_members functionality
+   - Invitation system for shared libraries
+   - Role-based permissions (owner/member/read-only)
 
-4. **Full-Text Search**
-   ```sql
-   -- SQLite FTS5 for better search
-   CREATE VIRTUAL TABLE books_fts USING fts5(
-     title, 
-     authors, 
-     description, 
-     content='books'
-   );
-   ```
+2. **Advanced Organization**
+   - Book series tracking
+   - Reading progress/status
+   - Loan tracking (who borrowed what)
+   - Wishlist functionality
+
+3. **Search and Discovery**
+   - Full-text search across titles/authors/descriptions
+   - Tag-based filtering and suggestions
+   - Duplicate detection
+   - Reading recommendations
+
+4. **Data Management**
+   - Bulk operations (import/export)
+   - Data synchronization between users
+   - Archive/restore functionality
+   - Advanced reporting and statistics

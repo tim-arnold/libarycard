@@ -1,13 +1,22 @@
 # User Guide
 
-This guide covers how to use LibraryCard to manage your personal book collection.
+This guide covers how to use LibaryCard to manage your personal book collection.
 
-## Main Interface
+## Getting Started
 
-The app has two main sections accessible via the top navigation:
+### Sign In
+1. Visit the LibaryCard app
+2. Click **"Sign in with Google"**
+3. Grant permissions to access your email for account identification
+4. You'll be redirected to your personal library
 
-- **📱 Scan Books**: Add new books to your library
-- **📖 My Library**: Browse and manage your collection
+### Main Interface
+
+The app has three main sections accessible via the top navigation:
+
+- **📱 Scan Books**: Add new books to your library using camera or manual entry
+- **📖 My Library**: Browse and manage your book collection
+- **🏠 Location Management**: Organize your physical locations and shelves
 
 ## Adding Books
 
@@ -32,15 +41,78 @@ The app has two main sections accessible via the top navigation:
 After scanning or manual lookup:
 
 1. **Verify Details**: Check that title, author, and cover are correct
-2. **Select Location**: Choose from the dropdown menu:
-   - basement
-   - julie's room
-   - tim's room
-   - bench
-   - julie's office
-   - little library
+2. **Select Shelf**: Choose from the organized dropdown menu showing:
+   - Your locations (e.g., "Home", "Office")
+   - Shelves within each location (e.g., "my first shelf", "Fiction", "Reference")
 3. **Add Tags** (optional): Enter comma-separated tags like "fiction, mystery, favorite"
 4. Click **"Save to Library"**
+
+*Note: If you don't have any locations yet, you'll need to create one first in Location Management.*
+
+## Location Management
+
+### Creating Your First Location
+
+When you first use LibaryCard, you'll need to set up at least one location:
+
+1. Click **"🏠 Location Management"** tab
+2. Click **"Create Your First Location"** button
+3. Enter a **Location Name** (e.g., "Home", "Office", "Apartment")
+4. Add an optional **Description**
+5. Click **"Create Location"**
+
+Each new location automatically gets a starter shelf called "my first shelf" that you can rename or organize as needed.
+
+### Managing Locations
+
+#### Adding More Locations
+1. In Location Management, click **"+ Add Location"**
+2. Enter location name and description
+3. Click **"Create Location"**
+
+#### Editing Locations
+1. Find the location card
+2. Click the **"Edit"** button
+3. Update name or description
+4. Click **"Update Location"**
+
+#### Deleting Locations
+1. Find the location card
+2. Click the **"Delete"** button
+3. Confirm deletion (this will also delete all shelves in that location)
+
+### Managing Shelves
+
+#### Adding Shelves
+1. Select a location by clicking on its card
+2. In the "Shelves" section, click **"+ Add Shelf"**
+3. Enter shelf name (e.g., "Fiction", "Cookbooks", "Reference")
+4. Click **"Add Shelf"**
+
+#### Editing Shelves
+1. Find the shelf you want to edit
+2. Click the **"Edit"** button on the shelf card
+3. Update the shelf name
+4. Click **"Update Shelf"**
+
+#### Deleting Shelves
+1. Find the shelf you want to remove
+2. Click the **"Delete"** button on the shelf card
+3. Confirm deletion
+
+*Note: Deleting a shelf won't delete the books - they'll become unassigned and you can move them to other shelves.*
+
+### Organization Tips
+
+#### Location Naming
+- Use clear, descriptive names: "Home Library", "Office", "Beach House"
+- Be consistent with naming conventions
+- Consider grouping by building or area
+
+#### Shelf Organization
+- Start with broad categories: "Fiction", "Non-Fiction", "Reference"
+- Create specific shelves as your collection grows: "Sci-Fi", "Cookbooks", "Biography"
+- Consider organizing by: genre, author, subject, reading status, or physical arrangement
 
 ## Managing Your Library
 

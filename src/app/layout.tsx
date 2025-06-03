@@ -3,7 +3,7 @@ import './globals.css'
 import { Providers } from './providers'
 
 export const metadata: Metadata = {
-  title: 'LibraryCard - Personal Book Collection',
+  title: 'LibaryCard - Personal Book Collection',
   description: 'Scan and manage your personal book library',
 }
 

@@ -1,6 +1,6 @@
 # Local Development Guide
 
-This guide covers setting up LibraryCard for local development, including both frontend and backend components.
+This guide covers setting up LibaryCard for local development, including both frontend and backend components.
 
 ## Prerequisites
 

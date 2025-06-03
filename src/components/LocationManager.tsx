@@ -53,7 +53,6 @@ export default function LocationManager() {
         }
       }
     } catch (error) {
-      console.error('Failed to load locations:', error)
       setError('Failed to load locations')
     } finally {
       setLoading(false)
@@ -68,7 +67,7 @@ export default function LocationManager() {
         setShelves(data)
       }
     } catch (error) {
-      console.error('Failed to load shelves:', error)
+      // Handle error silently
     }
   }
 
@@ -107,7 +106,6 @@ export default function LocationManager() {
         setError('Failed to create location')
       }
     } catch (error) {
-      console.error('Failed to create location:', error)
       setError('Failed to create location')
     }
   }
@@ -144,7 +142,6 @@ export default function LocationManager() {
         setError('Failed to update location')
       }
     } catch (error) {
-      console.error('Failed to update location:', error)
       setError('Failed to update location')
     }
   }
@@ -170,7 +167,6 @@ export default function LocationManager() {
         setError('Failed to delete location')
       }
     } catch (error) {
-      console.error('Failed to delete location:', error)
       setError('Failed to delete location')
     }
   }
@@ -207,7 +203,6 @@ export default function LocationManager() {
         setError('Failed to create shelf')
       }
     } catch (error) {
-      console.error('Failed to create shelf:', error)
       setError('Failed to create shelf')
     }
   }
@@ -239,7 +234,6 @@ export default function LocationManager() {
         setError('Failed to update shelf')
       }
     } catch (error) {
-      console.error('Failed to update shelf:', error)
       setError('Failed to update shelf')
     }
   }
@@ -260,7 +254,6 @@ export default function LocationManager() {
         setError('Failed to delete shelf')
       }
     } catch (error) {
-      console.error('Failed to delete shelf:', error)
       setError('Failed to delete shelf')
     }
   }

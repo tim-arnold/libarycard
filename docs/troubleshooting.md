@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-This guide covers common issues you might encounter while using or deploying LibraryCard.
+This guide covers common issues you might encounter while using or deploying LibaryCard.
 
 ## Camera and Scanning Issues
 

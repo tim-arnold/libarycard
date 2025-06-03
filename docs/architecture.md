@@ -1,6 +1,6 @@
 # Architecture Overview
 
-LibraryCard is built as a modern, serverless web application using Cloudflare's edge computing platform for optimal performance and cost-effectiveness.
+LibaryCard is built as a modern, serverless web application using Cloudflare's edge computing platform for optimal performance and cost-effectiveness.
 
 ## System Architecture
 

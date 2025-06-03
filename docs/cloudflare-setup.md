@@ -1,6 +1,6 @@
 # Cloudflare Setup Guide
 
-This guide walks you through setting up the complete Cloudflare infrastructure for LibraryCard, including D1 database, Workers API, and Pages deployment.
+This guide walks you through setting up the complete Cloudflare infrastructure for LibaryCard, including D1 database, Workers API, and Pages deployment.
 
 ## Prerequisites
 
@@ -142,7 +142,7 @@ This guide walks you through setting up the complete Cloudflare infrastructure f
 ### Add Custom Domain
 
 1. **In Cloudflare Pages dashboard**:
-   - Go to your LibraryCard project
+   - Go to your LibaryCard project
    - Click "Custom domains" tab
    - Click "Set up a custom domain"
 

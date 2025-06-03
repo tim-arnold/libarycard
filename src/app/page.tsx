@@ -33,7 +33,7 @@ export default function Home() {
     <div className="container">
       <header style={{ padding: '2rem 0', textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h1>📚 LibraryCard</h1>
+          <h1>📚 LibaryCard</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <span style={{ fontSize: '0.9em', color: '#666' }}>
               Hello, {session.user?.name?.split(' ')[0]}!
@@ -65,7 +65,7 @@ export default function Home() {
           className={`btn ${activeTab === 'library' ? '' : 'btn-secondary'}`}
           onClick={() => setActiveTab('library')}
         >
-          📖 My Library
+          📖 My Libary
         </button>
       </nav>
 

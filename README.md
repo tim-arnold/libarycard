@@ -1,4 +1,4 @@
-# LibraryCard 📚
+# LibaryCard 📚
 
 A personal book collection management app that allows you to scan ISBN barcodes to automatically add books to your digital library.
 
