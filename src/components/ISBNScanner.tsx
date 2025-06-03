@@ -102,15 +102,17 @@ export default function ISBNScanner() {
     setError('')
 
     try {
-      // Try native BarcodeDetector first (better mobile support)
-      if ('BarcodeDetector' in window) {
-        await startNativeBarcodeDetector()
-      } else if (typeof window !== 'undefined' && window.Quagga) {
-        await startQuaggaScanner()
-      } else {
-        setError('Camera scanning not supported on this device. Please use manual ISBN entry.')
+      // Check if we can access the camera first
+      const hasCamera = await checkCameraAccess()
+      if (!hasCamera) {
+        setError('Camera access denied or not available. Please use manual ISBN entry.')
         setIsScanning(false)
+        return
       }
+
+      // Try simple video capture first (most compatible)
+      await startSimpleVideoCapture()
+      
     } catch (error) {
       console.error('Scanner error:', error)
       setError('Failed to start camera. Please use manual ISBN entry.')
@@ -118,12 +120,22 @@ export default function ISBNScanner() {
     }
   }
 
-  const startNativeBarcodeDetector = async () => {
+  const checkCameraAccess = async (): Promise<boolean> => {
     try {
-      const barcodeDetector = new window.BarcodeDetector({
-        formats: ['ean_13', 'ean_8']
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
       })
+      // Stop the test stream
+      stream.getTracks().forEach(track => track.stop())
+      return true
+    } catch (error) {
+      console.error('Camera access check failed:', error)
+      return false
+    }
+  }
 
+  const startSimpleVideoCapture = async () => {
+    try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
@@ -139,83 +151,28 @@ export default function ISBNScanner() {
         video.playsInline = true
         video.style.width = '100%'
         video.style.maxWidth = '640px'
+        video.style.border = '2px solid #0070f3'
         
-        scannerRef.current.innerHTML = ''
+        scannerRef.current.innerHTML = `
+          <div style="text-align: center; margin-bottom: 1rem;">
+            <p style="color: #666; font-size: 0.9em; margin-bottom: 0.5rem;">
+              📱 Camera active - Position barcode in view
+            </p>
+            <p style="color: #0070f3; font-size: 0.8em;">
+              Read the numbers below the barcode and enter manually ⬇️
+            </p>
+          </div>
+        `
         scannerRef.current.appendChild(video)
 
-        const detectBarcodes = async () => {
-          if (!video.videoWidth || !video.videoHeight) return
-
-          try {
-            const barcodes = await barcodeDetector.detect(video)
-            if (barcodes.length > 0) {
-              const isbn = barcodes[0].rawValue
-              console.log('Native barcode detected:', isbn)
-              stopScanner()
-              handleISBNDetected(isbn)
-              return
-            }
-          } catch (e) {
-            // Continue scanning
-          }
-
-          if (isScanning) {
-            setTimeout(detectBarcodes, 200)
-          }
-        }
-
-        video.onloadedmetadata = () => {
-          detectBarcodes()
-        }
+        console.log('Simple video capture started successfully')
       }
     } catch (error) {
-      console.error('Native barcode detector failed:', error)
+      console.error('Simple video capture failed:', error)
       throw error
     }
   }
 
-  const startQuaggaScanner = async () => {
-    return new Promise<void>((resolve, reject) => {
-      window.Quagga.init({
-        inputStream: {
-          name: "Live",
-          type: "LiveStream",
-          target: scannerRef.current,
-          constraints: {
-            width: { min: 320, ideal: 640, max: 1280 },
-            height: { min: 240, ideal: 480, max: 720 },
-            facingMode: "environment",
-            aspectRatio: { min: 1, max: 2 }
-          }
-        },
-        locator: {
-          patchSize: "medium",
-          halfSample: true
-        },
-        numOfWorkers: 1, // Reduce for mobile
-        decoder: {
-          readers: ["ean_reader", "ean_8_reader"]
-        },
-        locate: true
-      }, (err: any) => {
-        if (err) {
-          console.error('Quagga initialization error:', err)
-          reject(err)
-          return
-        }
-        console.log('Quagga scanner initialized successfully')
-        window.Quagga.start()
-        resolve()
-      })
-
-      window.Quagga.onDetected((data: any) => {
-        const isbn = data.codeResult.code
-        console.log('Quagga ISBN detected:', isbn)
-        stopScanner()
-        handleISBNDetected(isbn)
-      })
-    })
-  }
 
   const stopScanner = () => {
     setIsScanning(false)
