@@ -393,6 +393,15 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
     last_name?: string;
   } = await request.json();
   
+  // Validate password strength
+  const passwordValidation = validatePasswordStrength(password);
+  if (!passwordValidation.isValid) {
+    return new Response(JSON.stringify({ error: passwordValidation.error }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  
   // Check if user already exists
   const existingUser = await env.DB.prepare(`
     SELECT email FROM users WHERE email = ?
@@ -612,6 +621,31 @@ async function updateUserProfile(request: Request, userId: string, env: Env, cor
 }
 
 // Utility functions
+function validatePasswordStrength(password: string): { isValid: boolean; error?: string } {
+  const minLength = 8;
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumbers = /\d/.test(password);
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+  if (password.length < minLength) {
+    return { isValid: false, error: `Password must be at least ${minLength} characters long` };
+  }
+  if (!hasUpperCase) {
+    return { isValid: false, error: 'Password must contain at least one uppercase letter' };
+  }
+  if (!hasLowerCase) {
+    return { isValid: false, error: 'Password must contain at least one lowercase letter' };
+  }
+  if (!hasNumbers) {
+    return { isValid: false, error: 'Password must contain at least one number' };
+  }
+  if (!hasSpecialChar) {
+    return { isValid: false, error: 'Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)' };
+  }
+  return { isValid: true };
+}
+
 async function hashPassword(password: string): Promise<string> {
   // In a real Cloudflare Worker, you'd use the Web Crypto API
   // For now, we'll use a simple hash (replace with proper bcrypt in production)
