@@ -320,9 +320,11 @@ export default function ISBNScanner() {
         </div>
       )}
 
+      {/* Scanner container - always present for ref */}
+      <div ref={scannerRef} style={{ width: '100%', maxWidth: '640px', minHeight: isScanning ? '300px' : '0px' }} />
+      
       {isScanning && (
         <div>
-          <div ref={scannerRef} style={{ width: '100%', maxWidth: '640px' }} />
           <button 
             className="btn" 
             onClick={stopScanner}
