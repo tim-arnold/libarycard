@@ -18,7 +18,7 @@ A personal book collection management app that allows you to scan ISBN barcodes 
 - **Scanning**: Quagga.js for barcode detection
 - **Database**: Cloudflare D1 (SQLite)
 - **API**: Cloudflare Workers
-- **Hosting**: Cloudflare Pages
+- **Hosting**: Netlify (Frontend) + Cloudflare Workers (API)
 - **Book Data**: Google Books API + OpenLibrary fallback
 
 ## Deployment
