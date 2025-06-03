@@ -10,7 +10,7 @@ export default function Home() {
   return (
     <div className="container">
       <header style={{ padding: '2rem 0', textAlign: 'center' }}>
-        <h1>📚 LibraryCard</h1>
+        <h1>📚 LibaryCard</h1>
         <p>Scan and manage your personal book collection</p>
       </header>
 
@@ -26,7 +26,7 @@ export default function Home() {
           className={`btn ${activeTab === 'library' ? '' : 'btn-secondary'}`}
           onClick={() => setActiveTab('library')}
         >
-          📖 My Library
+          📖 My Libary
         </button>
       </nav>
 
