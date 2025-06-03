@@ -18,14 +18,6 @@ interface Shelf {
   created_at: string
 }
 
-const DEFAULT_SHELVES = [
-  'basement',
-  "julie's room",
-  "tim's room",
-  'bench',
-  "julie's office",
-  'little library'
-]
 
 export default function LocationManager() {
   const { data: session } = useSession()

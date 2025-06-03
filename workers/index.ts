@@ -38,12 +38,7 @@ interface Book {
 }
 
 const DEFAULT_SHELVES = [
-  'basement',
-  "julie's room",
-  "tim's room",
-  'bench',
-  "julie's office",
-  'little library'
+  'my first shelf'
 ];
 
 export default {
