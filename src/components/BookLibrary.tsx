@@ -186,8 +186,21 @@ export default function BookLibrary() {
           })
 
           if (!response.ok) {
-            const errorData = await response.json()
-            throw new Error(errorData.error || 'Failed to submit removal request')
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`
+            try {
+              const errorData = await response.json()
+              errorMessage = errorData.error || errorMessage
+            } catch {
+              // If JSON parsing fails, use the response text
+              try {
+                const errorText = await response.text()
+                errorMessage = errorText || errorMessage
+              } catch {
+                // Fallback to status message
+                errorMessage = `Request failed with status ${response.status}`
+              }
+            }
+            throw new Error(errorMessage)
           }
 
           const result = await response.json()
