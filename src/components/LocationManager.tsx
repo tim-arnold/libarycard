@@ -20,6 +20,18 @@ interface Shelf {
   created_at: string
 }
 
+interface LocationInvitation {
+  id: number
+  location_id: number
+  invited_email: string
+  invitation_token: string
+  invited_by: string
+  expires_at: string
+  used_at?: string
+  created_at: string
+  invited_by_name?: string
+}
+
 
 export default function LocationManager() {
   const { data: session } = useSession()
@@ -36,6 +48,10 @@ export default function LocationManager() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [invitations, setInvitations] = useState<LocationInvitation[]>([])
+  const [showInviteForm, setShowInviteForm] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [showInvitations, setShowInvitations] = useState(false)
 
   useEffect(() => {
     if (session?.user) {
@@ -334,6 +350,73 @@ export default function LocationManager() {
     setShowShelfForm(true)
   }
 
+  // Invitation management functions
+  const loadLocationInvitations = async (locationId: number) => {
+    if (!session?.user?.email) return
+    
+    try {
+      const response = await fetch(`${API_BASE}/api/locations/${locationId}/invitations`, {
+        headers: {
+          'Authorization': `Bearer ${session.user.email}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setInvitations(data)
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to load invitations')
+      }
+    } catch (error) {
+      setError('Failed to load invitations')
+    }
+  }
+
+  const sendInvitation = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedLocation || !inviteEmail.trim()) return
+
+    if (!session?.user?.email) return
+    
+    try {
+      const response = await fetch(`${API_BASE}/api/locations/${selectedLocation.id}/invite`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.user.email}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          invited_email: inviteEmail.trim(),
+        }),
+      })
+
+      if (response.ok) {
+        const newInvitation = await response.json()
+        setInvitations([...invitations, newInvitation])
+        setInviteEmail('')
+        setShowInviteForm(false)
+        setError('')
+        // Show success message temporarily
+        setError('✅ Invitation sent successfully!')
+        setTimeout(() => setError(''), 3000)
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to send invitation')
+      }
+    } catch (error) {
+      setError('Failed to send invitation')
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  }
+
   if (loading) {
     return (
       <div className="card">
@@ -448,15 +531,37 @@ export default function LocationManager() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <h3>Shelves in {selectedLocation.name}</h3>
-                {userRole === 'admin' && (
-                  <button 
-                    onClick={() => setShowShelfForm(true)} 
-                    className="btn"
-                    style={{ fontSize: '0.9em', padding: '0.5rem 1rem' }}
-                  >
-                    + Add Shelf
-                  </button>
-                )}
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {userRole === 'admin' && (
+                    <>
+                      <button 
+                        onClick={() => {
+                          setShowInvitations(!showInvitations)
+                          if (!showInvitations) {
+                            loadLocationInvitations(selectedLocation.id)
+                          }
+                        }} 
+                        className="btn"
+                        style={{ 
+                          fontSize: '0.9em', 
+                          padding: '0.5rem 1rem',
+                          background: '#28a745',
+                          color: 'white',
+                          border: 'none'
+                        }}
+                      >
+                        📧 Invitations
+                      </button>
+                      <button 
+                        onClick={() => setShowShelfForm(true)} 
+                        className="btn"
+                        style={{ fontSize: '0.9em', padding: '0.5rem 1rem' }}
+                      >
+                        + Add Shelf
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
                 {shelves.map(shelf => (
@@ -503,6 +608,62 @@ export default function LocationManager() {
                   </div>
                 ))}
               </div>
+
+              {/* Invitations Section */}
+              {showInvitations && userRole === 'admin' && (
+                <div style={{ marginTop: '2rem', border: '1px solid #e0e0e0', borderRadius: '0.5rem', padding: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h4 style={{ margin: 0 }}>📧 Location Invitations</h4>
+                    <button 
+                      onClick={() => setShowInviteForm(true)} 
+                      className="btn"
+                      style={{ fontSize: '0.9em', padding: '0.5rem 1rem' }}
+                    >
+                      + Send Invitation
+                    </button>
+                  </div>
+                  
+                  {invitations.length === 0 ? (
+                    <p style={{ color: '#666', textAlign: 'center', margin: '1rem 0' }}>
+                      No invitations sent yet. Click "Send Invitation" to invite users to this location.
+                    </p>
+                  ) : (
+                    <div style={{ display: 'grid', gap: '0.5rem' }}>
+                      {invitations.map(invitation => (
+                        <div key={invitation.id} style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center',
+                          padding: '0.75rem', 
+                          background: '#f8f9fa', 
+                          borderRadius: '0.25rem',
+                          borderLeft: `4px solid ${invitation.used_at ? '#28a745' : '#ffc107'}`
+                        }}>
+                          <div>
+                            <strong>{invitation.invited_email}</strong>
+                            <div style={{ fontSize: '0.8em', color: '#666' }}>
+                              Sent: {formatDate(invitation.created_at)} | 
+                              Expires: {formatDate(invitation.expires_at)}
+                              {invitation.used_at && (
+                                <span style={{ color: '#28a745' }}> | ✅ Accepted</span>
+                              )}
+                            </div>
+                          </div>
+                          <div style={{ 
+                            fontSize: '0.8em', 
+                            padding: '0.25rem 0.5rem', 
+                            borderRadius: '0.25rem',
+                            background: invitation.used_at ? '#d4edda' : '#fff3cd',
+                            color: invitation.used_at ? '#155724' : '#856404'
+                          }}>
+                            {invitation.used_at ? 'Accepted' : 'Pending'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -649,6 +810,74 @@ export default function LocationManager() {
                 </button>
                 <button type="submit" className="btn">
                   {editingShelf ? 'Update Shelf' : 'Add Shelf'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showInviteForm && (
+        <div style={{ 
+          position: 'fixed', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0, 
+          background: 'rgba(0,0,0,0.5)', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{ 
+            background: 'white', 
+            padding: '2rem', 
+            borderRadius: '0.5rem', 
+            maxWidth: '400px', 
+            width: '90%' 
+          }}>
+            <h3 style={{ marginBottom: '1rem' }}>Send Location Invitation</h3>
+            <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '1rem' }}>
+              Invite a user to join the <strong>{selectedLocation?.name}</strong> location. 
+              They'll receive an email with an invitation link.
+            </p>
+            <form onSubmit={sendInvitation}>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="user@example.com"
+                  required
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.5rem', 
+                    border: '1px solid #ccc', 
+                    borderRadius: '0.25rem' 
+                  }}
+                />
+                <div style={{ fontSize: '0.8em', color: '#666', marginTop: '0.5rem' }}>
+                  If the user doesn't have a LibaryCard account, they can create one when accepting the invitation.
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setShowInviteForm(false)
+                    setInviteEmail('')
+                  }}
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn">
+                  Send Invitation
                 </button>
               </div>
             </form>

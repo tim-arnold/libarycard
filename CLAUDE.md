@@ -31,7 +31,7 @@ This file contains development todos, notes, and context for AI assistants worki
   - [x] ~~Add admin-only endpoints for location management~~ ✅ COMPLETED
   - [x] ~~Restrict regular users to only adding books (no location/shelf creation)~~ ✅ COMPLETED
   - [x] ~~Add role-based UI restrictions and indicators~~ ✅ COMPLETED
-  - [ ] Create invitation link system for admins to invite users to locations
+  - [x] ~~Create invitation link system for admins to invite users to locations~~ ✅ COMPLETED
   - [ ] Implement location-scoped user visibility (users only see their assigned location)
 
 ### Medium Priority - UI Improvements & Core Features

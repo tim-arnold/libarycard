@@ -15,6 +15,8 @@ function SignInForm() {
   const [lastName, setLastName] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [invitationToken, setInvitationToken] = useState<string | null>(null)
+  const [invitationLoading, setInvitationLoading] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -22,9 +24,22 @@ function SignInForm() {
     // Check if already signed in
     getSession().then((session) => {
       if (session) {
-        router.push('/')
+        // If signed in and has invitation token, accept it
+        const invitationParam = searchParams.get('invitation')
+        if (invitationParam) {
+          handleInvitationAcceptance(invitationParam)
+        } else {
+          router.push('/')
+        }
       }
     })
+
+    // Check for invitation token in URL
+    const invitationParam = searchParams.get('invitation')
+    if (invitationParam) {
+      setInvitationToken(invitationParam)
+      setMessage('You have been invited to join a location! Please sign in to accept the invitation.')
+    }
 
     // Check for verification success
     if (searchParams.get('verified') === 'true') {
@@ -37,6 +52,53 @@ function SignInForm() {
       setError(decodeURIComponent(errorParam))
     }
   }, [router, searchParams])
+
+  const handleInvitationAcceptance = async (token: string) => {
+    setInvitationLoading(true)
+    setError('')
+    
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://libarycard-api.tim-arnold.workers.dev'
+    
+    try {
+      const session = await getSession()
+      if (!session?.user?.email) {
+        setError('Please sign in first to accept the invitation')
+        setInvitationLoading(false)
+        return
+      }
+
+      const response = await fetch(`${API_BASE}/api/invitations/accept`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.user.email}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          invitation_token: token,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setMessage(`✅ Successfully joined ${data.location_name}! Redirecting...`)
+        setTimeout(() => {
+          router.push('/')
+        }, 2000)
+      } else {
+        if (data.error?.includes('email does not match')) {
+          setError('This invitation was sent to a different email address. Please sign in with the correct account or contact the person who invited you.')
+        } else {
+          setError(data.error || 'Failed to accept invitation')
+        }
+      }
+    } catch (error) {
+      console.error('Invitation acceptance error:', error)
+      setError('Failed to accept invitation. Please try again.')
+    } finally {
+      setInvitationLoading(false)
+    }
+  }
 
   const handleGoogleSignIn = async () => {
     setLoading(true)
@@ -63,7 +125,12 @@ function SignInForm() {
       if (result?.error) {
         setError('Invalid email or password')
       } else if (result?.ok) {
-        router.push('/')
+        // Handle invitation acceptance after successful sign-in
+        if (invitationToken) {
+          await handleInvitationAcceptance(invitationToken)
+        } else {
+          router.push('/')
+        }
       }
     } catch (error) {
       console.error('Email sign in error:', error)

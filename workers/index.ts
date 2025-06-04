@@ -51,6 +51,17 @@ interface Book {
   added_by: string;
 }
 
+interface LocationInvitation {
+  id?: number;
+  location_id: number;
+  invited_email: string;
+  invitation_token: string;
+  invited_by: string;
+  expires_at: string;
+  used_at?: string;
+  created_at?: string;
+}
+
 const DEFAULT_SHELVES = [
   'my first shelf'
 ];
@@ -178,6 +189,21 @@ export default {
       if (path.startsWith('/api/books/') && request.method === 'DELETE') {
         const id = parseInt(path.split('/')[3]);
         return await deleteBook(userId, env, corsHeaders, id);
+      }
+
+      // Invitation endpoints
+      if (path.match(/^\/api\/locations\/\d+\/invite$/) && request.method === 'POST') {
+        const locationId = parseInt(path.split('/')[3]);
+        return await createLocationInvitation(request, locationId, userId, env, corsHeaders);
+      }
+
+      if (path === '/api/invitations/accept' && request.method === 'POST') {
+        return await acceptLocationInvitation(request, userId, env, corsHeaders);
+      }
+
+      if (path.match(/^\/api\/locations\/\d+\/invitations$/) && request.method === 'GET') {
+        const locationId = parseInt(path.split('/')[3]);
+        return await getLocationInvitations(locationId, userId, env, corsHeaders);
       }
 
       // Profile endpoints
@@ -1047,6 +1073,314 @@ async function updateUserProfile(request: Request, userId: string, env: Env, cor
   return new Response(JSON.stringify({ message: 'Profile updated successfully' }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+// Invitation functions
+async function createLocationInvitation(request: Request, locationId: number, userId: string, env: Env, corsHeaders: Record<string, string>) {
+  // Check if user is admin (only admins can create invitations)
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required to create invitations' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const { invited_email }: { invited_email: string } = await request.json();
+
+  // Validate email format
+  if (!invited_email || !invited_email.includes('@')) {
+    return new Response(JSON.stringify({ error: 'Valid email address required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Check if user has access to this location (only owner can invite)
+  const accessStmt = env.DB.prepare(`
+    SELECT id FROM locations WHERE id = ? AND owner_id = ?
+  `);
+  const accessResult = await accessStmt.bind(locationId, userId).first();
+  
+  if (!accessResult) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Check if user is already a member
+  const memberStmt = env.DB.prepare(`
+    SELECT 1 FROM location_members WHERE location_id = ? AND user_id = ?
+  `);
+  const existingUser = await env.DB.prepare(`
+    SELECT id FROM users WHERE email = ?
+  `).bind(invited_email).first();
+  
+  if (existingUser) {
+    const memberResult = await memberStmt.bind(locationId, existingUser.id).first();
+    if (memberResult) {
+      return new Response(JSON.stringify({ error: 'User is already a member of this location' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  // Check for existing unused invitation
+  const existingInvitationStmt = env.DB.prepare(`
+    SELECT id FROM location_invitations 
+    WHERE location_id = ? AND invited_email = ? AND used_at IS NULL AND expires_at > datetime('now')
+  `);
+  const existingInvitation = await existingInvitationStmt.bind(locationId, invited_email).first();
+  
+  if (existingInvitation) {
+    return new Response(JSON.stringify({ error: 'An active invitation already exists for this email' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Generate invitation token and expiration (7 days)
+  const invitationToken = generateUUID();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  // Create invitation
+  const invitationStmt = env.DB.prepare(`
+    INSERT INTO location_invitations (location_id, invited_email, invitation_token, invited_by, expires_at, created_at)
+    VALUES (?, ?, ?, ?, ?, datetime('now'))
+  `);
+
+  const result = await invitationStmt.bind(
+    locationId,
+    invited_email,
+    invitationToken,
+    userId,
+    expiresAt
+  ).run();
+
+  // Get location name for email
+  const locationStmt = env.DB.prepare(`
+    SELECT name FROM locations WHERE id = ?
+  `);
+  const location = await locationStmt.bind(locationId).first();
+
+  // Send invitation email
+  await sendInvitationEmail(env, invited_email, (location as any)?.name || 'a location', invitationToken, userId);
+
+  return new Response(JSON.stringify({ 
+    id: result.meta.last_row_id,
+    invited_email,
+    expires_at: expiresAt,
+    message: 'Invitation sent successfully'
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function acceptLocationInvitation(request: Request, userId: string, env: Env, corsHeaders: Record<string, string>) {
+  const { invitation_token }: { invitation_token: string } = await request.json();
+
+  if (!invitation_token) {
+    return new Response(JSON.stringify({ error: 'Invitation token required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Get invitation details
+  const invitationStmt = env.DB.prepare(`
+    SELECT li.*, l.name as location_name, u.email as user_email
+    FROM location_invitations li
+    LEFT JOIN locations l ON li.location_id = l.id
+    LEFT JOIN users u ON u.id = ?
+    WHERE li.invitation_token = ? AND li.used_at IS NULL
+  `);
+  
+  const invitation = await invitationStmt.bind(userId, invitation_token).first();
+  
+  if (!invitation) {
+    return new Response(JSON.stringify({ error: 'Invalid or expired invitation' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Check if invitation is expired
+  if (new Date() > new Date((invitation as any).expires_at)) {
+    return new Response(JSON.stringify({ error: 'Invitation has expired' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Check if invitation email matches user email
+  if ((invitation as any).invited_email !== (invitation as any).user_email) {
+    return new Response(JSON.stringify({ error: 'Invitation email does not match your account' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Check if user is already a member
+  const memberStmt = env.DB.prepare(`
+    SELECT 1 FROM location_members WHERE location_id = ? AND user_id = ?
+  `);
+  const existingMember = await memberStmt.bind((invitation as any).location_id, userId).first();
+  
+  if (existingMember) {
+    return new Response(JSON.stringify({ error: 'You are already a member of this location' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Add user as location member
+  const addMemberStmt = env.DB.prepare(`
+    INSERT INTO location_members (location_id, user_id, role, invited_by, joined_at)
+    VALUES (?, ?, 'member', ?, datetime('now'))
+  `);
+  
+  await addMemberStmt.bind(
+    (invitation as any).location_id, 
+    userId, 
+    (invitation as any).invited_by
+  ).run();
+
+  // Mark invitation as used
+  const updateInvitationStmt = env.DB.prepare(`
+    UPDATE location_invitations 
+    SET used_at = datetime('now')
+    WHERE id = ?
+  `);
+  
+  await updateInvitationStmt.bind((invitation as any).id).run();
+
+  return new Response(JSON.stringify({ 
+    message: `Successfully joined ${(invitation as any).location_name}`,
+    location_id: (invitation as any).location_id,
+    location_name: (invitation as any).location_name
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function getLocationInvitations(locationId: number, userId: string, env: Env, corsHeaders: Record<string, string>) {
+  // Check if user is admin and has access to this location
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required to view invitations' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const accessStmt = env.DB.prepare(`
+    SELECT id FROM locations WHERE id = ? AND owner_id = ?
+  `);
+  const accessResult = await accessStmt.bind(locationId, userId).first();
+  
+  if (!accessResult) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Get all invitations for this location
+  const invitationsStmt = env.DB.prepare(`
+    SELECT li.*, u.first_name as invited_by_name
+    FROM location_invitations li
+    LEFT JOIN users u ON li.invited_by = u.id
+    WHERE li.location_id = ?
+    ORDER BY li.created_at DESC
+  `);
+  
+  const result = await invitationsStmt.bind(locationId).all();
+  
+  return new Response(JSON.stringify(result.results), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function sendInvitationEmail(env: Env, email: string, locationName: string, token: string, invitedBy: string) {
+  const invitationUrl = `${env.APP_URL}/auth/signin?invitation=${token}`;
+  
+  // Get inviter name
+  const inviterStmt = env.DB.prepare(`
+    SELECT first_name, last_name FROM users WHERE id = ?
+  `);
+  const inviter = await inviterStmt.bind(invitedBy).first();
+  const inviterName = inviter ? `${(inviter as any).first_name} ${(inviter as any).last_name || ''}`.trim() : 'Someone';
+  
+  // Use Resend for production email sending
+  if (env.RESEND_API_KEY) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: env.FROM_EMAIL || 'LibaryCard <noreply@resend.dev>',
+          to: [email],
+          subject: `You're invited to join ${locationName} on LibaryCard`,
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>LibaryCard Invitation</title>
+            </head>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="background: #f8f9fa; padding: 30px; border-radius: 10px; text-align: center;">
+                <h1 style="color: #007bff; margin-bottom: 10px;">📚 LibaryCard</h1>
+                <h2 style="color: #333; margin-bottom: 20px;">You're Invited!</h2>
+                <p style="font-size: 16px; margin-bottom: 20px;">
+                  ${inviterName} has invited you to join the <strong>${locationName}</strong> library on LibaryCard.
+                </p>
+                <p style="font-size: 16px; margin-bottom: 30px;">
+                  LibaryCard helps you organize and share book collections. Join to browse books and add your own to the shared library.
+                </p>
+                <a href="${invitationUrl}" 
+                   style="display: inline-block; background: #007bff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                  Accept Invitation
+                </a>
+                <p style="font-size: 14px; color: #666; margin-top: 30px;">
+                  This invitation will expire in 7 days. If you don't have a LibaryCard account, you can create one when you accept the invitation.
+                </p>
+                <p style="font-size: 14px; color: #666; margin-top: 20px;">
+                  If the button doesn't work, copy and paste this link into your browser:<br>
+                  <a href="${invitationUrl}" style="color: #007bff; word-break: break-all;">${invitationUrl}</a>
+                </p>
+              </div>
+            </body>
+            </html>
+          `
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('Failed to send invitation email:', error);
+        throw new Error(`Email service error: ${response.status}`);
+      }
+
+      const result = await response.json() as { id: string };
+      console.log('Invitation email sent successfully:', result.id);
+    } catch (error) {
+      console.error('Error sending invitation email:', error);
+      // Don't fail invitation creation if email fails - log and continue
+    }
+  } else {
+    // Fallback for development/staging without email service
+    console.log(`
+      Invitation email would be sent to: ${email}
+      Location: ${locationName}
+      Invited by: ${inviterName}
+      Invitation URL: ${invitationUrl}
+    `);
+  }
 }
 
 // Utility functions
