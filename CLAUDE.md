@@ -48,15 +48,27 @@ This file contains development todos, notes, and context for AI assistants worki
   - [ ] Replace inline styles with proper SCSS modules and refactor to use SCSS for better maintainability
   - [ ] Improve responsive design for mobile devices and tablets
   - [ ] Add proper navigation header with user menu, profile link, and sign-out functionality
-  - [ ] Enhance book management interface with better cards, grid layout, and action buttons
+  - [ ] Enhance book management interface with better cards, grid layout, list view, and action buttons
   - [ ] Add loading states and better form styling throughout the application
+  - [ ] Replace system alerts with Bootstrap modal system for consistent UI
+  - [ ] Create reusable modal components for confirmations, alerts, and forms
+  - [ ] Add confirmation dialogs for admin actions (book removal, shelf deletion, etc.)
+  - [ ] Show different book action menus based on user role (admin vs regular user)
 
 - [ ] **Core Functionality**
   - [ ] Add search and filtering functionality for book collections
   - [x] ~~Implement proper location and shelf management UI with CRUD operations~~ ✅ COMPLETED
   - [ ] Complete profile editing UI with conditional fields based on auth provider
+  - [ ] Enhancement to admin view ("My Libary" should be "Libraries" and books should be listed by location)
+  - [ ] Regular users viewing a library with only one shelf should not be prompted to select a shelf when scanning a book, or see the "Shelf:" select list when viewing books in their library
+  - [ ] Auto-select the only available shelf when adding books to single-shelf libraries
+  - [ ] Hide location selection for users with access to only one location
+  - [ ] Implement contextual help text that changes based on user role and available options
 
 - [ ] **Book Checkout System**
+  - [ ] Regular users should not be able to "Remove" books. They can "Request Removal" and should be prompted for a reason (lost, missing, other)
+  - [ ] Implement "Request Removal" workflow with admin approval system
+  - [ ] Add admin notification system for user requests (removal requests, etc.)
   - [ ] Add book status field (available, checked_out, checked_out_by, checked_out_date)
   - [ ] Allow users to mark books as "currently reading" (checkout)
   - [ ] Show book availability status in book listings
@@ -64,6 +76,11 @@ This file contains development todos, notes, and context for AI assistants worki
   - [ ] Implement checkout notifications and due date reminders
 
 ### Low Priority - Future Enhancements
+
+- [ ] **Admin Dashboard & Analytics**
+  - [ ] Create separate admin dashboard with location overview, user management, and pending requests
+  - [ ] Add bulk actions for admin users (bulk book approval, multi-user invitations, etc.)
+  - [ ] Implement admin analytics (books per location, user activity, etc.)
 
 - [ ] **Other Enhancements**
   - [ ] Add book details modal/page with full information, cover image, and editing options
