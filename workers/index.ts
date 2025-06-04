@@ -89,7 +89,7 @@ export default {
       }
 
       // Get user from session/token for protected endpoints
-      const userId = await getUserFromRequest(request);
+      const userId = await getUserFromRequest(request, env);
       
       // All other endpoints require authentication
       if (!userId) {
@@ -156,16 +156,25 @@ export default {
 };
 
 // Authentication helper (simplified - in production you'd verify JWT)
-async function getUserFromRequest(request: Request): Promise<string | null> {
+async function getUserFromRequest(request: Request, env: Env): Promise<string | null> {
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;
   }
   
-  // For now, just extract user ID from token
-  // In production, you'd verify the JWT token from NextAuth
   const token = authHeader.substring(7);
-  return token; // Simplified - return the token as user ID
+  
+  // If token looks like an email, look up the user ID
+  if (token.includes('@')) {
+    const user = await env.DB.prepare(`
+      SELECT id FROM users WHERE email = ?
+    `).bind(token).first();
+    
+    return user ? user.id as string : null;
+  }
+  
+  // Otherwise, assume it's already a user ID
+  return token;
 }
 
 // User functions
