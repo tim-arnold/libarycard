@@ -33,9 +33,11 @@ export default function BookLibrary() {
   const [searchTerm, setSearchTerm] = useState('')
   const [shelfFilter, setShelfFilter] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
+  const [locationFilter, setLocationFilter] = useState('')
   const [shelves, setShelves] = useState<Shelf[]>([])
   const [userRole, setUserRole] = useState<string | null>(null)
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null)
+  const [allLocations, setAllLocations] = useState<Location[]>([])
   const [pendingRemovalRequests, setPendingRemovalRequests] = useState<Record<string, number>>({})
 
   useEffect(() => {
@@ -66,7 +68,7 @@ export default function BookLibrary() {
     setBooks(savedBooks)
     setFilteredBooks(savedBooks)
 
-    // Load shelves from user's location
+    // Load locations and shelves
     try {
       const response = await fetch(`${API_BASE}/api/locations`, {
         headers: {
@@ -77,24 +79,44 @@ export default function BookLibrary() {
       if (response.ok) {
         const locations = await response.json()
         if (locations.length > 0) {
-          // Store the current location
-          setCurrentLocation(locations[0])
-          
-          // Get shelves for the first location (user's assigned location)
-          const shelvesResponse = await fetch(`${API_BASE}/api/locations/${locations[0].id}/shelves`, {
-            headers: {
-              'Authorization': `Bearer ${session.user.email}`,
-              'Content-Type': 'application/json',
-            },
-          })
-          if (shelvesResponse.ok) {
-            const shelvesData = await shelvesResponse.json()
-            setShelves(shelvesData)
+          if (currentUserRole === 'admin') {
+            // Admin users: store all locations and load all shelves
+            setAllLocations(locations)
+            
+            // Load shelves from all locations for admin users
+            const allShelves: Shelf[] = []
+            for (const location of locations) {
+              const shelvesResponse = await fetch(`${API_BASE}/api/locations/${location.id}/shelves`, {
+                headers: {
+                  'Authorization': `Bearer ${session.user.email}`,
+                  'Content-Type': 'application/json',
+                },
+              })
+              if (shelvesResponse.ok) {
+                const shelvesData = await shelvesResponse.json()
+                allShelves.push(...shelvesData)
+              }
+            }
+            setShelves(allShelves)
+          } else {
+            // Regular users: store first location and its shelves only
+            setCurrentLocation(locations[0])
+            
+            const shelvesResponse = await fetch(`${API_BASE}/api/locations/${locations[0].id}/shelves`, {
+              headers: {
+                'Authorization': `Bearer ${session.user.email}`,
+                'Content-Type': 'application/json',
+              },
+            })
+            if (shelvesResponse.ok) {
+              const shelvesData = await shelvesResponse.json()
+              setShelves(shelvesData)
+            }
           }
         }
       }
     } catch (error) {
-      console.error('Failed to load shelves:', error)
+      console.error('Failed to load locations and shelves:', error)
     }
 
     // Load pending removal requests for regular users
@@ -222,8 +244,18 @@ export default function BookLibrary() {
       )
     }
 
+    // Admin location filter
+    if (userRole === 'admin' && locationFilter) {
+      filtered = filtered.filter(book => {
+        const shelf = shelves.find(s => s.id === book.shelf_id)
+        if (!shelf) return false
+        const location = allLocations.find(l => l.id === shelf.location_id)
+        return location?.name === locationFilter
+      })
+    }
+
     setFilteredBooks(filtered)
-  }, [books, searchTerm, shelfFilter, categoryFilter])
+  }, [books, searchTerm, shelfFilter, categoryFilter, locationFilter, userRole, shelves, allLocations])
 
   const deleteBook = async (bookId: string, bookTitle: string) => {
     const confirmed = await confirmAsync(
@@ -488,10 +520,14 @@ export default function BookLibrary() {
     setShelfFilter(shelfFilter === shelfName ? '' : shelfName)
   }
 
-  // Generate title based on user role and current shelf filter
+  // Generate title based on user role and current filters
   const getLibraryTitle = () => {
     if (userRole === 'admin') {
-      return `📖 My Library (${books.length} books)`
+      if (locationFilter) {
+        return `📚 ${locationFilter} (${filteredBooks.length} books)`
+      } else {
+        return `📚 All Libraries (${filteredBooks.length} books)`
+      }
     }
     
     if (!currentLocation) {
@@ -511,6 +547,38 @@ export default function BookLibrary() {
       return `📖 ${currentLocation.name}: All Shelves (${books.length} books)`
     }
   }
+
+  // Group books by location for admin users
+  const getBooksByLocation = () => {
+    if (userRole !== 'admin') {
+      return null // Regular users don't need location grouping
+    }
+
+    // Create a map of location_id -> location info
+    const locationMap = new Map()
+    allLocations.forEach(location => {
+      locationMap.set(location.id, {
+        ...location,
+        shelves: shelves.filter(shelf => shelf.location_id === location.id),
+        books: []
+      })
+    })
+
+    // Group filtered books by their location
+    filteredBooks.forEach(book => {
+      const shelf = shelves.find(s => s.id === book.shelf_id)
+      if (shelf) {
+        const locationData = locationMap.get(shelf.location_id)
+        if (locationData) {
+          locationData.books.push(book)
+        }
+      }
+    })
+
+    return Array.from(locationMap.values()).filter(location => location.books.length > 0)
+  }
+
+  const booksByLocation = getBooksByLocation()
 
   return (
     <div className="card">
@@ -574,7 +642,7 @@ export default function BookLibrary() {
             </>
           ) : userRole === 'admin' ? (
             <>
-              🔧 <strong>Admin View:</strong> You can see all {books.length} books across {shelves.length} shelves. Click shelf tiles or use filters to organize your view. You can permanently remove books from the library.
+              🔧 <strong>Admin View:</strong> You can see all {books.length} books across {allLocations.length} location{allLocations.length !== 1 ? 's' : ''} and {shelves.length} shelves. Use filters to organize your view. You can permanently remove books from the library.
             </>
           ) : (
             <>
@@ -584,7 +652,8 @@ export default function BookLibrary() {
         </div>
       )}
 
-      {shelves.length > 1 && (
+      {/* Shelf tiles for regular users, hidden for admin */}
+      {userRole !== 'admin' && shelves.length > 1 && (
         <div style={{ marginBottom: '2rem' }}>
           <h3>📚 My Shelves</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem', marginTop: '0.5rem' }}>
@@ -623,6 +692,23 @@ export default function BookLibrary() {
           }}
         />
         
+        {userRole === 'admin' && allLocations.length > 1 && (
+          <select
+            value={locationFilter}
+            onChange={(e) => setLocationFilter(e.target.value)}
+            style={{ 
+              padding: '0.5rem',
+              border: '1px solid #ccc',
+              borderRadius: '0.25rem'
+            }}
+          >
+            <option value="">All locations</option>
+            {allLocations.map(location => (
+              <option key={location.id} value={location.name}>{location.name}</option>
+            ))}
+          </select>
+        )}
+
         {userRole === 'admin' && shelves.length > 1 && (
           <select
             value={shelfFilter}
@@ -634,9 +720,19 @@ export default function BookLibrary() {
             }}
           >
             <option value="">All shelves</option>
-            {shelves.map(shelf => (
-              <option key={shelf.id} value={shelf.name}>{shelf.name}</option>
-            ))}
+            {(() => {
+              // Filter shelves based on selected location
+              const filteredShelves = locationFilter 
+                ? shelves.filter(shelf => {
+                    const location = allLocations.find(loc => loc.id === shelf.location_id)
+                    return location?.name === locationFilter
+                  })
+                : shelves
+              
+              return filteredShelves.map(shelf => (
+                <option key={shelf.id} value={shelf.name}>{shelf.name}</option>
+              ))
+            })()}
           </select>
         )}
 
@@ -660,7 +756,112 @@ export default function BookLibrary() {
         <p style={{ textAlign: 'center', color: '#666', padding: '2rem' }}>
           {books.length === 0 ? 'No books in your library yet. Start scanning!' : 'No books match your filters.'}
         </p>
+      ) : userRole === 'admin' ? (
+        // Admin view: Group books by location
+        <div>
+          {booksByLocation && booksByLocation.map(location => (
+            <div key={location.id} style={{ marginBottom: '2rem' }}>
+              <div style={{ 
+                background: '#f8f9fa', 
+                padding: '0.75rem 1rem', 
+                borderRadius: '0.375rem', 
+                marginBottom: '1rem',
+                border: '1px solid #dee2e6'
+              }}>
+                <h3 style={{ margin: 0, color: '#495057', fontSize: '1.1rem' }}>
+                  📍 {location.name} ({location.books.length} book{location.books.length !== 1 ? 's' : ''})
+                </h3>
+                {location.description && (
+                  <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: '#6c757d' }}>
+                    {location.description}
+                  </p>
+                )}
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+                {location.books.map((book: Book) => (
+                  <div key={book.id} className="card" style={{ margin: 0 }}>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                      {book.thumbnail && (
+                        <img 
+                          src={book.thumbnail} 
+                          alt={book.title}
+                          style={{ width: '80px', height: 'auto', flexShrink: 0 }}
+                        />
+                      )}
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{ marginBottom: '0.5rem' }}>{book.title}</h4>
+                        <p style={{ fontSize: '0.9em', color: '#666' }}>
+                          {book.authors.join(', ')}
+                        </p>
+                        {book.publishedDate && (
+                          <p style={{ fontSize: '0.8em', color: '#666' }}>
+                            Published: {book.publishedDate}
+                          </p>
+                        )}
+                        {book.categories && (
+                          <p style={{ fontSize: '0.8em', color: '#666' }}>
+                            {book.categories.slice(0, 2).join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div style={{ marginTop: '1rem' }}>
+                      {/* Show shelf info for admin */}
+                      <div style={{ marginBottom: '0.5rem' }}>
+                        <strong>Shelf:</strong>
+                        <select
+                          value={book.shelf_id || ''}
+                          onChange={(e) => updateBookShelf(book.id, parseInt(e.target.value))}
+                          style={{ 
+                            marginLeft: '0.5rem',
+                            padding: '0.25rem',
+                            border: '1px solid #ccc',
+                            borderRadius: '0.25rem'
+                          }}
+                        >
+                          <option value="">Select shelf...</option>
+                          {location.shelves.map((shelf: Shelf) => (
+                            <option key={shelf.id} value={shelf.id}>{shelf.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      {book.tags && book.tags.length > 0 && (
+                        <div style={{ marginBottom: '0.5rem' }}>
+                          <strong>Tags:</strong> {book.tags.join(', ')}
+                        </div>
+                      )}
+                      
+                      <div style={{ fontSize: '0.8em', color: '#666' }}>
+                        ISBN: {book.isbn}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => deleteBook(book.id, book.title)}
+                      style={{
+                        marginTop: '0.5rem',
+                        background: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '0.25rem',
+                        fontSize: '0.8em',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
+        // Regular user view: Flat book list
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
           {filteredBooks.map(book => (
             <div key={book.id} className="card" style={{ margin: 0 }}>
@@ -726,9 +927,7 @@ export default function BookLibrary() {
 
               <button
                 onClick={() => {
-                  if (userRole === 'admin') {
-                    deleteBook(book.id, book.title)
-                  } else if (pendingRemovalRequests[book.id]) {
+                  if (pendingRemovalRequests[book.id]) {
                     cancelRemovalRequest(book.id, book.title)
                   } else {
                     requestBookRemoval(book.id, book.title)
@@ -736,7 +935,7 @@ export default function BookLibrary() {
                 }}
                 style={{
                   marginTop: '0.5rem',
-                  background: userRole === 'admin' ? '#dc3545' : (pendingRemovalRequests[book.id] ? '#6c757d' : '#fd7e14'),
+                  background: pendingRemovalRequests[book.id] ? '#6c757d' : '#fd7e14',
                   color: 'white',
                   border: 'none',
                   padding: '0.25rem 0.5rem',
@@ -745,7 +944,7 @@ export default function BookLibrary() {
                   cursor: 'pointer'
                 }}
               >
-                {userRole === 'admin' ? 'Remove' : (pendingRemovalRequests[book.id] ? 'Cancel Removal Request' : 'Request Removal')}
+                {pendingRemovalRequests[book.id] ? 'Cancel Removal Request' : 'Request Removal'}
               </button>
             </div>
           ))}

@@ -30,6 +30,7 @@ This file contains development todos, notes, and context for AI assistants worki
 - ✅ **Role-based book actions with admin/user permission separation (Option C)**
 - ✅ **Complete book removal request system with admin approval workflow**
 - ✅ **Cancel removal request functionality with dynamic button states**
+- ✅ **Admin location switcher to reduce visual clutter with many books**
 
 ## Development Todos
 
@@ -74,7 +75,7 @@ This file contains development todos, notes, and context for AI assistants worki
   - [x] ~~Add search and filtering functionality for book collections~~ ✅ COMPLETED
   - [x] ~~Implement proper location and shelf management UI with CRUD operations~~ ✅ COMPLETED
   - [x] ~~Complete profile editing UI with conditional fields based on auth provider~~ ✅ COMPLETED
-  - [ ] Enhancement to admin view ("My Libary" should be "Libraries" and books should be listed by location)
+  - [x] ~~Enhancement to admin view ("My Libary" should be "Libraries" and books should be listed by location)~~ ✅ COMPLETED
   - [x] ~~Regular users viewing a library with only one shelf should not be prompted to select a shelf when scanning a book, or see the "Shelf:" select list when viewing books in their library~~ ✅ COMPLETED
   - [x] ~~Auto-select the only available shelf when adding books to single-shelf libraries~~ ✅ COMPLETED
   - [x] ~~Hide location selection for users with access to only one location~~ ✅ COMPLETED
@@ -185,6 +186,15 @@ This file contains development todos, notes, and context for AI assistants worki
 - **ENHANCED**: Visual status indicators and contextual information for each request
 - **INCLUDED**: Automatic list refresh after admin actions and proper error handling
 - **ENHANCED**: Cancel removal request functionality with dynamic button states and real-time UI updates
+
+### Session January 2025 - Admin Location Switcher Implementation
+- **IMPLEMENTED**: Admin location switcher to address scalability concerns with many books across multiple locations
+- **REPLACED**: Grouped location display (showing all locations simultaneously) with location filter dropdown for admin users
+- **ADDED**: Conditional display logic: grouped view when "All locations" selected, flat filtered view when specific location selected
+- **ENHANCED**: Shelf dropdown filtering to show only shelves from selected location when location filter is active
+- **IMPROVED**: Admin user experience with hierarchical filtering (location → shelf → category) for better book organization
+- **OPTIMIZED**: Visual layout to reduce clutter when admin users have many books across multiple locations
+- **MAINTAINED**: Existing functionality for regular users while adding admin-specific location switching capabilities
 
 ### Session January 2025 - Cancel Removal Request Enhancement
 - **IMPLEMENTED**: Complete cancel removal request functionality with dynamic button states
