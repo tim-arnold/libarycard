@@ -299,8 +299,12 @@ export default function ISBNScanner() {
     if (success) {
       const bookTitle = scannedBook.title
       setScannedBook(null)
-      setSelectedShelfId(null)
       setCustomTags('')
+      
+      // For single-shelf users, keep the shelf selected for next book
+      if (allShelves.length !== 1) {
+        setSelectedShelfId(null)
+      }
       
       await alert({
         title: 'Book Added!',
@@ -513,7 +517,7 @@ export default function ISBNScanner() {
               disabled={!selectedShelfId}
               style={{ marginRight: '0.5rem' }}
             >
-              Save to Library
+              {allShelves.length === 1 ? 'Add to Library' : 'Save to Library'}
             </button>
             <button 
               className="btn" 
