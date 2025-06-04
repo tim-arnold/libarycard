@@ -21,6 +21,7 @@ interface User {
   email_verified?: boolean;
   email_verification_token?: string;
   email_verification_expires?: string;
+  user_role?: string;
 }
 
 interface Location {
@@ -224,6 +225,47 @@ async function getUserFromRequest(request: Request, env: Env): Promise<string | 
   return token;
 }
 
+// Permission helper functions
+async function getUserRole(userId: string, env: Env): Promise<string> {
+  const user = await env.DB.prepare(`
+    SELECT user_role FROM users WHERE id = ?
+  `).bind(userId).first();
+  
+  return (user as any)?.user_role || 'user';
+}
+
+async function isUserAdmin(userId: string, env: Env): Promise<boolean> {
+  const role = await getUserRole(userId, env);
+  return role === 'admin';
+}
+
+async function checkLocationPermission(
+  userId: string, 
+  locationId: number, 
+  env: Env, 
+  requireAdmin: boolean = false
+): Promise<boolean> {
+  // Check if user is admin (admins can access all locations)
+  if (await isUserAdmin(userId, env)) {
+    return true;
+  }
+  
+  // If admin access is required and user is not admin, deny
+  if (requireAdmin) {
+    return false;
+  }
+  
+  // Check if user has access to this location (owner or member)
+  const accessStmt = env.DB.prepare(`
+    SELECT 1 FROM locations l
+    LEFT JOIN location_members lm ON l.id = lm.location_id
+    WHERE l.id = ? AND (l.owner_id = ? OR lm.user_id = ?)
+  `);
+  
+  const accessResult = await accessStmt.bind(locationId, userId, userId).first();
+  return !!accessResult;
+}
+
 // User functions
 async function createOrUpdateUser(request: Request, env: Env, corsHeaders: Record<string, string>) {
   const user: User = await request.json();
@@ -263,6 +305,14 @@ async function getUserLocations(userId: string, env: Env, corsHeaders: Record<st
 
 async function createLocation(request: Request, userId: string, env: Env, corsHeaders: Record<string, string>) {
   const location: Location = await request.json();
+  
+  // Check if user is admin (only admins can create locations)
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required to create locations' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
   
   // Create location
   const locationStmt = env.DB.prepare(`
@@ -329,6 +379,14 @@ async function getLocationShelves(locationId: number, userId: string, env: Env, 
 async function updateLocation(request: Request, userId: string, env: Env, corsHeaders: Record<string, string>, id: number) {
   const location: Partial<Location> = await request.json();
   
+  // Check if user is admin (only admins can update locations)
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required to update locations' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  
   // Check if user has access to this location (only owner can edit)
   const accessStmt = env.DB.prepare(`
     SELECT id FROM locations WHERE id = ? AND owner_id = ?
@@ -370,6 +428,14 @@ async function updateLocation(request: Request, userId: string, env: Env, corsHe
 }
 
 async function deleteLocation(userId: string, env: Env, corsHeaders: Record<string, string>, id: number) {
+  // Check if user is admin (only admins can delete locations)
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required to delete locations' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  
   // Check if user has access to this location (only owner can delete)
   const accessStmt = env.DB.prepare(`
     SELECT id FROM locations WHERE id = ? AND owner_id = ?
@@ -398,6 +464,14 @@ async function deleteLocation(userId: string, env: Env, corsHeaders: Record<stri
 // Shelf functions
 async function createShelf(request: Request, locationId: number, userId: string, env: Env, corsHeaders: Record<string, string>) {
   const shelf: Shelf = await request.json();
+  
+  // Check if user is admin (only admins can create shelves)
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required to create shelves' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
   
   // Check if user has access to this location
   const accessStmt = env.DB.prepare(`
@@ -433,6 +507,14 @@ async function createShelf(request: Request, locationId: number, userId: string,
 
 async function updateShelf(request: Request, userId: string, env: Env, corsHeaders: Record<string, string>, id: number) {
   const shelf: Partial<Shelf> = await request.json();
+  
+  // Check if user is admin (only admins can update shelves)
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required to update shelves' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
   
   // Check if user has access to this shelf (through location ownership)
   const accessStmt = env.DB.prepare(`
@@ -479,6 +561,14 @@ async function updateShelf(request: Request, userId: string, env: Env, corsHeade
 }
 
 async function deleteShelf(request: Request, userId: string, env: Env, corsHeaders: Record<string, string>, id: number) {
+  // Check if user is admin (only admins can delete shelves)
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required to delete shelves' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  
   // Check if user has access to this shelf (through location ownership)
   const accessStmt = env.DB.prepare(`
     SELECT s.id, s.location_id FROM shelves s
@@ -887,7 +977,7 @@ async function verifyEmail(request: Request, env: Env, corsHeaders: Record<strin
 // Profile functions
 async function getUserProfile(userId: string, env: Env, corsHeaders: Record<string, string>) {
   const user = await env.DB.prepare(`
-    SELECT id, email, first_name, last_name, auth_provider, email_verified, created_at
+    SELECT id, email, first_name, last_name, auth_provider, email_verified, user_role, created_at
     FROM users 
     WHERE id = ?
   `).bind(userId).first();
