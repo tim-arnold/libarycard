@@ -29,6 +29,13 @@ function validatePasswordStrength(password: string): { isValid: boolean; error?:
 
 export async function POST(request: NextRequest) {
   try {
+    // Debug environment variables
+    console.log('Environment check:', {
+      NODE_ENV: process.env.NODE_ENV,
+      NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+      API_BASE
+    });
+    
     const { email, password, firstName, lastName } = await request.json()
 
     if (!email || !password || !firstName) {
@@ -76,13 +83,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result)
     } else {
       let errorMessage
+      let responseText
       try {
-        const error = await response.json()
-        errorMessage = error.error || 'Unknown error from API'
-        console.log('Workers API error:', error)
-      } catch (e) {
+        responseText = await response.text()
+        console.log('Workers API raw response:', responseText)
+        
+        // Try to parse as JSON first
+        try {
+          const error = JSON.parse(responseText)
+          errorMessage = error.error || 'Unknown error from API'
+          console.log('Workers API error:', error)
+        } catch (jsonError) {
+          // If not JSON, use the raw text
+          errorMessage = `API error: ${responseText}`
+        }
+      } catch (textError) {
+        console.log('Failed to read response:', textError)
         errorMessage = `API returned ${response.status}: ${response.statusText}`
-        console.log('Failed to parse error response:', e)
       }
       console.log('API URL used:', apiUrl, 'Status:', response.status);
       return NextResponse.json({ error: errorMessage }, { status: response.status })
