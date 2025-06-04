@@ -217,14 +217,37 @@ function SignInForm() {
       const data = await response.json()
 
       if (response.ok) {
-        setMessage('Registration successful! Please check your email to verify your account.')
-        setShowRegisterForm(false)
-        setShowEmailForm(false)
-        // Clear form
-        setEmail('')
-        setPassword('')
-        setFirstName('')
-        setLastName('')
+        // If there's an invitation, automatically sign in and accept it
+        if (invitationToken) {
+          try {
+            // Automatically sign in the newly registered user
+            const signInResult = await signIn('credentials', {
+              email,
+              password,
+              redirect: false,
+            })
+
+            if (signInResult?.ok) {
+              // Accept the invitation after successful sign-in
+              await handleInvitationAcceptance(invitationToken)
+            } else {
+              setError('Registration successful, but automatic sign-in failed. Please sign in manually to accept the invitation.')
+            }
+          } catch (error) {
+            console.error('Auto sign-in error:', error)
+            setError('Registration successful, but automatic sign-in failed. Please sign in manually to accept the invitation.')
+          }
+        } else {
+          // Normal registration flow without invitation
+          setMessage('Registration successful! Please check your email to verify your account.')
+          setShowRegisterForm(false)
+          setShowEmailForm(false)
+          // Clear form
+          setEmail('')
+          setPassword('')
+          setFirstName('')
+          setLastName('')
+        }
       } else {
         setError(data.error || 'Registration failed')
       }
