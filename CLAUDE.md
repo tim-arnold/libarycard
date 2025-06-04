@@ -24,6 +24,7 @@ This file contains development todos, notes, and context for AI assistants worki
 - ✅ **Location-scoped user visibility with admin cleanup functionality**
 - ✅ **Invitation revocation system for admin users**
 - ✅ **Complete email verification and invitation flow with proper UX**
+- ✅ **User location management with leave functionality and modal-based UI**
 
 ## Development Todos
 
@@ -50,10 +51,11 @@ This file contains development todos, notes, and context for AI assistants worki
   - [ ] Add proper navigation header with user menu, profile link, and sign-out functionality
   - [ ] Enhance book management interface with better cards, grid layout, list view, and action buttons
   - [ ] Add loading states and better form styling throughout the application
-  - [ ] Replace system alerts with Bootstrap modal system for consistent UI
-  - [ ] Create reusable modal components for confirmations, alerts, and forms
-  - [ ] Add confirmation dialogs for admin actions (book removal, shelf deletion, etc.)
+  - [x] ~~Replace system alerts with Bootstrap modal system for consistent UI~~ ✅ COMPLETED (profile page)
+  - [x] ~~Create reusable modal components for confirmations, alerts, and forms~~ ✅ COMPLETED
+  - [ ] Add confirmation dialogs for remaining admin actions (book removal, shelf deletion, etc.)
   - [ ] Show different book action menus based on user role (admin vs regular user)
+  - [ ] Extend modal system to book management and admin actions throughout the application
 
 - [ ] **Core Functionality**
   - [ ] Add search and filtering functionality for book collections
@@ -142,6 +144,11 @@ This file contains development todos, notes, and context for AI assistants worki
 - **IMPLEMENTED**: Admin user cleanup functionality with cascading deletes
 - **UPDATED**: BookLibrary component to use real shelf data instead of hardcoded locations
 - **ENHANCED**: UI navigation to hide admin features from regular users
+- **IMPLEMENTED**: User location management with leave functionality in profile page
+- **ADDED**: POST `/api/locations/{id}/leave` endpoint with validation and data cleanup
+- **ENHANCED**: Profile page with location listing, leave buttons, and informative messaging
+- **REPLACED**: Browser confirm() dialogs with custom modal system for better UX
+- **COMPLETED**: Modal-based confirmation and success/error feedback for leave location flow
 
 ### Session January 2025 - Invitation System Enhancements & Production URL Migration
 - **FIXED**: Email invitation delivery issues by configuring Resend with verified domain (tim52.io)
@@ -185,4 +192,4 @@ This file contains development todos, notes, and context for AI assistants worki
 - Implement dark mode toggle with persistent user preference
 
 ---
-Last updated: December 2024
+Last updated: June 2025
