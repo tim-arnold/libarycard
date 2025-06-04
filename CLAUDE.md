@@ -61,9 +61,9 @@ This file contains development todos, notes, and context for AI assistants worki
   - [x] ~~Implement role-based book actions (admin: remove, user: request removal)~~ ✅ COMPLETED
 
 - [ ] **Core Functionality**
-  - [ ] Add search and filtering functionality for book collections
+  - [x] ~~Add search and filtering functionality for book collections~~ ✅ COMPLETED
   - [x] ~~Implement proper location and shelf management UI with CRUD operations~~ ✅ COMPLETED
-  - [ ] Complete profile editing UI with conditional fields based on auth provider
+  - [x] ~~Complete profile editing UI with conditional fields based on auth provider~~ ✅ COMPLETED
   - [ ] Enhancement to admin view ("My Libary" should be "Libraries" and books should be listed by location)
   - [x] ~~Regular users viewing a library with only one shelf should not be prompted to select a shelf when scanning a book, or see the "Shelf:" select list when viewing books in their library~~ ✅ COMPLETED
   - [x] ~~Auto-select the only available shelf when adding books to single-shelf libraries~~ ✅ COMPLETED
