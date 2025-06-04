@@ -108,9 +108,56 @@ export default {
         return await createLocation(request, userId, env, corsHeaders);
       }
 
+      if (path.startsWith('/api/locations/') && path !== '/api/locations' && request.method === 'PUT') {
+        const id = parseInt(path.split('/')[3]);
+        return await updateLocation(request, userId, env, corsHeaders, id);
+      }
+
+      if (path === '/api/locations' && request.method === 'PUT') {
+        const id = url.searchParams.get('id');
+        if (!id) {
+          return new Response(JSON.stringify({ error: 'Location ID required' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        return await updateLocation(request, userId, env, corsHeaders, parseInt(id));
+      }
+
+      if (path.startsWith('/api/locations/') && path !== '/api/locations' && request.method === 'DELETE') {
+        const id = parseInt(path.split('/')[3]);
+        return await deleteLocation(userId, env, corsHeaders, id);
+      }
+
+      if (path === '/api/locations' && request.method === 'DELETE') {
+        const id = url.searchParams.get('id');
+        if (!id) {
+          return new Response(JSON.stringify({ error: 'Location ID required' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        return await deleteLocation(userId, env, corsHeaders, parseInt(id));
+      }
+
       if (path.match(/^\/api\/locations\/\d+\/shelves$/) && request.method === 'GET') {
         const locationId = parseInt(path.split('/')[3]);
         return await getLocationShelves(locationId, userId, env, corsHeaders);
+      }
+
+      if (path.match(/^\/api\/locations\/\d+\/shelves$/) && request.method === 'POST') {
+        const locationId = parseInt(path.split('/')[3]);
+        return await createShelf(request, locationId, userId, env, corsHeaders);
+      }
+
+      if (path.startsWith('/api/shelves/') && request.method === 'PUT') {
+        const id = parseInt(path.split('/')[3]);
+        return await updateShelf(request, userId, env, corsHeaders, id);
+      }
+
+      if (path.startsWith('/api/shelves/') && request.method === 'DELETE') {
+        const id = parseInt(path.split('/')[3]);
+        return await deleteShelf(request, userId, env, corsHeaders, id);
       }
 
       // Book endpoints
@@ -275,6 +322,275 @@ async function getLocationShelves(locationId: number, userId: string, env: Env, 
   const result = await stmt.bind(locationId).all();
   
   return new Response(JSON.stringify(result.results), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function updateLocation(request: Request, userId: string, env: Env, corsHeaders: Record<string, string>, id: number) {
+  const location: Partial<Location> = await request.json();
+  
+  // Check if user has access to this location (only owner can edit)
+  const accessStmt = env.DB.prepare(`
+    SELECT id FROM locations WHERE id = ? AND owner_id = ?
+  `);
+
+  const accessResult = await accessStmt.bind(id, userId).first();
+  
+  if (!accessResult) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const stmt = env.DB.prepare(`
+    UPDATE locations 
+    SET name = ?, description = ?, updated_at = datetime('now')
+    WHERE id = ?
+  `);
+
+  await stmt.bind(
+    location.name,
+    location.description || null,
+    id
+  ).run();
+
+  // Return the updated location
+  const updatedLocation = {
+    id,
+    name: location.name,
+    description: location.description || null,
+    owner_id: userId,
+    updated_at: new Date().toISOString()
+  };
+
+  return new Response(JSON.stringify(updatedLocation), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function deleteLocation(userId: string, env: Env, corsHeaders: Record<string, string>, id: number) {
+  // Check if user has access to this location (only owner can delete)
+  const accessStmt = env.DB.prepare(`
+    SELECT id FROM locations WHERE id = ? AND owner_id = ?
+  `);
+
+  const accessResult = await accessStmt.bind(id, userId).first();
+  
+  if (!accessResult) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Delete associated shelves and books first (cascading delete)
+  await env.DB.prepare('DELETE FROM books WHERE shelf_id IN (SELECT id FROM shelves WHERE location_id = ?)').bind(id).run();
+  await env.DB.prepare('DELETE FROM shelves WHERE location_id = ?').bind(id).run();
+  await env.DB.prepare('DELETE FROM location_members WHERE location_id = ?').bind(id).run();
+  await env.DB.prepare('DELETE FROM locations WHERE id = ?').bind(id).run();
+
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+// Shelf functions
+async function createShelf(request: Request, locationId: number, userId: string, env: Env, corsHeaders: Record<string, string>) {
+  const shelf: Shelf = await request.json();
+  
+  // Check if user has access to this location
+  const accessStmt = env.DB.prepare(`
+    SELECT 1 FROM locations l
+    LEFT JOIN location_members lm ON l.id = lm.location_id
+    WHERE l.id = ? AND (l.owner_id = ? OR lm.user_id = ?)
+  `);
+
+  const accessResult = await accessStmt.bind(locationId, userId, userId).first();
+  
+  if (!accessResult) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const stmt = env.DB.prepare(`
+    INSERT INTO shelves (name, location_id, created_at)
+    VALUES (?, ?, datetime('now'))
+  `);
+
+  const result = await stmt.bind(shelf.name, locationId).run();
+
+  return new Response(JSON.stringify({ 
+    id: result.meta.last_row_id, 
+    ...shelf, 
+    location_id: locationId 
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function updateShelf(request: Request, userId: string, env: Env, corsHeaders: Record<string, string>, id: number) {
+  const shelf: Partial<Shelf> = await request.json();
+  
+  // Check if user has access to this shelf (through location ownership)
+  const accessStmt = env.DB.prepare(`
+    SELECT s.id FROM shelves s
+    LEFT JOIN locations l ON s.location_id = l.id
+    LEFT JOIN location_members lm ON l.id = lm.location_id
+    WHERE s.id = ? AND (l.owner_id = ? OR lm.user_id = ?)
+  `);
+
+  const accessResult = await accessStmt.bind(id, userId, userId).first();
+  
+  if (!accessResult) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const stmt = env.DB.prepare(`
+    UPDATE shelves 
+    SET name = ?, updated_at = datetime('now')
+    WHERE id = ?
+  `);
+
+  await stmt.bind(shelf.name, id).run();
+
+  // Get the shelf's location_id for the response
+  const shelfStmt = env.DB.prepare(`
+    SELECT location_id FROM shelves WHERE id = ?
+  `);
+  const shelfResult = await shelfStmt.bind(id).first();
+
+  // Return the updated shelf
+  const updatedShelf = {
+    id,
+    name: shelf.name,
+    location_id: (shelfResult as any)?.location_id,
+    updated_at: new Date().toISOString()
+  };
+
+  return new Response(JSON.stringify(updatedShelf), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function deleteShelf(request: Request, userId: string, env: Env, corsHeaders: Record<string, string>, id: number) {
+  // Check if user has access to this shelf (through location ownership)
+  const accessStmt = env.DB.prepare(`
+    SELECT s.id, s.location_id FROM shelves s
+    LEFT JOIN locations l ON s.location_id = l.id
+    LEFT JOIN location_members lm ON l.id = lm.location_id
+    WHERE s.id = ? AND (l.owner_id = ? OR lm.user_id = ?)
+  `);
+
+  const accessResult = await accessStmt.bind(id, userId, userId).first();
+  
+  if (!accessResult) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Check if there are books on this shelf
+  const booksStmt = env.DB.prepare(`
+    SELECT COUNT(*) as book_count FROM books WHERE shelf_id = ?
+  `);
+  const booksResult = await booksStmt.bind(id).first();
+  const bookCount = (booksResult as any)?.book_count || 0;
+
+  // Check how many shelves are in this location
+  const shelfCountStmt = env.DB.prepare(`
+    SELECT COUNT(*) as shelf_count FROM shelves WHERE location_id = ?
+  `);
+  const shelfCountResult = await shelfCountStmt.bind((accessResult as any).location_id).first();
+  const totalShelves = (shelfCountResult as any)?.shelf_count || 0;
+
+  // Get the request body to see if user provided a target shelf or wants to create one
+  const body = await request.json() as { 
+    targetShelfId?: number; 
+    createNewShelf?: string; 
+    confirmDeleteBooks?: boolean 
+  };
+  const { targetShelfId, createNewShelf, confirmDeleteBooks } = body;
+
+  if (bookCount > 0) {
+
+    // If this is the last shelf in the location
+    if (totalShelves === 1) {
+      if (createNewShelf) {
+        // Create a new shelf to move books to
+        const newShelfStmt = env.DB.prepare(`
+          INSERT INTO shelves (name, location_id, created_at)
+          VALUES (?, ?, datetime('now'))
+        `);
+        const newShelfResult = await newShelfStmt.bind(createNewShelf, (accessResult as any).location_id).run();
+        const newShelfId = newShelfResult.meta.last_row_id;
+
+        // Move books to the new shelf
+        const moveStmt = env.DB.prepare(`
+          UPDATE books SET shelf_id = ? WHERE shelf_id = ?
+        `);
+        await moveStmt.bind(newShelfId, id).run();
+      } else if (confirmDeleteBooks) {
+        // User confirmed they want to delete all books with the last shelf
+        // Books will be deleted when we delete the shelf (no action needed here)
+      } else {
+        // Warn user about deleting the last shelf
+        return new Response(JSON.stringify({ 
+          error: 'This is the last shelf in the location. Deleting it will also delete all books in the location.',
+          bookCount,
+          isLastShelf: true,
+          warningMessage: `Deleting this shelf will permanently delete ${bookCount} book(s) from the location. You can either create a new shelf to move the books to, or confirm deletion of all books.`
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      // There are other shelves in the location
+      if (!targetShelfId) {
+        // Get available shelves in the same location for the user to choose from
+        const shelvesStmt = env.DB.prepare(`
+          SELECT id, name FROM shelves 
+          WHERE location_id = ? AND id != ?
+          ORDER BY name
+        `);
+        const shelvesResult = await shelvesStmt.bind((accessResult as any).location_id, id).all();
+        
+        return new Response(JSON.stringify({ 
+          error: 'Shelf contains books. Please select a target shelf to move them to.',
+          bookCount,
+          availableShelves: shelvesResult.results,
+          isLastShelf: false
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Move books to target shelf
+      const moveStmt = env.DB.prepare(`
+        UPDATE books SET shelf_id = ? WHERE shelf_id = ?
+      `);
+      await moveStmt.bind(targetShelfId, id).run();
+    }
+  }
+
+  // Delete the shelf (and books if it's the last shelf and user confirmed)
+  if (totalShelves === 1 && bookCount > 0 && confirmDeleteBooks) {
+    // Delete books first when deleting the last shelf
+    await env.DB.prepare('DELETE FROM books WHERE shelf_id = ?').bind(id).run();
+  }
+  
+  const deleteStmt = env.DB.prepare('DELETE FROM shelves WHERE id = ?');
+  await deleteStmt.bind(id).run();
+
+  return new Response(JSON.stringify({ success: true }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 }
