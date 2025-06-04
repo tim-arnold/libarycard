@@ -147,7 +147,7 @@ export default function LocationManager() {
   }
 
   const deleteLocation = async (locationId: number) => {
-    if (!confirm('Are you sure you want to delete this location? This will also delete all its shelves.')) {
+    if (!confirm('Are you sure you want to delete this location? This will also delete all its shelves and all books in those shelves.')) {
       return
     }
 

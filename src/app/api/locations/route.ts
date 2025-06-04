@@ -134,8 +134,28 @@ export async function PUT(request: NextRequest) {
     }
   }
 
-  // Workers API call would go here
-  return NextResponse.json({ error: 'Workers API not implemented yet' }, { status: 501 })
+  try {
+    const body = await request.json()
+    
+    const response = await fetch(`${API_BASE}/api/locations/${locationId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${session.user.email}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Worker responded with ${response.status}`)
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error('Failed to update location:', error)
+    return NextResponse.json({ error: 'Failed to update location' }, { status: 500 })
+  }
 }
 
 export async function DELETE(request: NextRequest) {
@@ -170,6 +190,23 @@ export async function DELETE(request: NextRequest) {
     }
   }
 
-  // Workers API call would go here
-  return NextResponse.json({ error: 'Workers API not implemented yet' }, { status: 501 })
+  try {
+    const response = await fetch(`${API_BASE}/api/locations/${locationId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${session.user.email}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Worker responded with ${response.status}`)
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error('Failed to delete location:', error)
+    return NextResponse.json({ error: 'Failed to delete location' }, { status: 500 })
+  }
 }

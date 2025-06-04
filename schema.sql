@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS locations (
   description TEXT,
   owner_id TEXT NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (owner_id) REFERENCES users(id)
 );
 
@@ -43,6 +44,7 @@ CREATE TABLE IF NOT EXISTS shelves (
   name TEXT NOT NULL,
   location_id INTEGER NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (location_id) REFERENCES locations(id)
 );
 

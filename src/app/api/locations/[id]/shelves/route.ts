@@ -92,8 +92,28 @@ export async function POST(
     }
   }
 
-  // Workers API call would go here
-  return NextResponse.json({ error: 'Workers API not implemented yet' }, { status: 501 })
+  try {
+    const body = await request.json()
+    
+    const response = await fetch(`${API_BASE}/api/locations/${params.id}/shelves`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.user.email}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Worker responded with ${response.status}`)
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error('Failed to create shelf:', error)
+    return NextResponse.json({ error: 'Failed to create shelf' }, { status: 500 })
+  }
 }
 
 export async function PUT(
@@ -134,8 +154,28 @@ export async function PUT(
     }
   }
 
-  // Workers API call would go here
-  return NextResponse.json({ error: 'Workers API not implemented yet' }, { status: 501 })
+  try {
+    const body = await request.json()
+    
+    const response = await fetch(`${API_BASE}/api/shelves/${shelfId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${session.user.email}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Worker responded with ${response.status}`)
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error('Failed to update shelf:', error)
+    return NextResponse.json({ error: 'Failed to update shelf' }, { status: 500 })
+  }
 }
 
 export async function DELETE(
@@ -171,6 +211,27 @@ export async function DELETE(
     }
   }
 
-  // Workers API call would go here
-  return NextResponse.json({ error: 'Workers API not implemented yet' }, { status: 501 })
+  try {
+    // For DELETE, we might need to pass a body if there are books to relocate
+    const body = await request.json().catch(() => ({}))
+    
+    const response = await fetch(`${API_BASE}/api/shelves/${shelfId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${session.user.email}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Worker responded with ${response.status}`)
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error('Failed to delete shelf:', error)
+    return NextResponse.json({ error: 'Failed to delete shelf' }, { status: 500 })
+  }
 }
