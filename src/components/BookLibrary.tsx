@@ -188,6 +188,48 @@ export default function BookLibrary() {
         </button>
       </div>
 
+      {/* Contextual help text based on user role and library state */}
+      {books.length === 0 ? (
+        <div style={{ 
+          marginBottom: '1.5rem', 
+          padding: '1rem', 
+          background: '#e1f5fe', 
+          border: '1px solid #b3e5fc', 
+          borderRadius: '0.375rem',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📚</div>
+          <h3 style={{ margin: '0 0 0.5rem 0', color: '#0277bd' }}>Welcome to Your Library!</h3>
+          <p style={{ margin: 0, color: '#0288d1' }}>
+            Your library is empty. Head over to the <strong>ISBN Scanner</strong> to add your first book!
+          </p>
+        </div>
+      ) : (
+        <div style={{ 
+          marginBottom: '1.5rem', 
+          padding: '0.75rem', 
+          background: '#f8f9fa', 
+          border: '1px solid #e9ecef', 
+          borderRadius: '0.375rem',
+          fontSize: '0.9em',
+          color: '#495057'
+        }}>
+          {shelves.length <= 1 ? (
+            <>
+              📖 <strong>Single Shelf Library:</strong> All your books are in one place. Use search and category filters to find what you're looking for.
+            </>
+          ) : userRole === 'admin' ? (
+            <>
+              🔧 <strong>Admin View:</strong> You can see all {books.length} books across {shelves.length} shelves. Click shelf tiles or use filters to organize your view.
+            </>
+          ) : (
+            <>
+              📚 <strong>Your Collection:</strong> Browse your {books.length} books across {shelves.length} shelves. Click shelf tiles to filter, or use the search bar to find specific titles.
+            </>
+          )}
+        </div>
+      )}
+
       {shelves.length > 1 && (
         <div style={{ marginBottom: '2rem' }}>
           <h3>📚 My Shelves</h3>
@@ -297,21 +339,30 @@ export default function BookLibrary() {
               <div style={{ marginTop: '1rem' }}>
                 <div style={{ marginBottom: '0.5rem' }}>
                   <strong>Shelf:</strong>
-                  <select
-                    value={book.shelf_id || ''}
-                    onChange={(e) => updateBookShelf(book.id, parseInt(e.target.value))}
-                    style={{ 
+                  {shelves.length <= 1 ? (
+                    <span style={{ 
                       marginLeft: '0.5rem',
-                      padding: '0.25rem',
-                      border: '1px solid #ccc',
-                      borderRadius: '0.25rem'
-                    }}
-                  >
-                    <option value="">Select shelf...</option>
-                    {shelves.map(shelf => (
-                      <option key={shelf.id} value={shelf.id}>{shelf.name}</option>
-                    ))}
-                  </select>
+                      color: '#666'
+                    }}>
+                      {book.shelf_name || 'Not assigned'}
+                    </span>
+                  ) : (
+                    <select
+                      value={book.shelf_id || ''}
+                      onChange={(e) => updateBookShelf(book.id, parseInt(e.target.value))}
+                      style={{ 
+                        marginLeft: '0.5rem',
+                        padding: '0.25rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '0.25rem'
+                      }}
+                    >
+                      <option value="">Select shelf...</option>
+                      {shelves.map(shelf => (
+                        <option key={shelf.id} value={shelf.id}>{shelf.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 
                 {book.tags && book.tags.length > 0 && (

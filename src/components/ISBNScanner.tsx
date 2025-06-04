@@ -101,6 +101,11 @@ export default function ISBNScanner() {
           }
         }
         setAllShelves(allShelvesData)
+        
+        // Smart UI: Auto-select shelf if only one available
+        if (allShelvesData.length === 1) {
+          setSelectedShelfId(allShelvesData[0].id)
+        }
       }
     } catch (error) {
       // Handle error silently
@@ -283,6 +288,37 @@ export default function ISBNScanner() {
     <div className="card">
       <h2>📱 Scan ISBN</h2>
       
+      {/* Contextual help text based on available options */}
+      {!loadingData && (
+        <div style={{ 
+          marginBottom: '1.5rem', 
+          padding: '0.75rem', 
+          background: '#f8f9fa', 
+          border: '1px solid #e9ecef', 
+          borderRadius: '0.375rem',
+          fontSize: '0.9em',
+          color: '#495057'
+        }}>
+          {allShelves.length === 0 ? (
+            <>
+              📚 <strong>Getting Started:</strong> You don't have any shelves yet. Contact an administrator to set up locations and shelves before adding books.
+            </>
+          ) : allShelves.length === 1 ? (
+            <>
+              📚 <strong>Quick Add:</strong> Books will be automatically saved to your "{allShelves[0].name}" shelf. Scan or enter an ISBN to get started!
+            </>
+          ) : locations.length === 1 ? (
+            <>
+              📚 <strong>Ready to Scan:</strong> Choose from {allShelves.length} shelves in {locations[0].name}. Books will be organized automatically!
+            </>
+          ) : (
+            <>
+              📚 <strong>Multi-Location Setup:</strong> You have access to {locations.length} locations with {allShelves.length} total shelves. Select the right shelf when adding books.
+            </>
+          )}
+        </div>
+      )}
+      
       {!isScanning && !scannedBook && (
         <div>
           <button 
@@ -380,6 +416,17 @@ export default function ISBNScanner() {
               <strong>Shelf:</strong>
               {loadingData ? (
                 <span style={{ marginLeft: '0.5rem', color: '#666' }}>Loading shelves...</span>
+              ) : allShelves.length === 1 ? (
+                <span style={{ 
+                  marginLeft: '0.5rem', 
+                  padding: '0.25rem 0.5rem',
+                  background: '#e8f4f8',
+                  border: '1px solid #b3e5fc',
+                  borderRadius: '0.25rem',
+                  color: '#0277bd'
+                }}>
+                  {allShelves[0].name} (auto-selected)
+                </span>
               ) : (
                 <select 
                   value={selectedShelfId || ''} 
@@ -393,18 +440,28 @@ export default function ISBNScanner() {
                   }}
                 >
                   <option value="">Select shelf...</option>
-                  {locations.map(location => (
-                    <optgroup key={location.id} label={location.name}>
-                      {allShelves
-                        .filter(shelf => shelf.location_id === location.id)
-                        .map(shelf => (
-                          <option key={shelf.id} value={shelf.id}>
-                            {shelf.name}
-                          </option>
-                        ))
-                      }
-                    </optgroup>
-                  ))}
+                  {locations.length === 1 ? (
+                    // Single location - simple list without grouping
+                    allShelves.map(shelf => (
+                      <option key={shelf.id} value={shelf.id}>
+                        {shelf.name}
+                      </option>
+                    ))
+                  ) : (
+                    // Multiple locations - group by location
+                    locations.map(location => (
+                      <optgroup key={location.id} label={location.name}>
+                        {allShelves
+                          .filter(shelf => shelf.location_id === location.id)
+                          .map(shelf => (
+                            <option key={shelf.id} value={shelf.id}>
+                              {shelf.name}
+                            </option>
+                          ))
+                        }
+                      </optgroup>
+                    ))
+                  )}
                 </select>
               )}
             </label>
