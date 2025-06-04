@@ -53,6 +53,7 @@ export default function ISBNScanner() {
   const [error, setError] = useState<string>('')
   const [codeReader, setCodeReader] = useState<BrowserMultiFormatReader | null>(null)
   const [loadingData, setLoadingData] = useState(true)
+  const [successMessage, setSuccessMessage] = useState('')
 
   useEffect(() => {
     // Initialize ZXing scanner
@@ -269,9 +270,10 @@ export default function ISBNScanner() {
       setScannedBook(null)
       setSelectedShelfId(null)
       setCustomTags('')
-      alert('Book saved to library!')
+      setSuccessMessage(`"${scannedBook.title}" has been added to your library!`)
+      setTimeout(() => setSuccessMessage(''), 5000)
     } else {
-      alert('Failed to save book. Please try again.')
+      setError('Failed to save book. Please try again.')
     }
   }
 
@@ -301,11 +303,11 @@ export default function ISBNScanner() {
         }}>
           {allShelves.length === 0 ? (
             <>
-              📚 <strong>Getting Started:</strong> You don't have any shelves yet. Contact an administrator to set up locations and shelves before adding books.
+              📚 <strong>Getting Started:</strong> You don't have access to any library yet. Contact an administrator to get access before adding books.
             </>
           ) : allShelves.length === 1 ? (
             <>
-              📚 <strong>Quick Add:</strong> Books will be automatically saved to your "{allShelves[0].name}" shelf. Scan or enter an ISBN to get started!
+              📚 <strong>Ready to Add Books:</strong> Scan or enter an ISBN to add books to your library!
             </>
           ) : locations.length === 1 ? (
             <>
@@ -382,6 +384,20 @@ export default function ISBNScanner() {
       
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
+      {successMessage && (
+        <div style={{ 
+          marginTop: '1rem', 
+          padding: '1rem', 
+          background: '#d4edda', 
+          border: '1px solid #c3e6cb', 
+          borderRadius: '0.375rem',
+          color: '#155724',
+          textAlign: 'center'
+        }}>
+          ✅ {successMessage}
+        </div>
+      )}
+
       {scannedBook && (
         <div style={{ marginTop: '2rem' }}>
           <h3>Book Found!</h3>
@@ -411,23 +427,11 @@ export default function ISBNScanner() {
             </div>
           </div>
 
-          <div style={{ marginTop: '1rem' }}>
-            <label>
-              <strong>Shelf:</strong>
-              {loadingData ? (
-                <span style={{ marginLeft: '0.5rem', color: '#666' }}>Loading shelves...</span>
-              ) : allShelves.length === 1 ? (
-                <span style={{ 
-                  marginLeft: '0.5rem', 
-                  padding: '0.25rem 0.5rem',
-                  background: '#e8f4f8',
-                  border: '1px solid #b3e5fc',
-                  borderRadius: '0.25rem',
-                  color: '#0277bd'
-                }}>
-                  {allShelves[0].name} (auto-selected)
-                </span>
-              ) : (
+          {/* Only show shelf selector if multiple shelves available */}
+          {!loadingData && allShelves.length > 1 && (
+            <div style={{ marginTop: '1rem' }}>
+              <label>
+                <strong>Shelf:</strong>
                 <select 
                   value={selectedShelfId || ''} 
                   onChange={(e) => setSelectedShelfId(e.target.value ? parseInt(e.target.value) : null)}
@@ -463,9 +467,9 @@ export default function ISBNScanner() {
                     ))
                   )}
                 </select>
-              )}
-            </label>
-          </div>
+              </label>
+            </div>
+          )}
 
           <div style={{ marginTop: '1rem' }}>
             <label>

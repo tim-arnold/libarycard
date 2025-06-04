@@ -216,7 +216,7 @@ export default function BookLibrary() {
         }}>
           {shelves.length <= 1 ? (
             <>
-              📖 <strong>Single Shelf Library:</strong> All your books are in one place. Use search and category filters to find what you're looking for.
+              📖 <strong>Your Library:</strong> Use search and category filters to find what you're looking for.
             </>
           ) : userRole === 'admin' ? (
             <>
@@ -337,16 +337,10 @@ export default function BookLibrary() {
               </div>
               
               <div style={{ marginTop: '1rem' }}>
-                <div style={{ marginBottom: '0.5rem' }}>
-                  <strong>Shelf:</strong>
-                  {shelves.length <= 1 ? (
-                    <span style={{ 
-                      marginLeft: '0.5rem',
-                      color: '#666'
-                    }}>
-                      {book.shelf_name || 'Not assigned'}
-                    </span>
-                  ) : (
+                {/* Only show shelf info if multiple shelves available */}
+                {shelves.length > 1 && (
+                  <div style={{ marginBottom: '0.5rem' }}>
+                    <strong>Shelf:</strong>
                     <select
                       value={book.shelf_id || ''}
                       onChange={(e) => updateBookShelf(book.id, parseInt(e.target.value))}
@@ -362,8 +356,8 @@ export default function BookLibrary() {
                         <option key={shelf.id} value={shelf.id}>{shelf.name}</option>
                       ))}
                     </select>
-                  )}
-                </div>
+                  </div>
+                )}
                 
                 {book.tags && book.tags.length > 0 && (
                   <div style={{ marginBottom: '0.5rem' }}>
