@@ -990,7 +990,7 @@ async function verifyEmail(request: Request, env: Env, corsHeaders: Record<strin
   }
   
   const user = await env.DB.prepare(`
-    SELECT id, email_verification_expires
+    SELECT id, email, email_verification_expires
     FROM users 
     WHERE email_verification_token = ? AND email_verified = FALSE
   `).bind(token).first();
@@ -1017,7 +1017,21 @@ async function verifyEmail(request: Request, env: Env, corsHeaders: Record<strin
     WHERE id = ?
   `).bind(user.id).run();
   
-  return new Response(JSON.stringify({ message: 'Email verified successfully' }), {
+  // Check if there are any pending invitations for this email
+  const pendingInvitation = await env.DB.prepare(`
+    SELECT invitation_token FROM location_invitations 
+    WHERE invited_email = ? AND used_at IS NULL AND expires_at > datetime('now')
+    ORDER BY created_at DESC 
+    LIMIT 1
+  `).bind(user.email).first();
+  
+  const responseData: any = { message: 'Email verified successfully' };
+  
+  if (pendingInvitation) {
+    responseData.pending_invitation = (pendingInvitation as any).invitation_token;
+  }
+  
+  return new Response(JSON.stringify(responseData), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 }
@@ -1558,7 +1572,7 @@ function generateUUID(): string {
 }
 
 async function sendVerificationEmail(env: Env, email: string, firstName: string, token: string) {
-  const verificationUrl = `${env.APP_URL.replace(/\/$/, '')}/auth/signin?verified=true&token=${token}`;
+  const verificationUrl = `${env.APP_URL.replace(/\/$/, '')}/api/auth/verify-email?token=${token}`;
   
   // Use Resend for production email sending
   if (env.RESEND_API_KEY) {
