@@ -55,9 +55,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Call the workers API to register user
-    console.log('Calling Workers API at:', `${API_BASE}/api/auth/register`)
+    const apiUrl = `${API_BASE}/api/auth/register`;
+    console.log('API_BASE:', API_BASE);
+    console.log('Full API URL:', apiUrl);
+    console.log('Request payload:', { email, first_name: firstName, last_name: lastName || '' });
     
-    const response = await fetch(`${API_BASE}/api/auth/register`, {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
