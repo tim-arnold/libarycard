@@ -55,7 +55,7 @@ function SignInForm() {
   }, [router, searchParams])
 
   const fetchInvitationDetails = async (token: string) => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://libarycard-api.tim-arnold.workers.dev'
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
     
     try {
       const response = await fetch(`${API_BASE}/api/invitations/details?token=${token}`)
@@ -78,7 +78,7 @@ function SignInForm() {
     setInvitationLoading(true)
     setError('')
     
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://libarycard-api.tim-arnold.workers.dev'
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
     
     try {
       const session = await getSession()

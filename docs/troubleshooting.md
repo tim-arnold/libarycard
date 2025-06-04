@@ -83,7 +83,7 @@ This guide covers common issues you might encounter while using or deploying Lib
 1. **Check API Connection**
    ```bash
    # Test API endpoint directly
-   curl https://your-worker-subdomain.workers.dev/api/books
+   curl https://api.libarycard.tim52.io/api/books
    ```
 
 2. **Verify Environment Variables**
@@ -399,10 +399,10 @@ wrangler tail libarycard-api
 wrangler d1 execute libarycard-db --command="SELECT COUNT(*) FROM books;"
 
 # Verify deployment
-curl -I https://your-app.pages.dev
+curl -I https://libarycard.tim52.io
 
 # Check DNS
-nslookup your-domain.com
+nslookup libarycard.tim52.io
 ```
 
 ### Recovery Procedures

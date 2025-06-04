@@ -56,7 +56,7 @@ A personal book collection management app that allows you to scan ISBN barcodes 
 
 1. Create \`.env.local\`:
    \`\`\`
-   NEXT_PUBLIC_API_URL=https://your-worker-subdomain.your-account.workers.dev
+   NEXT_PUBLIC_API_URL=https://api.libarycard.tim52.io
    \`\`\`
 
 2. Build the frontend:

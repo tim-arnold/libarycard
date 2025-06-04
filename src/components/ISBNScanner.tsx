@@ -6,7 +6,7 @@ import { fetchBookData } from '@/lib/bookApi'
 import { saveBook as saveBookAPI } from '@/lib/api'
 import { BrowserMultiFormatReader } from '@zxing/library'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://libarycard-api.tim-arnold.workers.dev'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
 
 export interface Book {
   id: string

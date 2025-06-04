@@ -123,9 +123,9 @@ This file contains development todos, notes, and context for AI assistants worki
 - **UPDATED**: BookLibrary component to use real shelf data instead of hardcoded locations
 - **ENHANCED**: UI navigation to hide admin features from regular users
 
-### Session January 2025 - Invitation System Enhancements
+### Session January 2025 - Invitation System Enhancements & Production URL Migration
 - **FIXED**: Email invitation delivery issues by configuring Resend with verified domain (tim52.io)
-- **UPDATED**: FROM_EMAIL to use libary@tim52.io for production email sending
+- **UPDATED**: FROM_EMAIL to use librarian@tim52.io for production email sending
 - **RESOLVED**: Double slash URL issue in invitation emails by fixing URL concatenation
 - **ENHANCED**: Invitation flow to pre-populate email addresses for better UX
 - **FIXED**: Email validation to properly support '+' characters in email addresses
@@ -133,6 +133,8 @@ This file contains development todos, notes, and context for AI assistants worki
 - **ADDED**: DELETE `/api/invitations/{id}/revoke` endpoint for admin users
 - **UPDATED**: Invitation UI to show revoke buttons only for pending invitations
 - **ENHANCED**: Error handling for invitation acceptance with new user registration
+- **MIGRATED**: Production URLs to new domain - App: https://libarycard.tim52.io, API: https://api.libarycard.tim52.io
+- **UPDATED**: All frontend components and documentation to use new production URLs
 
 ### Session December 2024 - Permission System Implementation
 - **COMPLETED**: Added user_role column to database schema with migration

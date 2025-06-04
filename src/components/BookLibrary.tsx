@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import type { Book } from './ISBNScanner'
 import { getBooks, updateBook, deleteBook as deleteBookAPI } from '@/lib/api'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://libarycard-api.tim-arnold.workers.dev'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
 
 interface Shelf {
   id: number

@@ -15,7 +15,7 @@ This guide walks you through deploying LibaryCard to Netlify with your existing 
 1. **Go to Netlify Dashboard**: [app.netlify.com](https://app.netlify.com)
 2. **Click "Add new site"** → **"Import an existing project"**
 3. **Connect to Git provider**: Choose GitHub
-4. **Select repository**: Choose `tim-arnold/libarycard`
+4. **Select repository**: Choose your `libarycard` repository
 5. **Configure build settings**:
    - **Branch to deploy**: `main`
    - **Build command**: `npm run build`
@@ -45,13 +45,13 @@ In your Netlify site dashboard:
 1. **Go to Site Settings** → **Environment Variables**
 2. **Add the following variable**:
    - **Key**: `NEXT_PUBLIC_API_URL`
-   - **Value**: `https://libarycard-api.tim-arnold.workers.dev`
+   - **Value**: `https://api.libarycard.tim52.io`
 
 ## Step 3: Deploy
 
 1. **Trigger deployment**: Push to main branch or click "Deploy site"
 2. **Monitor build**: Check the deploy log for any errors
-3. **Get your URL**: Netlify will provide a URL like `https://amazing-app-123456.netlify.app`
+3. **Get your URL**: Netlify will provide a URL like `https://libarycard.tim52.io`
 
 ## Step 4: Custom Domain (Optional)
 
@@ -86,7 +86,7 @@ The repository includes these Netlify-specific files:
 
 ### .env.production
 ```env
-NEXT_PUBLIC_API_URL=https://libarycard-api.tim-arnold.workers.dev
+NEXT_PUBLIC_API_URL=https://api.libarycard.tim52.io
 ```
 
 ## Verification Steps

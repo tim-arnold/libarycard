@@ -5,7 +5,7 @@ This document describes the LibaryCard API endpoints provided by the Cloudflare 
 ## Base URL
 
 ```
-https://libarycard-api.tim-arnold.workers.dev
+https://api.libarycard.tim52.io
 ```
 
 ## Authentication
@@ -529,7 +529,7 @@ Access-Control-Allow-Headers: Content-Type, Authorization
 
 ```bash
 # 1. Create a user (called automatically by OAuth)
-curl -X POST https://libarycard-api.tim-arnold.workers.dev/api/users \
+curl -X POST https://api.libarycard.tim52.io/api/users \
   -H "Content-Type: application/json" \
   -d '{
     "id": "user@example.com",
@@ -539,7 +539,7 @@ curl -X POST https://libarycard-api.tim-arnold.workers.dev/api/users \
   }'
 
 # 2. Create a location
-curl -X POST https://libarycard-api.tim-arnold.workers.dev/api/locations \
+curl -X POST https://api.libarycard.tim52.io/api/locations \
   -H "Authorization: Bearer user@example.com" \
   -H "Content-Type: application/json" \
   -d '{
@@ -548,7 +548,7 @@ curl -X POST https://libarycard-api.tim-arnold.workers.dev/api/locations \
   }'
 
 # 3. Add a shelf to the location
-curl -X POST https://libarycard-api.tim-arnold.workers.dev/api/locations/1/shelves \
+curl -X POST https://api.libarycard.tim52.io/api/locations/1/shelves \
   -H "Authorization: Bearer user@example.com" \
   -H "Content-Type: application/json" \
   -d '{
@@ -556,7 +556,7 @@ curl -X POST https://libarycard-api.tim-arnold.workers.dev/api/locations/1/shelv
   }'
 
 # 4. Add a book to the shelf
-curl -X POST https://libarycard-api.tim-arnold.workers.dev/api/books \
+curl -X POST https://api.libarycard.tim52.io/api/books \
   -H "Authorization: Bearer user@example.com" \
   -H "Content-Type: application/json" \
   -d '{
@@ -571,7 +571,7 @@ curl -X POST https://libarycard-api.tim-arnold.workers.dev/api/books \
 
 # 5. Get all books
 curl -H "Authorization: Bearer user@example.com" \
-  https://libarycard-api.tim-arnold.workers.dev/api/books
+  https://api.libarycard.tim52.io/api/books
 ```
 
 ## Security Considerations
