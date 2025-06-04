@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
+
 interface ProfileData {
   id: string
   email: string
@@ -12,10 +14,19 @@ interface ProfileData {
   auth_provider: string
 }
 
+interface Location {
+  id: number
+  name: string
+  description?: string
+  owner_id: string
+  created_at: string
+}
+
 export default function ProfilePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [profile, setProfile] = useState<ProfileData | null>(null)
+  const [locations, setLocations] = useState<Location[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -34,6 +45,7 @@ export default function ProfilePage() {
 
     if (status === 'authenticated') {
       fetchProfile()
+      fetchLocations()
     }
   }, [status, router])
 
@@ -55,6 +67,51 @@ export default function ProfilePage() {
       setError('Failed to load profile data')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchLocations = async () => {
+    try {
+      if (!session?.user?.email) return
+      
+      const response = await fetch(`${API_BASE}/api/locations`, {
+        headers: {
+          'Authorization': `Bearer ${session.user.email}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      if (response.ok) {
+        const locationsData = await response.json()
+        setLocations(locationsData)
+      }
+    } catch (err) {
+      console.error('Failed to load locations:', err)
+    }
+  }
+
+  const leaveLocation = async (locationId: number, locationName: string) => {
+    if (!confirm(`Are you sure you want to leave "${locationName}"? This will remove all your books from this location and cannot be undone.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/api/locations/${locationId}/leave`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.user?.email}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        setSuccess(`Successfully left "${locationName}"`)
+        await fetchLocations() // Refresh locations list
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || `Failed to leave "${locationName}"`)
+      }
+    } catch (err) {
+      setError(`Failed to leave "${locationName}"`)
     }
   }
 
@@ -243,6 +300,89 @@ export default function ProfilePage() {
           {saving ? 'Saving...' : 'Save Changes'}
         </button>
       </form>
+
+      {/* Location Management Section */}
+      <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid #ddd' }}>
+        <h2 style={{ marginBottom: '1rem' }}>📍 Library Locations</h2>
+        
+        {locations.length === 0 ? (
+          <div style={{ 
+            padding: '1.5rem', 
+            backgroundColor: '#f8f9fa', 
+            border: '1px solid #e9ecef', 
+            borderRadius: '4px',
+            textAlign: 'center'
+          }}>
+            <p style={{ margin: 0, color: '#666' }}>
+              You don't have access to any library locations yet. Contact an administrator to get invited.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <p style={{ color: '#666', fontSize: '0.9em', marginBottom: '1rem' }}>
+              You have access to {locations.length} library location{locations.length > 1 ? 's' : ''}. 
+              You can leave locations you no longer need access to.
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {locations.map(location => (
+                <div 
+                  key={location.id}
+                  style={{ 
+                    padding: '1rem',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    backgroundColor: 'white',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <div>
+                    <h4 style={{ margin: '0 0 0.25rem 0' }}>{location.name}</h4>
+                    {location.description && (
+                      <p style={{ margin: 0, fontSize: '0.9em', color: '#666' }}>
+                        {location.description}
+                      </p>
+                    )}
+                  </div>
+                  
+                  {locations.length > 1 && (
+                    <button
+                      onClick={() => leaveLocation(location.id, location.name)}
+                      style={{
+                        background: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '4px',
+                        fontSize: '0.85em',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Leave Location
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            {locations.length === 1 && (
+              <div style={{ 
+                padding: '0.75rem', 
+                backgroundColor: '#fff3cd', 
+                border: '1px solid #ffeaa7', 
+                borderRadius: '4px',
+                marginTop: '1rem'
+              }}>
+                <p style={{ margin: 0, fontSize: '0.85em', color: '#856404' }}>
+                  ℹ️ You can't leave your last location. You need access to at least one library.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

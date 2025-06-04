@@ -219,6 +219,12 @@ export default {
         return await revokeLocationInvitation(invitationId, userId, env, corsHeaders);
       }
 
+      // Leave location endpoint
+      if (path.match(/^\/api\/locations\/\d+\/leave$/) && request.method === 'POST') {
+        const locationId = parseInt(path.split('/')[3]);
+        return await leaveLocation(locationId, userId, env, corsHeaders);
+      }
+
       // Profile endpoints
       if (path === '/api/profile' && request.method === 'GET') {
         return await getUserProfile(userId, env, corsHeaders);
@@ -1789,6 +1795,67 @@ async function checkUserExists(request: Request, env: Env, corsHeaders: Record<s
   } catch (error) {
     console.error('Error checking user existence:', error);
     return new Response(JSON.stringify({ exists: false }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+// Leave location function
+async function leaveLocation(locationId: number, userId: string, env: Env, corsHeaders: Record<string, string>) {
+  try {
+    // Check if user has access to this location
+    const accessStmt = env.DB.prepare(`
+      SELECT 1 FROM location_members WHERE location_id = ? AND user_id = ?
+    `);
+    const accessResult = await accessStmt.bind(locationId, userId).first();
+    
+    if (!accessResult) {
+      return new Response(JSON.stringify({ error: 'You are not a member of this location' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Check if this is the user's last location
+    const locationCountStmt = env.DB.prepare(`
+      SELECT COUNT(*) as count FROM location_members WHERE user_id = ?
+    `);
+    const countResult = await locationCountStmt.bind(userId).first();
+    const locationCount = (countResult as any)?.count || 0;
+
+    if (locationCount <= 1) {
+      return new Response(JSON.stringify({ error: 'You cannot leave your last location. You need access to at least one library.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Delete user's books from this location
+    const deleteBooksStmt = env.DB.prepare(`
+      DELETE FROM books 
+      WHERE added_by = ? AND shelf_id IN (
+        SELECT id FROM shelves WHERE location_id = ?
+      )
+    `);
+    await deleteBooksStmt.bind(userId, locationId).run();
+
+    // Remove user from location membership
+    const removeMemberStmt = env.DB.prepare(`
+      DELETE FROM location_members WHERE location_id = ? AND user_id = ?
+    `);
+    await removeMemberStmt.bind(locationId, userId).run();
+
+    return new Response(JSON.stringify({ 
+      message: 'Successfully left the location. Your books from this location have been removed.',
+      location_id: locationId
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error leaving location:', error);
+    return new Response(JSON.stringify({ error: 'Failed to leave location' }), {
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
