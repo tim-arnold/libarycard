@@ -5,10 +5,22 @@ This guide covers how to use LibaryCard to manage your personal book collection.
 ## Getting Started
 
 ### Sign In
+
+You can sign in using either Google OAuth or email/password:
+
+#### Google OAuth
 1. Visit the LibaryCard app
 2. Click **"Sign in with Google"**
 3. Grant permissions to access your email for account identification
 4. You'll be redirected to your personal library
+
+#### Email/Password
+1. Visit the LibaryCard app
+2. Click **"Sign in with Email"**
+3. Enter your email and password
+4. If you don't have an account, click **"Create Account"** to register
+5. Verify your email address (check your inbox)
+6. You'll be redirected to your personal library
 
 ### Main Interface
 
@@ -17,6 +29,15 @@ The app has three main sections accessible via the top navigation:
 - **📱 Scan Books**: Add new books to your library using camera or manual entry
 - **📖 My Library**: Browse and manage your book collection
 - **🏠 Location Management**: Organize your physical locations and shelves
+
+### User Roles
+
+LibaryCard has two types of users:
+
+- **Admin Users** (a): Can create, edit, and delete locations and shelves
+- **Regular Users** (u): Can add, edit, and remove books from existing locations
+
+Your role is displayed next to your name in the header: "Hello, Name! (a)" or "Hello, Name! (u)"
 
 ## Adding Books
 
@@ -53,7 +74,9 @@ After scanning or manual lookup:
 
 ### Creating Your First Location
 
-When you first use LibaryCard, you'll need to set up at least one location:
+**Note**: Only admin users can create locations. If you're a regular user, contact an administrator to set up locations.
+
+For admin users, when you first use LibaryCard, you'll need to set up at least one location:
 
 1. Click **"🏠 Location Management"** tab
 2. Click **"Create Your First Location"** button
@@ -65,37 +88,41 @@ Each new location automatically gets a starter shelf called "my first shelf" tha
 
 ### Managing Locations
 
-#### Adding More Locations
+**Note**: Only admin users can manage locations. Regular users will only see existing locations without edit/delete buttons.
+
+#### Adding More Locations (Admin Only)
 1. In Location Management, click **"+ Add Location"**
 2. Enter location name and description
 3. Click **"Create Location"**
 
-#### Editing Locations
+#### Editing Locations (Admin Only)
 1. Find the location card
 2. Click the **"Edit"** button
 3. Update name or description
 4. Click **"Update Location"**
 
-#### Deleting Locations
+#### Deleting Locations (Admin Only)
 1. Find the location card
 2. Click the **"Delete"** button
 3. Confirm deletion (this will also delete all shelves in that location)
 
 ### Managing Shelves
 
-#### Adding Shelves
+**Note**: Only admin users can manage shelves. Regular users can view existing shelves but cannot create, edit, or delete them.
+
+#### Adding Shelves (Admin Only)
 1. Select a location by clicking on its card
 2. In the "Shelves" section, click **"+ Add Shelf"**
 3. Enter shelf name (e.g., "Fiction", "Cookbooks", "Reference")
 4. Click **"Add Shelf"**
 
-#### Editing Shelves
+#### Editing Shelves (Admin Only)
 1. Find the shelf you want to edit
 2. Click the **"Edit"** button on the shelf card
 3. Update the shelf name
 4. Click **"Update Shelf"**
 
-#### Deleting Shelves
+#### Deleting Shelves (Admin Only)
 1. Find the shelf you want to remove
 2. Click the **"Delete"** button on the shelf card
 3. Confirm deletion

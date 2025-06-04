@@ -12,10 +12,89 @@ https://libarycard-api.tim-arnold.workers.dev
 
 The API uses Bearer token authentication with user email as the token for development. In production, this would be replaced with proper JWT tokens from NextAuth.
 
-All endpoints (except user creation) require authentication:
+All endpoints (except public auth endpoints) require authentication:
 
 ```http
 Authorization: Bearer user@example.com
+```
+
+## Authorization
+
+LibaryCard implements role-based access control:
+
+- **Admin Users**: Can create, update, and delete locations and shelves
+- **Regular Users**: Can only add, update, and delete books
+- All users can view locations and shelves they have access to
+
+The UI automatically hides admin-only buttons for regular users.
+
+## Authentication Endpoints
+
+### POST /api/auth/register
+
+Register a new user with email and password.
+
+#### Request
+```http
+POST /api/auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "SecurePassword123!",
+  "first_name": "John",
+  "last_name": "Doe"
+}
+```
+
+#### Response
+```json
+{
+  "message": "Registration successful. Please check your email to verify your account.",
+  "userId": "uuid-string"
+}
+```
+
+### POST /api/auth/verify
+
+Verify user credentials for email/password authentication.
+
+#### Request
+```http
+POST /api/auth/verify
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "SecurePassword123!"
+}
+```
+
+#### Response
+```json
+{
+  "id": "uuid-string",
+  "email": "user@example.com",
+  "first_name": "John",
+  "last_name": "Doe",
+  "auth_provider": "email"
+}
+```
+
+### GET /api/auth/verify-email
+
+Verify email address using token from registration email.
+
+#### Request
+```http
+GET /api/auth/verify-email?token=verification-token
+```
+
+#### Response
+```json
+{
+  "message": "Email verified successfully"
+}
 ```
 
 ## User Management
@@ -73,6 +152,8 @@ Authorization: Bearer user@example.com
 
 Create a new location. Automatically creates a "my first shelf" shelf.
 
+**Admin Only**: This endpoint requires admin privileges.
+
 #### Request
 ```http
 POST /api/locations
@@ -95,9 +176,11 @@ Content-Type: application/json
 }
 ```
 
-### PUT /api/locations?id=:id
+### PUT /api/locations/:id
 
 Update a location's details.
+
+**Admin Only**: This endpoint requires admin privileges.
 
 #### Request
 ```http
@@ -111,9 +194,11 @@ Content-Type: application/json
 }
 ```
 
-### DELETE /api/locations?id=:id
+### DELETE /api/locations/:id
 
 Delete a location and all its shelves.
+
+**Admin Only**: This endpoint requires admin privileges.
 
 #### Request
 ```http
@@ -155,6 +240,8 @@ Authorization: Bearer user@example.com
 
 Create a new shelf in a location.
 
+**Admin Only**: This endpoint requires admin privileges.
+
 #### Request
 ```http
 POST /api/locations/1/shelves
@@ -176,9 +263,11 @@ Content-Type: application/json
 }
 ```
 
-### PUT /api/locations/:id/shelves?shelfId=:shelfId
+### PUT /api/shelves/:id
 
 Update a shelf's name.
+
+**Admin Only**: This endpoint requires admin privileges.
 
 #### Request
 ```http
@@ -191,9 +280,11 @@ Content-Type: application/json
 }
 ```
 
-### DELETE /api/locations/:id/shelves?shelfId=:shelfId
+### DELETE /api/shelves/:id
 
 Delete a shelf.
+
+**Admin Only**: This endpoint requires admin privileges.
 
 #### Request
 ```http
@@ -297,17 +388,70 @@ DELETE /api/books/1
 Authorization: Bearer user@example.com
 ```
 
+## Profile Management
+
+### GET /api/profile
+
+Get the current user's profile information including role.
+
+#### Request
+```http
+GET /api/profile
+Authorization: Bearer user@example.com
+```
+
+#### Response
+```json
+{
+  "id": "uuid-string",
+  "email": "user@example.com",
+  "first_name": "John",
+  "last_name": "Doe",
+  "auth_provider": "email",
+  "email_verified": true,
+  "user_role": "admin",
+  "created_at": "2024-01-15T10:30:00Z"
+}
+```
+
+### PUT /api/profile
+
+Update the current user's profile information.
+
+#### Request
+```http
+PUT /api/profile
+Authorization: Bearer user@example.com
+Content-Type: application/json
+
+{
+  "first_name": "John",
+  "last_name": "Doe Updated"
+}
+```
+
+#### Response
+```json
+{
+  "message": "Profile updated successfully"
+}
+```
+
 ## Data Types
 
 ### User Object
 ```typescript
 interface User {
-  id: string;              // Email address
-  email: string;           // Email address
-  first_name?: string;     // First name from Google
-  last_name?: string;      // Last name from Google
-  created_at?: string;     // Timestamp
-  updated_at?: string;     // Timestamp
+  id: string;                    // User ID (email for OAuth, UUID for email auth)
+  email: string;                 // Email address
+  first_name?: string;           // First name
+  last_name?: string;            // Last name
+  password_hash?: string;        // For email authentication
+  auth_provider?: string;        // 'google' or 'email'
+  email_verified?: boolean;      // Email verification status
+  user_role?: string;            // 'admin' or 'user'
+  created_at?: string;           // Timestamp
+  updated_at?: string;           // Timestamp
 }
 ```
 
@@ -438,6 +582,9 @@ curl -H "Authorization: Bearer user@example.com" \
 - All endpoints except `/api/users` require authentication
 
 ### Authorization
+- Role-based access control with admin and user roles
+- Admin users can create, update, and delete locations and shelves
+- Regular users can only manage books
 - Users can only access their own locations and books
 - Location owners have full control over their locations and shelves
 - Future: implement location sharing between users

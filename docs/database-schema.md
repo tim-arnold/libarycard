@@ -6,14 +6,20 @@ LibaryCard uses Cloudflare D1, a distributed SQLite database, to store user acco
 
 ### Users Table
 
-Stores Google OAuth user information:
+Stores user authentication information for both Google OAuth and email/password:
 
 ```sql
 CREATE TABLE IF NOT EXISTS users (
-  id TEXT PRIMARY KEY, -- Google user ID (email)
+  id TEXT PRIMARY KEY, -- User ID (email for OAuth, UUID for email auth)
   email TEXT UNIQUE NOT NULL,
   first_name TEXT,
   last_name TEXT,
+  password_hash TEXT, -- For email/password authentication
+  auth_provider TEXT DEFAULT 'google', -- 'google' or 'email'
+  email_verified BOOLEAN DEFAULT FALSE,
+  email_verification_token TEXT,
+  email_verification_expires DATETIME,
+  user_role TEXT DEFAULT 'user', -- 'admin' or 'user'
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -96,6 +102,7 @@ Optimized indexes for common query patterns:
 
 ```sql
 CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_role ON users(user_role);
 CREATE INDEX idx_locations_owner ON locations(owner_id);
 CREATE INDEX idx_location_members_location ON location_members(location_id);
 CREATE INDEX idx_location_members_user ON location_members(user_id);
@@ -290,11 +297,17 @@ if (!/^\d{13}$/.test(book.isbn)) {
 ### Version 1.0 (Initial)
 - Simple books table with location as string field
 
-### Version 2.0 (Current Multi-User)
+### Version 2.0 (Multi-User)
 - Added users, locations, shelves, location_members tables
 - Migrated books.location to books.shelf_id relationship
 - Added authentication and access control
 - Implemented hierarchical location → shelf → book structure
+
+### Version 3.0 (Current - Role-Based Permissions)
+- Added user_role column with admin/user permissions
+- Implemented role-based access control for location/shelf operations
+- Added email/password authentication alongside Google OAuth
+- Enhanced security with admin-only restrictions
 
 ## Performance Considerations
 
@@ -329,10 +342,12 @@ Estimated capacity per user:
 
 ### Access Control
 
-1. **User Isolation**: Users can only access their own data
-2. **Location Ownership**: Location owners control all shelves and can assign books
-3. **Book Attribution**: Books track who added them but are accessible by location members
-4. **Future Sharing**: location_members table ready for location sharing feature
+1. **Role-Based Access Control**: Users have admin or user roles
+2. **Admin Privileges**: Only admin users can create, update, or delete locations and shelves
+3. **User Restrictions**: Regular users can only add, update, and delete books
+4. **Location Ownership**: Location owners control all shelves and can assign books
+5. **Book Attribution**: Books track who added them but are accessible by location members
+6. **Future Sharing**: location_members table ready for location sharing feature
 
 ### Data Privacy
 
