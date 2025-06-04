@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import ConfirmationModal from '@/components/ConfirmationModal'
+import AlertModal from '@/components/AlertModal'
+import { useModal } from '@/hooks/useModal'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
 
@@ -25,6 +28,7 @@ interface Location {
 export default function ProfilePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const { modalState, confirmAsync, alert, closeModal } = useModal()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [locations, setLocations] = useState<Location[]>([])
   const [loading, setLoading] = useState(true)
@@ -90,28 +94,42 @@ export default function ProfilePage() {
   }
 
   const leaveLocation = async (locationId: number, locationName: string) => {
-    if (!confirm(`Are you sure you want to leave "${locationName}"? This will remove all your books from this location and cannot be undone.`)) {
-      return
-    }
+    const confirmed = await confirmAsync(
+      {
+        title: 'Leave Location',
+        message: `Are you sure you want to leave "${locationName}"? This will remove all your books from this location and cannot be undone.`,
+        confirmText: 'Leave Location',
+        variant: 'danger'
+      },
+      async () => {
+        const response = await fetch(`${API_BASE}/api/locations/${locationId}/leave`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.user?.email}`,
+            'Content-Type': 'application/json',
+          },
+        })
 
-    try {
-      const response = await fetch(`${API_BASE}/api/locations/${locationId}/leave`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session?.user?.email}`,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (response.ok) {
-        setSuccess(`Successfully left "${locationName}"`)
-        await fetchLocations() // Refresh locations list
-      } else {
-        const errorData = await response.json()
-        setError(errorData.error || `Failed to leave "${locationName}"`)
+        if (response.ok) {
+          await fetchLocations() // Refresh locations list
+          await alert({
+            title: 'Left Location',
+            message: `Successfully left "${locationName}". Your books from this location have been removed.`,
+            variant: 'success'
+          })
+        } else {
+          const errorData = await response.json()
+          throw new Error(errorData.error || `Failed to leave "${locationName}"`)
+        }
       }
-    } catch (err) {
-      setError(`Failed to leave "${locationName}"`)
+    )
+
+    if (!confirmed) {
+      await alert({
+        title: 'Leave Failed',
+        message: 'Failed to leave the location. Please try again.',
+        variant: 'error'
+      })
     }
   }
 
@@ -383,6 +401,32 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+
+      {/* Modal Components */}
+      {modalState.type === 'confirm' && (
+        <ConfirmationModal
+          isOpen={modalState.isOpen}
+          onClose={closeModal}
+          onConfirm={modalState.onConfirm!}
+          title={modalState.options.title}
+          message={modalState.options.message}
+          confirmText={modalState.options.confirmText}
+          cancelText={modalState.options.cancelText}
+          variant={modalState.options.variant}
+          loading={modalState.loading}
+        />
+      )}
+      
+      {modalState.type === 'alert' && (
+        <AlertModal
+          isOpen={modalState.isOpen}
+          onClose={closeModal}
+          title={modalState.options.title}
+          message={modalState.options.message}
+          variant={modalState.options.variant}
+          buttonText={modalState.options.buttonText}
+        />
+      )}
     </div>
   )
 }
