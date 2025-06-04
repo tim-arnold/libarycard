@@ -29,6 +29,7 @@ This file contains development todos, notes, and context for AI assistants worki
 - ✅ **Single-shelf UX improvements for streamlined user experience (Option B)**
 - ✅ **Role-based book actions with admin/user permission separation (Option C)**
 - ✅ **Complete book removal request system with admin approval workflow**
+- ✅ **Cancel removal request functionality with dynamic button states**
 
 ## Development Todos
 
@@ -181,6 +182,17 @@ This file contains development todos, notes, and context for AI assistants worki
 - **INTEGRATED**: New "Removal Requests" tab in admin navigation for centralized request management
 - **ENHANCED**: Visual status indicators and contextual information for each request
 - **INCLUDED**: Automatic list refresh after admin actions and proper error handling
+- **ENHANCED**: Cancel removal request functionality with dynamic button states and real-time UI updates
+
+### Session January 2025 - Cancel Removal Request Enhancement
+- **IMPLEMENTED**: Complete cancel removal request functionality with dynamic button states
+- **ADDED**: `cancelRemovalRequest` function with confirmation modal and API integration
+- **ENHANCED**: Button logic to show "Cancel Removal Request" (gray) vs "Request Removal" (orange) based on pending status
+- **UPDATED**: Real-time state synchronization between request submission and cancellation
+- **UTILIZED**: Existing DELETE `/api/book-removal-requests/{id}` endpoint from Workers API
+- **IMPROVED**: User experience with immediate UI feedback and automatic state updates
+- **ENSURED**: Pending requests are tracked and updated in real-time without page refresh
+- **VALIDATED**: Admin view automatically updates when users cancel their requests
 
 ### Session January 2025 - Smart UI & UX Improvements (Options A, B & C)
 - **COMPLETED**: Option A - Modal System Extension across all components (ISBNScanner, BookLibrary, LocationManager, Profile)

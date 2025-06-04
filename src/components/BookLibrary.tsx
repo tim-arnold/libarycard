@@ -36,6 +36,7 @@ export default function BookLibrary() {
   const [shelves, setShelves] = useState<Shelf[]>([])
   const [userRole, setUserRole] = useState<string | null>(null)
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null)
+  const [pendingRemovalRequests, setPendingRemovalRequests] = useState<Record<string, number>>({})
 
   useEffect(() => {
     if (session?.user) {
@@ -46,12 +47,14 @@ export default function BookLibrary() {
   const loadUserData = async () => {
     if (!session?.user?.email) return
     
-    // Load user role
+    // Load user role first
+    let currentUserRole = 'user'
     try {
       const response = await fetch('/api/profile')
       if (response.ok) {
         const data = await response.json()
-        setUserRole(data.user_role || 'user')
+        currentUserRole = data.user_role || 'user'
+        setUserRole(currentUserRole)
       }
     } catch (error) {
       console.error('Failed to fetch user role:', error)
@@ -92,6 +95,105 @@ export default function BookLibrary() {
       }
     } catch (error) {
       console.error('Failed to load shelves:', error)
+    }
+
+    // Load pending removal requests for regular users
+    if (currentUserRole !== 'admin') {
+      await loadPendingRemovalRequests()
+    }
+  }
+
+  const loadPendingRemovalRequests = async () => {
+    if (!session?.user?.email) return
+
+    try {
+      const response = await fetch(`${API_BASE}/api/book-removal-requests`, {
+        headers: {
+          'Authorization': `Bearer ${session.user.email}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const requests = await response.json()
+        // Create a map of book_id -> request_id for pending requests
+        const pendingMap: Record<string, number> = {}
+        requests.forEach((request: any) => {
+          if (request.status === 'pending') {
+            pendingMap[request.book_id.toString()] = request.id
+          }
+        })
+        setPendingRemovalRequests(pendingMap)
+      }
+    } catch (error) {
+      console.error('Failed to load pending removal requests:', error)
+    }
+  }
+
+  const cancelRemovalRequest = async (bookId: string, bookTitle: string) => {
+    if (!session?.user?.email) return
+
+    const requestId = pendingRemovalRequests[bookId]
+    if (!requestId) return
+
+    const confirmed = await confirmAsync(
+      {
+        title: 'Cancel Removal Request',
+        message: `Cancel your removal request for "${bookTitle}"?`,
+        confirmText: 'Cancel Request',
+        variant: 'warning'
+      },
+      async () => {
+        try {
+          const response = await fetch(`${API_BASE}/api/book-removal-requests/${requestId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${session.user.email}`,
+              'Content-Type': 'application/json',
+            },
+          })
+
+          if (!response.ok) {
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`
+            try {
+              const errorData = await response.json()
+              errorMessage = errorData.error || errorMessage
+            } catch {
+              try {
+                const errorText = await response.text()
+                errorMessage = errorText || errorMessage
+              } catch {
+                errorMessage = `Request failed with status ${response.status}`
+              }
+            }
+            throw new Error(errorMessage)
+          }
+
+          const result = await response.json()
+          
+          // Remove from pending requests map
+          const updatedPendingRequests = { ...pendingRemovalRequests }
+          delete updatedPendingRequests[bookId]
+          setPendingRemovalRequests(updatedPendingRequests)
+          
+          await alert({
+            title: 'Request Cancelled',
+            message: `Your removal request for "${bookTitle}" has been cancelled.`,
+            variant: 'success'
+          })
+        } catch (error) {
+          console.error('Error cancelling removal request:', error)
+          await alert({
+            title: 'Cancel Failed',
+            message: error instanceof Error ? error.message : 'Failed to cancel removal request. Please try again.',
+            variant: 'error'
+          })
+        }
+      }
+    )
+
+    if (!confirmed) {
+      return
     }
   }
 
@@ -204,6 +306,9 @@ export default function BookLibrary() {
           }
 
           const result = await response.json()
+          
+          // Refresh pending removal requests after successful submission
+          await loadPendingRemovalRequests()
           
           await alert({
             title: 'Removal Request Submitted',
@@ -620,10 +725,18 @@ export default function BookLibrary() {
               </div>
 
               <button
-                onClick={() => userRole === 'admin' ? deleteBook(book.id, book.title) : requestBookRemoval(book.id, book.title)}
+                onClick={() => {
+                  if (userRole === 'admin') {
+                    deleteBook(book.id, book.title)
+                  } else if (pendingRemovalRequests[book.id]) {
+                    cancelRemovalRequest(book.id, book.title)
+                  } else {
+                    requestBookRemoval(book.id, book.title)
+                  }
+                }}
                 style={{
                   marginTop: '0.5rem',
-                  background: userRole === 'admin' ? '#dc3545' : '#fd7e14',
+                  background: userRole === 'admin' ? '#dc3545' : (pendingRemovalRequests[book.id] ? '#6c757d' : '#fd7e14'),
                   color: 'white',
                   border: 'none',
                   padding: '0.25rem 0.5rem',
@@ -632,7 +745,7 @@ export default function BookLibrary() {
                   cursor: 'pointer'
                 }}
               >
-                {userRole === 'admin' ? 'Remove' : 'Request Removal'}
+                {userRole === 'admin' ? 'Remove' : (pendingRemovalRequests[book.id] ? 'Cancel Removal Request' : 'Request Removal')}
               </button>
             </div>
           ))}

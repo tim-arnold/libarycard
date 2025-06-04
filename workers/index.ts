@@ -257,6 +257,11 @@ export default {
         return await denyBookRemovalRequest(request, requestId, userId, env, corsHeaders);
       }
 
+      if (path.match(/^\/api\/book-removal-requests\/\d+$/) && request.method === 'DELETE') {
+        const requestId = parseInt(path.split('/')[3]);
+        return await deleteBookRemovalRequest(requestId, userId, env, corsHeaders);
+      }
+
       // Profile endpoints
       if (path === '/api/profile' && request.method === 'GET') {
         return await getUserProfile(userId, env, corsHeaders);
@@ -2157,6 +2162,46 @@ async function denyBookRemovalRequest(request: Request, requestId: number, userI
   } catch (error) {
     console.error('Error denying book removal request:', error);
     return new Response(JSON.stringify({ error: 'Failed to deny removal request' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+async function deleteBookRemovalRequest(requestId: number, userId: string, env: Env, corsHeaders: Record<string, string>) {
+  try {
+    // Get the removal request details and verify user owns it
+    const requestStmt = env.DB.prepare(`
+      SELECT rr.*, b.title as book_title
+      FROM book_removal_requests rr
+      LEFT JOIN books b ON rr.book_id = b.id
+      WHERE rr.id = ? AND rr.requester_id = ? AND rr.status = 'pending'
+    `);
+    
+    const removalRequest = await requestStmt.bind(requestId, userId).first();
+    
+    if (!removalRequest) {
+      return new Response(JSON.stringify({ error: 'Removal request not found, already processed, or you do not have permission to cancel it' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Delete the removal request
+    const deleteStmt = env.DB.prepare('DELETE FROM book_removal_requests WHERE id = ?');
+    await deleteStmt.bind(requestId).run();
+
+    return new Response(JSON.stringify({ 
+      message: 'Book removal request cancelled successfully',
+      book_title: (removalRequest as any).book_title,
+      request_id: requestId
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error cancelling book removal request:', error);
+    return new Response(JSON.stringify({ error: 'Failed to cancel removal request' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
