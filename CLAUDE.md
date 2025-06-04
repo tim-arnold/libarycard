@@ -85,6 +85,7 @@ This file contains development todos, notes, and context for AI assistants worki
   - [ ] Implement admin analytics (books per location, user activity, etc.)
 
 - [ ] **Other Enhancements**
+  - [ ] Add star rating system, just display average rating for each book from scoped to the location
   - [ ] Add book details modal/page with full information, cover image, and editing options
   - [ ] Improve ISBN scanner interface with better camera controls and feedback
   - [ ] Add profile picture upload functionality with image resizing and storage
