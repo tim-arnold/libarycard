@@ -21,6 +21,7 @@ This file contains development todos, notes, and context for AI assistants worki
 - ✅ Location and shelf management restricted to admin users only
 - ✅ Role-based UI button visibility
 - ✅ **Complete invitation system with email notifications**
+- ✅ **Location-scoped user visibility with admin cleanup functionality**
 
 ## Development Todos
 
@@ -33,7 +34,7 @@ This file contains development todos, notes, and context for AI assistants worki
   - [x] ~~Restrict regular users to only adding books (no location/shelf creation)~~ ✅ COMPLETED
   - [x] ~~Add role-based UI restrictions and indicators~~ ✅ COMPLETED
   - [x] ~~Create invitation link system for admins to invite users to locations~~ ✅ COMPLETED
-  - [ ] Implement location-scoped user visibility (users only see their assigned location)
+  - [x] ~~Implement location-scoped user visibility (users only see their assigned location)~~ ✅ COMPLETED
 
 ### Medium Priority - UI Improvements & Core Features
 - [ ] **UI Enhancements**
@@ -111,6 +112,10 @@ This file contains development todos, notes, and context for AI assistants worki
 - **IMPLEMENTED**: Complete invitation system with email notifications using Resend
 - **ADDED**: Admin invitation management UI with status tracking and email templates
 - **ENHANCED**: Sign-in flow to support invitation acceptance for new and existing users
+- **COMPLETED**: Location-scoped user visibility with dynamic shelf tiles and role-based UI
+- **IMPLEMENTED**: Admin user cleanup functionality with cascading deletes
+- **UPDATED**: BookLibrary component to use real shelf data instead of hardcoded locations
+- **ENHANCED**: UI navigation to hide admin features from regular users
 
 ### Session December 2024 - Permission System Implementation
 - **COMPLETED**: Added user_role column to database schema with migration
@@ -121,12 +126,12 @@ This file contains development todos, notes, and context for AI assistants worki
 - **TESTED**: Permission system working correctly in production
 - **REMOVED**: Redundant Next.js API routes (now using Workers API directly)
 
-### Next Priority: Location-Scoped User Visibility
-- Implement user-scoped UI visibility (regular users only see their assigned location)
-- Hide "Manage Locations" for regular users, show only "My Library" and "Scan Books"
-- Replace "Books by Location" tiles with "My Shelves" tiles using actual shelf data
-- Make shelf tiles clickable for filtering, remove location selector for regular users
-- Default regular users to their library view
+### Next Priority: UI/UX Improvements
+- Replace inline styles with proper SCSS modules for better maintainability
+- Improve responsive design for mobile devices and tablets
+- Enhance book management interface with better cards and grid layout
+- Add search and filtering functionality for book collections
+- Implement dark mode toggle with persistent user preference
 
 ---
 Last updated: June 2025
