@@ -18,8 +18,15 @@ export async function GET(request: NextRequest) {
 
     if (response.ok) {
       const result = await response.json()
-      // Redirect to sign-in page with success message
-      return NextResponse.redirect(new URL('/auth/signin?verified=true', request.url))
+      
+      // Check if there's a pending invitation for this user
+      let redirectUrl = '/auth/signin?verified=true'
+      
+      if (result.pending_invitation) {
+        redirectUrl = `/auth/signin?verified=true&invitation=${result.pending_invitation}`
+      }
+      
+      return NextResponse.redirect(new URL(redirectUrl, request.url))
     } else {
       const error = await response.json()
       return NextResponse.redirect(new URL(`/auth/signin?error=${encodeURIComponent(error.error)}`, request.url))

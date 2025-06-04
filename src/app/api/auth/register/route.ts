@@ -42,17 +42,17 @@ export async function POST(request: NextRequest) {
     if (!passwordValidation.isValid) {
       return NextResponse.json({ error: passwordValidation.error }, { status: 400 });
     }
-
-    // For development - simulate successful registration
-    if (process.env.NODE_ENV === 'development') {
-      // Simulate some processing time
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      return NextResponse.json({ 
-        message: 'Registration successful! Please check your email to verify your account.',
-        userId: 'dev-user-' + Date.now()
-      });
-    }
+    // For development - use production flow to test full verification process
+    // if (process.env.NODE_ENV === 'development') {
+    //   // Simulate some processing time
+    //   await new Promise(resolve => setTimeout(resolve, 1000));
+    //   
+    //   return NextResponse.json({ 
+    //     message: 'Registration successful! Please check your email to verify your account before signing in.',
+    //     userId: 'dev-user-' + Date.now(),
+    //     requires_verification: true
+    //   });
+    // }
 
     // Call the workers API to register user
     const apiUrl = `${API_BASE}/api/auth/register`;
