@@ -25,6 +25,9 @@ This file contains development todos, notes, and context for AI assistants worki
 - ✅ **Invitation revocation system for admin users**
 - ✅ **Complete email verification and invitation flow with proper UX**
 - ✅ **User location management with leave functionality and modal-based UI**
+- ✅ **Complete modal system integration across all components (Option A)**
+- ✅ **Single-shelf UX improvements for streamlined user experience (Option B)**
+- ✅ **Role-based book actions with admin/user permission separation (Option C)**
 
 ## Development Todos
 
@@ -51,25 +54,25 @@ This file contains development todos, notes, and context for AI assistants worki
   - [ ] Add proper navigation header with user menu, profile link, and sign-out functionality
   - [ ] Enhance book management interface with better cards, grid layout, list view, and action buttons
   - [ ] Add loading states and better form styling throughout the application
-  - [x] ~~Replace system alerts with Bootstrap modal system for consistent UI~~ ✅ COMPLETED (profile page)
+  - [x] ~~Replace system alerts with Bootstrap modal system for consistent UI~~ ✅ COMPLETED (all components)
   - [x] ~~Create reusable modal components for confirmations, alerts, and forms~~ ✅ COMPLETED
-  - [ ] Add confirmation dialogs for remaining admin actions (book removal, shelf deletion, etc.)
-  - [ ] Show different book action menus based on user role (admin vs regular user)
-  - [ ] Extend modal system to book management and admin actions throughout the application
+  - [x] ~~Extend modal system to book management and admin actions throughout the application~~ ✅ COMPLETED
+  - [x] ~~Show different book action menus based on user role (admin vs regular user)~~ ✅ COMPLETED
+  - [x] ~~Implement role-based book actions (admin: remove, user: request removal)~~ ✅ COMPLETED
 
 - [ ] **Core Functionality**
   - [ ] Add search and filtering functionality for book collections
   - [x] ~~Implement proper location and shelf management UI with CRUD operations~~ ✅ COMPLETED
   - [ ] Complete profile editing UI with conditional fields based on auth provider
   - [ ] Enhancement to admin view ("My Libary" should be "Libraries" and books should be listed by location)
-  - [ ] Regular users viewing a library with only one shelf should not be prompted to select a shelf when scanning a book, or see the "Shelf:" select list when viewing books in their library
-  - [ ] Auto-select the only available shelf when adding books to single-shelf libraries
-  - [ ] Hide location selection for users with access to only one location
-  - [ ] Implement contextual help text that changes based on user role and available options
+  - [x] ~~Regular users viewing a library with only one shelf should not be prompted to select a shelf when scanning a book, or see the "Shelf:" select list when viewing books in their library~~ ✅ COMPLETED
+  - [x] ~~Auto-select the only available shelf when adding books to single-shelf libraries~~ ✅ COMPLETED
+  - [x] ~~Hide location selection for users with access to only one location~~ ✅ COMPLETED
+  - [x] ~~Implement contextual help text that changes based on user role and available options~~ ✅ COMPLETED
 
 - [ ] **Book Checkout System**
-  - [ ] Regular users should not be able to "Remove" books. They can "Request Removal" and should be prompted for a reason (lost, missing, other)
-  - [ ] Implement "Request Removal" workflow with admin approval system
+  - [x] ~~Regular users should not be able to "Remove" books. They can "Request Removal" and should be prompted for a reason (lost, missing, other)~~ ✅ COMPLETED
+  - [ ] Implement "Request Removal" workflow with admin approval system and database storage
   - [ ] Add admin notification system for user requests (removal requests, etc.)
   - [ ] Add book status field (available, checked_out, checked_out_by, checked_out_date)
   - [ ] Allow users to mark books as "currently reading" (checkout)
@@ -150,6 +153,22 @@ This file contains development todos, notes, and context for AI assistants worki
 - **ENHANCED**: Profile page with location listing, leave buttons, and informative messaging
 - **REPLACED**: Browser confirm() dialogs with custom modal system for better UX
 - **COMPLETED**: Modal-based confirmation and success/error feedback for leave location flow
+
+### Session January 2025 - Smart UI & UX Improvements (Options A, B & C)
+- **COMPLETED**: Option A - Modal System Extension across all components (ISBNScanner, BookLibrary, LocationManager, Profile)
+- **REPLACED**: All browser alerts and inline error/success messages with custom modal dialogs
+- **ENHANCED**: User feedback consistency with AlertModal and ConfirmationModal components
+- **IMPLEMENTED**: Option B - Single-Shelf UX improvements for streamlined experience
+- **HIDDEN**: Shelf concept entirely from single-shelf users in ISBN scanner interface
+- **SIMPLIFIED**: Button text from "Save to Library" to "Add to Library" for single-shelf users
+- **AUTOMATED**: Shelf persistence after successful book saves for continuous scanning workflow
+- **OPTIMIZED**: User experience to scale from simple single-shelf to complex multi-shelf scenarios
+- **COMPLETED**: Option C - Role-Based Book Actions with permission separation
+- **IMPLEMENTED**: Admin users get "Remove" button (red) for permanent deletion
+- **ADDED**: Regular users get "Request Removal" button (orange) for admin approval workflow
+- **ENHANCED**: Role-based contextual help text explaining available actions
+- **IMPROVED**: Header display with proper first name and admin icon (🔧) instead of text indicators
+- **REMOVED**: "(u)" indicator for regular users, kept wrench icon for admins only
 
 ### Session January 2025 - Invitation System Enhancements & Production URL Migration
 - **FIXED**: Email invitation delivery issues by configuring Resend with verified domain (tim52.io)

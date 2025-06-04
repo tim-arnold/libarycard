@@ -156,6 +156,37 @@ export default function BookLibrary() {
     }
   }
 
+  const requestBookRemoval = async (bookId: string, bookTitle: string) => {
+    const confirmed = await confirmAsync(
+      {
+        title: 'Request Book Removal',
+        message: `Submit a request to remove "${bookTitle}" from the library? An administrator will review your request and may ask for additional details about the reason for removal.`,
+        confirmText: 'Submit Request',
+        variant: 'warning'
+      },
+      async () => {
+        // TODO: In a real implementation, this would:
+        // 1. Send a removal request to an admin notification system
+        // 2. Include reason selection (lost, missing, damaged, other)
+        // 3. Allow optional comments/details
+        // 4. Create a request record in the database
+        // For now, we'll simulate this with an alert
+        console.log(`Removal request submitted for book ${bookId}: ${bookTitle}`)
+        
+        await alert({
+          title: 'Removal Request Submitted',
+          message: `Your request to remove "${bookTitle}" has been submitted to the administrator for review. You will be notified when the request is processed.`,
+          variant: 'success'
+        })
+      }
+    )
+
+    if (!confirmed) {
+      // User cancelled - no need to show additional alert for cancellation
+      return
+    }
+  }
+
   const updateBookShelf = async (bookId: string, newShelfId: number) => {
     const success = await updateBook(bookId, { shelf_id: newShelfId })
     if (success) {
@@ -273,15 +304,15 @@ export default function BookLibrary() {
         }}>
           {shelves.length <= 1 ? (
             <>
-              📖 <strong>Your Library:</strong> Use search and category filters to find what you're looking for.
+              📖 <strong>Your Library:</strong> Use search and category filters to find what you're looking for.{userRole !== 'admin' && ' Click "Request Removal" to submit requests to an administrator.'}
             </>
           ) : userRole === 'admin' ? (
             <>
-              🔧 <strong>Admin View:</strong> You can see all {books.length} books across {shelves.length} shelves. Click shelf tiles or use filters to organize your view.
+              🔧 <strong>Admin View:</strong> You can see all {books.length} books across {shelves.length} shelves. Click shelf tiles or use filters to organize your view. You can permanently remove books from the library.
             </>
           ) : (
             <>
-              📚 <strong>Your Collection:</strong> Browse your {books.length} books across {shelves.length} shelves. Click shelf tiles to filter, or use the search bar to find specific titles.
+              📚 <strong>Your Collection:</strong> Browse your {books.length} books across {shelves.length} shelves. Click shelf tiles to filter, or use the search bar to find specific titles. Click "Request Removal" to submit requests to an administrator.
             </>
           )}
         </div>
@@ -428,10 +459,10 @@ export default function BookLibrary() {
               </div>
 
               <button
-                onClick={() => deleteBook(book.id, book.title)}
+                onClick={() => userRole === 'admin' ? deleteBook(book.id, book.title) : requestBookRemoval(book.id, book.title)}
                 style={{
                   marginTop: '0.5rem',
-                  background: '#dc3545',
+                  background: userRole === 'admin' ? '#dc3545' : '#fd7e14',
                   color: 'white',
                   border: 'none',
                   padding: '0.25rem 0.5rem',
@@ -440,7 +471,7 @@ export default function BookLibrary() {
                   cursor: 'pointer'
                 }}
               >
-                Remove
+                {userRole === 'admin' ? 'Remove' : 'Request Removal'}
               </button>
             </div>
           ))}

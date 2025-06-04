@@ -12,6 +12,7 @@ export default function Home() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'scan' | 'library' | 'locations'>('library')
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [userFirstName, setUserFirstName] = useState<string | null>(null)
 
   useEffect(() => {
     if (session) {
@@ -26,6 +27,10 @@ export default function Home() {
             } else {
               setActiveTab('library')
             }
+          }
+          // Store the user's first name from profile data
+          if (data.first_name) {
+            setUserFirstName(data.first_name)
           }
         })
         .catch(err => console.error('Failed to fetch user role:', err))
@@ -56,7 +61,7 @@ export default function Home() {
           <h1>📚 LibaryCard</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <span style={{ fontSize: '0.9em', color: '#666' }}>
-              Hello, {session.user?.name?.split(' ')[0]}! {userRole && `(${userRole === 'admin' ? 'a' : 'u'})`}
+              Hello, {userFirstName || session.user?.name?.split(' ')[0] || 'User'}! {userRole === 'admin' && '🔧'}
             </span>
             <button 
               onClick={() => router.push('/profile')}
