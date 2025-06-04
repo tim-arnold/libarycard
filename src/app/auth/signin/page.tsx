@@ -54,6 +54,21 @@ function SignInForm() {
     }
   }, [router, searchParams])
 
+  const checkUserExists = async (email: string) => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
+    
+    try {
+      const response = await fetch(`${API_BASE}/api/users/check?email=${encodeURIComponent(email)}`)
+      if (response.ok) {
+        const data = await response.json()
+        return data.exists
+      }
+    } catch (error) {
+      console.error('Failed to check user existence:', error)
+    }
+    return false
+  }
+
   const fetchInvitationDetails = async (token: string) => {
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
     
@@ -64,7 +79,17 @@ function SignInForm() {
       if (response.ok) {
         setInvitationDetails(data)
         setEmail(data.invited_email)
-        setMessage(`You have been invited to join "${data.location_name}"! Please sign in with your email (${data.invited_email}) to accept the invitation.`)
+        
+        // Check if user already exists
+        const userExists = await checkUserExists(data.invited_email)
+        
+        if (userExists) {
+          setMessage(`You have been invited to join "${data.location_name}"! Please sign in with your existing password to accept the invitation.`)
+          setShowEmailForm(true)
+        } else {
+          setMessage(`You have been invited to join "${data.location_name}"! Please create your account to get started.`)
+          setShowRegisterForm(true)
+        }
       } else {
         setError('Invalid or expired invitation link')
       }
@@ -231,7 +256,14 @@ function SignInForm() {
               // Accept the invitation after successful sign-in
               await handleInvitationAcceptance(invitationToken)
             } else {
-              setError('Registration successful, but automatic sign-in failed. Please sign in manually to accept the invitation.')
+              // Show sign-in form with helpful message
+              setMessage('Account created successfully! Please use your new password to sign in and accept the invitation.')
+              setShowRegisterForm(false)
+              setShowEmailForm(true)
+              // Keep email filled, clear only password for security
+              setPassword('')
+              setFirstName('')
+              setLastName('')
             }
           } catch (error) {
             console.error('Auto sign-in error:', error)
