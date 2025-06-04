@@ -59,6 +59,12 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
+    console.log('Workers API Request:', {
+      method: request.method,
+      path: path,
+      url: request.url
+    });
+
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
@@ -75,10 +81,12 @@ export default {
       
       // Public auth endpoints
       if (path === '/api/users' && request.method === 'POST') {
+        console.log('Matched: /api/users POST');
         return await createOrUpdateUser(request, env, corsHeaders);
       }
 
       if (path === '/api/auth/register' && request.method === 'POST') {
+        console.log('Matched: /api/auth/register POST');
         return await registerUser(request, env, corsHeaders);
       }
 
