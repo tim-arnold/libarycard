@@ -891,9 +891,9 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
   // Generate user ID
   const userId = generateUUID();
   
-  // Enable email verification in production, auto-verify in development
+  // Always require email verification in production
   const isProduction = env.ENVIRONMENT === 'production';
-  const emailVerified = !isProduction; // Require verification in production
+  const emailVerified = false; // Always require verification for new accounts
   
   // Create user
   const stmt = env.DB.prepare(`
@@ -912,22 +912,21 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
     last_name || '',
     passwordHash,
     emailVerified,
-    emailVerified ? null : verificationToken,
-    emailVerified ? null : verificationExpires
+    verificationToken,
+    verificationExpires
   ).run();
 
-  // Send verification email (only if verification is required)
-  if (!emailVerified) {
-    await sendVerificationEmail(env, email, first_name, verificationToken);
-  }
+  // Always send verification email for new accounts
+  await sendVerificationEmail(env, email, first_name, verificationToken);
 
-  const message = emailVerified 
-    ? 'Registration successful! You can now sign in with your credentials.'
-    : 'Registration successful. Please check your email to verify your account.';
+  const message = isProduction 
+    ? 'Registration successful. Please check your email to verify your account before signing in.'
+    : 'Registration successful. Please check your email to verify your account. (Development mode: email simulation)';
 
   return new Response(JSON.stringify({ 
     message,
-    userId 
+    userId,
+    requires_verification: true
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
