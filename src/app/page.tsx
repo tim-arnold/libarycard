@@ -38,6 +38,13 @@ export default function Home() {
             <span style={{ fontSize: '0.9em', color: '#666' }}>
               Hello, {session.user?.name?.split(' ')[0]}!
             </span>
+            <button 
+              onClick={() => router.push('/profile')}
+              className="btn btn-secondary" 
+              style={{ fontSize: '0.8em', padding: '0.5rem 1rem' }}
+            >
+              👤 Profile
+            </button>
             <button onClick={handleSignOut} className="btn btn-secondary" style={{ fontSize: '0.8em', padding: '0.5rem 1rem' }}>
               Sign Out
             </button>

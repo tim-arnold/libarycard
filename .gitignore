@@ -35,3 +35,5 @@ yarn-error.log*
 workers/index-backup.ts
 workers/updated-index.ts
 workers/node_modules/
+.idea/
+als

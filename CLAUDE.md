@@ -66,6 +66,9 @@ This file contains development todos, notes, and context for AI assistants worki
 - Created development mode testing workflow
 - Fixed Suspense boundary issues with Next.js
 - Enhanced sign-in UI with proper form states and error handling
+- **FIXED**: Email verification bypass in staging environment to resolve "unauthorized" errors after registration
+- **ADDED**: Edit Profile feature with conditional fields based on auth provider
+- **ADDED**: Profile navigation link in main application header
 
 ---
 Last updated: December 2024

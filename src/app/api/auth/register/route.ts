@@ -55,6 +55,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Call the workers API to register user
+    console.log('Calling Workers API at:', `${API_BASE}/api/auth/register`)
+    
     const response = await fetch(`${API_BASE}/api/auth/register`, {
       method: 'POST',
       headers: {
@@ -68,12 +70,22 @@ export async function POST(request: NextRequest) {
       }),
     })
 
+    console.log('Workers API response status:', response.status)
+
     if (response.ok) {
       const result = await response.json()
       return NextResponse.json(result)
     } else {
-      const error = await response.json()
-      return NextResponse.json(error, { status: response.status })
+      let errorMessage
+      try {
+        const error = await response.json()
+        errorMessage = error.error || 'Unknown error from API'
+        console.log('Workers API error:', error)
+      } catch (e) {
+        errorMessage = `API returned ${response.status}: ${response.statusText}`
+        console.log('Failed to parse error response:', e)
+      }
+      return NextResponse.json({ error: errorMessage }, { status: response.status })
     }
   } catch (error) {
     console.error('Registration error:', error)

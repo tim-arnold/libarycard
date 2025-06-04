@@ -7,6 +7,7 @@ export interface Env {
   SMTP_PASS: string;
   FROM_EMAIL: string;
   APP_URL: string;
+  ENVIRONMENT?: string;
 }
 
 interface User {
@@ -424,6 +425,10 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
   // Generate user ID
   const userId = generateUUID();
   
+  // Auto-verify email in non-production environments
+  const isProduction = env.ENVIRONMENT === 'production';
+  const emailVerified = !isProduction; // Auto-verify in staging/development
+  
   // Create user
   const stmt = env.DB.prepare(`
     INSERT INTO users (
@@ -431,7 +436,7 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
       auth_provider, email_verified, email_verification_token, 
       email_verification_expires, created_at, updated_at
     )
-    VALUES (?, ?, ?, ?, ?, 'email', FALSE, ?, ?, datetime('now'), datetime('now'))
+    VALUES (?, ?, ?, ?, ?, 'email', ?, ?, ?, datetime('now'), datetime('now'))
   `);
 
   await stmt.bind(
@@ -440,15 +445,22 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
     first_name,
     last_name || '',
     passwordHash,
-    verificationToken,
-    verificationExpires
+    emailVerified,
+    emailVerified ? null : verificationToken,
+    emailVerified ? null : verificationExpires
   ).run();
 
-  // Send verification email
-  await sendVerificationEmail(env, email, first_name, verificationToken);
+  // Send verification email (only if verification is required)
+  if (!emailVerified) {
+    await sendVerificationEmail(env, email, first_name, verificationToken);
+  }
+
+  const message = emailVerified 
+    ? 'Registration successful! You can now sign in with your credentials.'
+    : 'Registration successful. Please check your email to verify your account.';
 
   return new Response(JSON.stringify({ 
-    message: 'Registration successful. Please check your email to verify your account.',
+    message,
     userId 
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
