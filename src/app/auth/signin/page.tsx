@@ -17,6 +17,7 @@ function SignInForm() {
   const [message, setMessage] = useState('')
   const [invitationToken, setInvitationToken] = useState<string | null>(null)
   const [invitationLoading, setInvitationLoading] = useState(false)
+  const [invitationDetails, setInvitationDetails] = useState<{invited_email: string, location_name: string} | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -38,7 +39,7 @@ function SignInForm() {
     const invitationParam = searchParams.get('invitation')
     if (invitationParam) {
       setInvitationToken(invitationParam)
-      setMessage('You have been invited to join a location! Please sign in to accept the invitation.')
+      fetchInvitationDetails(invitationParam)
     }
 
     // Check for verification success
@@ -52,6 +53,26 @@ function SignInForm() {
       setError(decodeURIComponent(errorParam))
     }
   }, [router, searchParams])
+
+  const fetchInvitationDetails = async (token: string) => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://libarycard-api.tim-arnold.workers.dev'
+    
+    try {
+      const response = await fetch(`${API_BASE}/api/invitations/details?token=${token}`)
+      const data = await response.json()
+      
+      if (response.ok) {
+        setInvitationDetails(data)
+        setEmail(data.invited_email)
+        setMessage(`You have been invited to join "${data.location_name}"! Please sign in with your email (${data.invited_email}) to accept the invitation.`)
+      } else {
+        setError('Invalid or expired invitation link')
+      }
+    } catch (error) {
+      console.error('Failed to fetch invitation details:', error)
+      setError('Failed to load invitation details')
+    }
+  }
 
   const handleInvitationAcceptance = async (token: string) => {
     setInvitationLoading(true)
@@ -348,12 +369,15 @@ function SignInForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  readOnly={!!invitationDetails}
                   style={{ 
                     width: '100%', 
                     padding: '0.75rem', 
                     border: '1px solid #ddd', 
                     borderRadius: '4px',
-                    fontSize: '1rem'
+                    fontSize: '1rem',
+                    backgroundColor: invitationDetails ? '#f8f9fa' : 'white',
+                    cursor: invitationDetails ? 'not-allowed' : 'text'
                   }}
                 />
               </div>
@@ -460,12 +484,15 @@ function SignInForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  readOnly={!!invitationDetails}
                   style={{ 
                     width: '100%', 
                     padding: '0.75rem', 
                     border: '1px solid #ddd', 
                     borderRadius: '4px',
-                    fontSize: '1rem'
+                    fontSize: '1rem',
+                    backgroundColor: invitationDetails ? '#f8f9fa' : 'white',
+                    cursor: invitationDetails ? 'not-allowed' : 'text'
                   }}
                 />
               </div>

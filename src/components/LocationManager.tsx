@@ -409,6 +409,41 @@ export default function LocationManager() {
     }
   }
 
+  const revokeInvitation = async (invitationId: number, invitedEmail: string) => {
+    if (!session?.user?.email) return
+    
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to revoke the invitation for ${invitedEmail}?\n\nThis action cannot be undone and they will no longer be able to use their invitation link.`
+    )
+    
+    if (!confirmed) return
+    
+    try {
+      const response = await fetch(`${API_BASE}/api/invitations/${invitationId}/revoke`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.user.email}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        // Remove the revoked invitation from the list
+        setInvitations(invitations.filter(inv => inv.id !== invitationId))
+        setError('')
+        // Show success message temporarily
+        setError(`✅ Invitation for ${invitedEmail} has been revoked`)
+        setTimeout(() => setError(''), 3000)
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to revoke invitation')
+      }
+    } catch (error) {
+      setError('Failed to revoke invitation')
+    }
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -649,14 +684,33 @@ export default function LocationManager() {
                               )}
                             </div>
                           </div>
-                          <div style={{ 
-                            fontSize: '0.8em', 
-                            padding: '0.25rem 0.5rem', 
-                            borderRadius: '0.25rem',
-                            background: invitation.used_at ? '#d4edda' : '#fff3cd',
-                            color: invitation.used_at ? '#155724' : '#856404'
-                          }}>
-                            {invitation.used_at ? 'Accepted' : 'Pending'}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{ 
+                              fontSize: '0.8em', 
+                              padding: '0.25rem 0.5rem', 
+                              borderRadius: '0.25rem',
+                              background: invitation.used_at ? '#d4edda' : '#fff3cd',
+                              color: invitation.used_at ? '#155724' : '#856404'
+                            }}>
+                              {invitation.used_at ? 'Accepted' : 'Pending'}
+                            </div>
+                            {!invitation.used_at && (
+                              <button
+                                onClick={() => revokeInvitation(invitation.id, invitation.invited_email)}
+                                style={{
+                                  fontSize: '0.7em',
+                                  padding: '0.25rem 0.5rem',
+                                  background: '#dc3545',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '0.25rem',
+                                  cursor: 'pointer'
+                                }}
+                                title="Revoke this invitation"
+                              >
+                                Revoke
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}

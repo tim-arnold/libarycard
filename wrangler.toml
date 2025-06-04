@@ -12,7 +12,7 @@ database_id = "368ab7bc-fb42-4607-a4cf-761dc7795284"
 [env.production.vars]
 ENVIRONMENT = "production"
 APP_URL = "https://libarycard.netlify.app/"
-FROM_EMAIL = "LibaryCard <noreply@resend.dev>"
+FROM_EMAIL = "LibaryCard <libary@tim52.io>"
 
 [[env.production.d1_databases]]
 binding = "DB"
@@ -23,7 +23,7 @@ database_id = "368ab7bc-fb42-4607-a4cf-761dc7795284"
 [env.staging.vars]
 ENVIRONMENT = "staging"
 APP_URL = "https://libarycard.netlify.app/"
-FROM_EMAIL = "LibaryCard <noreply@resend.dev>"
+FROM_EMAIL = "LibaryCard <libary@tim52.io>"
 
 [[env.staging.d1_databases]]
 binding = "DB"

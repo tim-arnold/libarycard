@@ -22,6 +22,7 @@ This file contains development todos, notes, and context for AI assistants worki
 - ✅ Role-based UI button visibility
 - ✅ **Complete invitation system with email notifications**
 - ✅ **Location-scoped user visibility with admin cleanup functionality**
+- ✅ **Invitation revocation system for admin users**
 
 ## Development Todos
 
@@ -37,6 +38,11 @@ This file contains development todos, notes, and context for AI assistants worki
   - [x] ~~Implement location-scoped user visibility (users only see their assigned location)~~ ✅ COMPLETED
 
 ### Medium Priority - UI Improvements & Core Features
+- [x] ~~**Email Configuration**~~ ✅ **COMPLETED**
+  - [x] ~~Verify custom domain in Resend (https://resend.com/domains) for production email sending~~ ✅ COMPLETED
+  - [x] ~~Update FROM_EMAIL in wrangler.toml to use verified domain (e.g., noreply@yourdomain.com)~~ ✅ COMPLETED  
+  - [x] ~~Currently using libary@tim52.io as verified domain email address~~ ✅ COMPLETED
+
 - [ ] **UI Enhancements**
   - [ ] Replace inline styles with proper SCSS modules and refactor to use SCSS for better maintainability
   - [ ] Improve responsive design for mobile devices and tablets
@@ -116,6 +122,17 @@ This file contains development todos, notes, and context for AI assistants worki
 - **IMPLEMENTED**: Admin user cleanup functionality with cascading deletes
 - **UPDATED**: BookLibrary component to use real shelf data instead of hardcoded locations
 - **ENHANCED**: UI navigation to hide admin features from regular users
+
+### Session January 2025 - Invitation System Enhancements
+- **FIXED**: Email invitation delivery issues by configuring Resend with verified domain (tim52.io)
+- **UPDATED**: FROM_EMAIL to use libary@tim52.io for production email sending
+- **RESOLVED**: Double slash URL issue in invitation emails by fixing URL concatenation
+- **ENHANCED**: Invitation flow to pre-populate email addresses for better UX
+- **FIXED**: Email validation to properly support '+' characters in email addresses
+- **IMPLEMENTED**: Admin invitation revocation system with confirmation dialogs
+- **ADDED**: DELETE `/api/invitations/{id}/revoke` endpoint for admin users
+- **UPDATED**: Invitation UI to show revoke buttons only for pending invitations
+- **ENHANCED**: Error handling for invitation acceptance with new user registration
 
 ### Session December 2024 - Permission System Implementation
 - **COMPLETED**: Added user_role column to database schema with migration

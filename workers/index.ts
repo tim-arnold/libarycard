@@ -100,6 +100,10 @@ export default {
         return await verifyEmail(request, env, corsHeaders);
       }
 
+      if (path === '/api/invitations/details' && request.method === 'GET') {
+        return await getInvitationDetails(request, env, corsHeaders);
+      }
+
       // Get user from session/token for protected endpoints
       const userId = await getUserFromRequest(request, env);
       
@@ -204,6 +208,11 @@ export default {
       if (path.match(/^\/api\/locations\/\d+\/invitations$/) && request.method === 'GET') {
         const locationId = parseInt(path.split('/')[3]);
         return await getLocationInvitations(locationId, userId, env, corsHeaders);
+      }
+
+      if (path.match(/^\/api\/invitations\/\d+\/revoke$/) && request.method === 'DELETE') {
+        const invitationId = parseInt(path.split('/')[3]);
+        return await revokeLocationInvitation(invitationId, userId, env, corsHeaders);
       }
 
       // Profile endpoints
@@ -1223,8 +1232,11 @@ async function acceptLocationInvitation(request: Request, userId: string, env: E
     });
   }
 
-  // Check if invitation email matches user email
-  if ((invitation as any).invited_email !== (invitation as any).user_email) {
+  // Check if invitation email matches user email (only if user exists and has an email)
+  const userEmail = (invitation as any).user_email;
+  const invitedEmail = (invitation as any).invited_email;
+  
+  if (userEmail && userEmail !== invitedEmail) {
     return new Response(JSON.stringify({ error: 'Invitation email does not match your account' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -1311,8 +1323,111 @@ async function getLocationInvitations(locationId: number, userId: string, env: E
   });
 }
 
+async function getInvitationDetails(request: Request, env: Env, corsHeaders: Record<string, string>) {
+  const url = new URL(request.url);
+  const token = url.searchParams.get('token');
+  
+  if (!token) {
+    return new Response(JSON.stringify({ error: 'Invitation token required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  
+  // Get invitation details
+  const invitationStmt = env.DB.prepare(`
+    SELECT li.invited_email, l.name as location_name, li.expires_at
+    FROM location_invitations li
+    LEFT JOIN locations l ON li.location_id = l.id
+    WHERE li.invitation_token = ? AND li.used_at IS NULL
+  `);
+  
+  const invitation = await invitationStmt.bind(token).first();
+  
+  if (!invitation) {
+    return new Response(JSON.stringify({ error: 'Invalid or expired invitation token' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  
+  // Check if invitation is expired
+  if (new Date() > new Date((invitation as any).expires_at)) {
+    return new Response(JSON.stringify({ error: 'Invitation has expired' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  
+  return new Response(JSON.stringify({
+    invited_email: (invitation as any).invited_email,
+    location_name: (invitation as any).location_name,
+    expires_at: (invitation as any).expires_at
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function revokeLocationInvitation(invitationId: number, userId: string, env: Env, corsHeaders: Record<string, string>) {
+  // Check if user is admin (only admins can revoke invitations)
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required to revoke invitations' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Get invitation details to verify it exists and check permissions
+  const invitationStmt = env.DB.prepare(`
+    SELECT li.*, l.owner_id
+    FROM location_invitations li
+    LEFT JOIN locations l ON li.location_id = l.id
+    WHERE li.id = ?
+  `);
+  
+  const invitation = await invitationStmt.bind(invitationId).first();
+  
+  if (!invitation) {
+    return new Response(JSON.stringify({ error: 'Invitation not found' }), {
+      status: 404,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Check if user has access to this location (only owner can revoke invitations)
+  if ((invitation as any).owner_id !== userId) {
+    return new Response(JSON.stringify({ error: 'Access denied - only location owner can revoke invitations' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Check if invitation is still pending (not used)
+  if ((invitation as any).used_at) {
+    return new Response(JSON.stringify({ error: 'Cannot revoke invitation that has already been accepted' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Delete the invitation
+  const deleteStmt = env.DB.prepare(`
+    DELETE FROM location_invitations WHERE id = ?
+  `);
+  
+  await deleteStmt.bind(invitationId).run();
+
+  return new Response(JSON.stringify({ 
+    message: 'Invitation revoked successfully',
+    invitation_id: invitationId,
+    invited_email: (invitation as any).invited_email
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
 async function sendInvitationEmail(env: Env, email: string, locationName: string, token: string, invitedBy: string) {
-  const invitationUrl = `${env.APP_URL}/auth/signin?invitation=${token}`;
+  const invitationUrl = `${env.APP_URL.replace(/\/$/, '')}/auth/signin?invitation=${token}`;
   
   // Get inviter name
   const inviterStmt = env.DB.prepare(`
@@ -1440,7 +1555,7 @@ function generateUUID(): string {
 }
 
 async function sendVerificationEmail(env: Env, email: string, firstName: string, token: string) {
-  const verificationUrl = `${env.APP_URL}/auth/signin?verified=true&token=${token}`;
+  const verificationUrl = `${env.APP_URL.replace(/\/$/, '')}/auth/signin?verified=true&token=${token}`;
   
   // Use Resend for production email sending
   if (env.RESEND_API_KEY) {
