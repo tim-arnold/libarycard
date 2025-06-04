@@ -427,8 +427,9 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
   // Generate user ID
   const userId = generateUUID();
   
-  // Auto-verify email in all environments for testing
-  const emailVerified = true; // Temporarily auto-verify in all environments for testing
+  // Enable email verification in production, auto-verify in development
+  const isProduction = env.ENVIRONMENT === 'production';
+  const emailVerified = !isProduction; // Require verification in production
   
   // Create user
   const stmt = env.DB.prepare(`
