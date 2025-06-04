@@ -362,7 +362,7 @@ function SignInForm() {
           </div>
         )}
 
-        {!showEmailForm && !showRegisterForm && (
+        {!showEmailForm && !showRegisterForm && !message.includes('verification') && (
           <>
             <button
               onClick={handleGoogleSignIn}
