@@ -8,6 +8,7 @@ export interface Env {
   FROM_EMAIL: string;
   APP_URL: string;
   ENVIRONMENT?: string;
+  RESEND_API_KEY?: string;
 }
 
 interface User {
@@ -679,37 +680,72 @@ function generateUUID(): string {
 }
 
 async function sendVerificationEmail(env: Env, email: string, firstName: string, token: string) {
-  const verificationUrl = `${env.APP_URL}/api/auth/verify-email?token=${token}`;
+  const verificationUrl = `${env.APP_URL}/auth/signin?verified=true&token=${token}`;
   
-  // In a real implementation, you'd use a proper email service
-  // This is a placeholder - you could integrate with services like:
-  // - Cloudflare Workers Email (when available)  
-  // - Mailgun, SendGrid, etc. via their APIs
-  console.log(`
-    Email verification would be sent to: ${email}
-    Name: ${firstName}
-    Verification URL: ${verificationUrl}
-  `);
-  
-  // TODO: Implement actual email sending
-  // Example with a hypothetical email service:
-  /*
-  const response = await fetch('https://api.emailservice.com/send', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${env.EMAIL_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      to: email,
-      subject: 'Verify your LibaryCard account',
-      html: `
-        <h1>Welcome to LibaryCard, ${firstName}!</h1>
-        <p>Please click the link below to verify your email address:</p>
-        <a href="${verificationUrl}">Verify Email</a>
-        <p>This link will expire in 24 hours.</p>
-      `
-    })
-  });
-  */
+  // Use Resend for production email sending
+  if (env.RESEND_API_KEY) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: env.FROM_EMAIL || 'LibaryCard <noreply@resend.dev>',
+          to: [email],
+          subject: 'Verify your LibaryCard account',
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Verify your LibaryCard account</title>
+            </head>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="background: #f8f9fa; padding: 30px; border-radius: 10px; text-align: center;">
+                <h1 style="color: #007bff; margin-bottom: 10px;">📚 LibaryCard</h1>
+                <h2 style="color: #333; margin-bottom: 20px;">Welcome, ${firstName}!</h2>
+                <p style="font-size: 16px; margin-bottom: 30px;">
+                  Thanks for joining LibaryCard. To complete your registration, please verify your email address by clicking the button below:
+                </p>
+                <a href="${verificationUrl}" 
+                   style="display: inline-block; background: #007bff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                  Verify Email Address
+                </a>
+                <p style="font-size: 14px; color: #666; margin-top: 30px;">
+                  This link will expire in 24 hours. If you didn't create an account with LibaryCard, you can safely ignore this email.
+                </p>
+                <p style="font-size: 14px; color: #666; margin-top: 20px;">
+                  If the button doesn't work, copy and paste this link into your browser:<br>
+                  <a href="${verificationUrl}" style="color: #007bff; word-break: break-all;">${verificationUrl}</a>
+                </p>
+              </div>
+            </body>
+            </html>
+          `
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('Failed to send verification email:', error);
+        throw new Error(`Email service error: ${response.status}`);
+      }
+
+      const result = await response.json() as { id: string };
+      console.log('Verification email sent successfully:', result.id);
+    } catch (error) {
+      console.error('Error sending verification email:', error);
+      // Don't fail registration if email fails - log and continue
+    }
+  } else {
+    // Fallback for development/staging without email service
+    console.log(`
+      Email verification would be sent to: ${email}
+      Name: ${firstName}
+      Verification URL: ${verificationUrl}
+    `);
+  }
 }

@@ -9,7 +9,10 @@ database_name = "libarycard-db"
 database_id = "368ab7bc-fb42-4607-a4cf-761dc7795284"
 
 [env.production]
-vars = { ENVIRONMENT = "production" }
+[env.production.vars]
+ENVIRONMENT = "production"
+APP_URL = "https://libarycard.netlify.app/"
+FROM_EMAIL = "LibaryCard <noreply@resend.dev>"
 
 [[env.production.d1_databases]]
 binding = "DB"
@@ -17,7 +20,10 @@ database_name = "libarycard-db"
 database_id = "368ab7bc-fb42-4607-a4cf-761dc7795284"
 
 [env.staging]
-vars = { ENVIRONMENT = "staging" }
+[env.staging.vars]
+ENVIRONMENT = "staging"
+APP_URL = "https://your-staging-domain.netlify.app"
+FROM_EMAIL = "noreply@your-domain.com"
 
 [[env.staging.d1_databases]]
 binding = "DB"
