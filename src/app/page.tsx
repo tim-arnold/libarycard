@@ -6,11 +6,12 @@ import { useRouter } from 'next/navigation'
 import ISBNScanner from '@/components/ISBNScanner'
 import BookLibrary from '@/components/BookLibrary'
 import LocationManager from '@/components/LocationManager'
+import RemovalRequestManager from '@/components/RemovalRequestManager'
 
 export default function Home() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'scan' | 'library' | 'locations'>('library')
+  const [activeTab, setActiveTab] = useState<'scan' | 'library' | 'locations' | 'requests'>('library')
   const [userRole, setUserRole] = useState<string | null>(null)
   const [userFirstName, setUserFirstName] = useState<string | null>(null)
 
@@ -80,13 +81,22 @@ export default function Home() {
 
       <nav style={{ marginBottom: '2rem', textAlign: 'center' }}>
         {userRole === 'admin' && (
-          <button
-            className={`btn ${activeTab === 'locations' ? '' : 'btn-secondary'}`}
-            onClick={() => setActiveTab('locations')}
-            style={{ marginRight: '1rem' }}
-          >
-            🏠 Manage Locations
-          </button>
+          <>
+            <button
+              className={`btn ${activeTab === 'locations' ? '' : 'btn-secondary'}`}
+              onClick={() => setActiveTab('locations')}
+              style={{ marginRight: '1rem' }}
+            >
+              🏠 Manage Locations
+            </button>
+            <button
+              className={`btn ${activeTab === 'requests' ? '' : 'btn-secondary'}`}
+              onClick={() => setActiveTab('requests')}
+              style={{ marginRight: '1rem' }}
+            >
+              📋 Removal Requests
+            </button>
+          </>
         )}
         <button
           className={`btn ${activeTab === 'scan' ? '' : 'btn-secondary'}`}
@@ -104,6 +114,7 @@ export default function Home() {
       </nav>
 
       {activeTab === 'locations' && <LocationManager />}
+      {activeTab === 'requests' && <RemovalRequestManager />}
       {activeTab === 'scan' && <ISBNScanner />}
       {activeTab === 'library' && <BookLibrary />}
     </div>
