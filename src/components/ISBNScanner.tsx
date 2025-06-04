@@ -5,6 +5,9 @@ import { useSession } from 'next-auth/react'
 import { fetchBookData } from '@/lib/bookApi'
 import { saveBook as saveBookAPI } from '@/lib/api'
 import { BrowserMultiFormatReader } from '@zxing/library'
+import ConfirmationModal from './ConfirmationModal'
+import AlertModal from './AlertModal'
+import { useModal } from '@/hooks/useModal'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
 
@@ -41,6 +44,7 @@ interface Shelf {
 
 export default function ISBNScanner() {
   const { data: session } = useSession()
+  const { modalState, alert, closeModal } = useModal()
   const scannerRef = useRef<HTMLDivElement>(null)
   const [isScanning, setIsScanning] = useState(false)
   const [scannedBook, setScannedBook] = useState<Book | null>(null)
@@ -50,10 +54,8 @@ export default function ISBNScanner() {
   const [customTags, setCustomTags] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
   const [isScannerLoading, setIsScannerLoading] = useState(false)
-  const [error, setError] = useState<string>('')
   const [codeReader, setCodeReader] = useState<BrowserMultiFormatReader | null>(null)
   const [loadingData, setLoadingData] = useState(true)
-  const [successMessage, setSuccessMessage] = useState('')
 
   useEffect(() => {
     // Initialize ZXing scanner
@@ -61,7 +63,11 @@ export default function ISBNScanner() {
       const reader = new BrowserMultiFormatReader()
       setCodeReader(reader)
     } catch (error) {
-      setError('Failed to initialize barcode scanner. Please refresh the page.')
+      alert({
+        title: 'Scanner Error',
+        message: 'Failed to initialize barcode scanner. Please refresh the page.',
+        variant: 'error'
+      })
     }
   }, [])
 
@@ -117,24 +123,34 @@ export default function ISBNScanner() {
 
   const startScanner = async () => {
     if (!scannerRef.current) {
-      setError('Scanner element not found. Please refresh the page.')
+      await alert({
+        title: 'Scanner Error',
+        message: 'Scanner element not found. Please refresh the page.',
+        variant: 'error'
+      })
       return
     }
     
     if (!codeReader) {
-      setError('ZXing scanner not initialized. Please refresh the page.')
+      await alert({
+        title: 'Scanner Error',
+        message: 'ZXing scanner not initialized. Please refresh the page.',
+        variant: 'error'
+      })
       return
     }
 
     setIsScanning(true)
     setIsScannerLoading(true)
-    setError('')
-
 
     try {
       // Check basic browser support first
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setError('Camera not supported in this browser. Please use manual ISBN entry.')
+        await alert({
+          title: 'Camera Not Supported',
+          message: 'Camera not supported in this browser. Please use manual ISBN entry.',
+          variant: 'warning'
+        })
         setIsScanning(false)
         setIsScannerLoading(false)
         return
@@ -147,13 +163,20 @@ export default function ISBNScanner() {
       await startZXingScanner()
       
     } catch (error: any) {
+      let message = 'Unknown camera error. Please try again.'
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        setError('Camera permission denied. Please allow camera access in your browser settings and try again.')
+        message = 'Camera permission denied. Please allow camera access in your browser settings and try again.'
       } else if (error.name === 'NotFoundError') {
-        setError('No camera found on this device. Please use manual ISBN entry.')
-      } else {
-        setError(`Camera error: ${error.message || 'Unknown error'}. Please allow camera access and try again.`)
+        message = 'No camera found on this device. Please use manual ISBN entry.'
+      } else if (error.message) {
+        message = `Camera error: ${error.message}. Please allow camera access and try again.`
       }
+      
+      await alert({
+        title: 'Camera Error',
+        message,
+        variant: 'error'
+      })
       setIsScanning(false)
       setIsScannerLoading(false)
     }
@@ -239,17 +262,24 @@ export default function ISBNScanner() {
 
   const handleISBNDetected = async (isbn: string) => {
     setIsLoading(true)
-    setError('')
     
     try {
       const bookData = await fetchBookData(isbn)
       if (bookData) {
         setScannedBook(bookData)
       } else {
-        setError('Book not found for this ISBN')
+        await alert({
+          title: 'Book Not Found',
+          message: 'Book not found for this ISBN. Please try a different ISBN or enter the book details manually.',
+          variant: 'warning'
+        })
       }
     } catch (err) {
-      setError('Failed to fetch book data')
+      await alert({
+        title: 'Lookup Error',
+        message: 'Failed to fetch book data. Please check your internet connection and try again.',
+        variant: 'error'
+      })
     } finally {
       setIsLoading(false)
     }
@@ -267,13 +297,22 @@ export default function ISBNScanner() {
     const success = await saveBookAPI(bookToSave)
     
     if (success) {
+      const bookTitle = scannedBook.title
       setScannedBook(null)
       setSelectedShelfId(null)
       setCustomTags('')
-      setSuccessMessage(`"${scannedBook.title}" has been added to your library!`)
-      setTimeout(() => setSuccessMessage(''), 5000)
+      
+      await alert({
+        title: 'Book Added!',
+        message: `"${bookTitle}" has been successfully added to your library!`,
+        variant: 'success'
+      })
     } else {
-      setError('Failed to save book. Please try again.')
+      await alert({
+        title: 'Save Failed',
+        message: 'Failed to save book. Please check your connection and try again.',
+        variant: 'error'
+      })
     }
   }
 
@@ -338,13 +377,6 @@ export default function ISBNScanner() {
             </p>
           )}
           
-          {error && !isScannerLoading && (
-            <div style={{ marginBottom: '1rem', padding: '0.5rem', background: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '0.25rem' }}>
-              <p style={{ fontSize: '0.9em', color: '#856404' }}>
-                {error}
-              </p>
-            </div>
-          )}
           
           <form onSubmit={manualISBNEntry} style={{ marginTop: '1rem' }}>
             <input
@@ -381,22 +413,6 @@ export default function ISBNScanner() {
       )}
 
       {isLoading && <p>Loading book data...</p>}
-      
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
-      {successMessage && (
-        <div style={{ 
-          marginTop: '1rem', 
-          padding: '1rem', 
-          background: '#d4edda', 
-          border: '1px solid #c3e6cb', 
-          borderRadius: '0.375rem',
-          color: '#155724',
-          textAlign: 'center'
-        }}>
-          ✅ {successMessage}
-        </div>
-      )}
 
       {scannedBook && (
         <div style={{ marginTop: '2rem' }}>
@@ -508,6 +524,32 @@ export default function ISBNScanner() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Modal Components */}
+      {modalState.type === 'confirm' && (
+        <ConfirmationModal
+          isOpen={modalState.isOpen}
+          onClose={closeModal}
+          onConfirm={modalState.onConfirm!}
+          title={modalState.options.title}
+          message={modalState.options.message}
+          confirmText={modalState.options.confirmText}
+          cancelText={modalState.options.cancelText}
+          variant={modalState.options.variant}
+          loading={modalState.loading}
+        />
+      )}
+      
+      {modalState.type === 'alert' && (
+        <AlertModal
+          isOpen={modalState.isOpen}
+          onClose={closeModal}
+          title={modalState.options.title}
+          message={modalState.options.message}
+          variant={modalState.options.variant}
+          buttonText={modalState.options.buttonText}
+        />
       )}
     </div>
   )
