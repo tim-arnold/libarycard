@@ -295,7 +295,15 @@ export default function BookLibrary() {
         const detailsTextarea = modalContent.querySelector('#details') as HTMLTextAreaElement
         
         if (!selectedRadio) {
-          alert('Please select a reason for removal.')
+          // Show inline validation message
+          let errorMsg = modalContent.querySelector('.error-message') as HTMLDivElement
+          if (!errorMsg) {
+            errorMsg = document.createElement('div')
+            errorMsg.className = 'error-message'
+            errorMsg.style.cssText = 'color: #dc3545; font-size: 0.9em; margin-bottom: 1rem; text-align: center;'
+            modalContent.insertBefore(errorMsg, modalContent.querySelector('div:last-child')!)
+          }
+          errorMsg.textContent = 'Please select a reason for removal.'
           return
         }
 
