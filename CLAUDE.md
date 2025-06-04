@@ -88,6 +88,7 @@ This file contains development todos, notes, and context for AI assistants worki
   - [ ] Add profile picture upload functionality with image resizing and storage
   - [ ] Implement dark mode toggle with persistent user preference
   - [ ] Add export functionality for book collections (CSV, PDF formats)
+  - [ ] Add support for multiple locations for regular users
 
 ## Technical Architecture
 
