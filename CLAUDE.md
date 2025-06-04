@@ -23,6 +23,7 @@ This file contains development todos, notes, and context for AI assistants worki
 - ✅ **Complete invitation system with email notifications**
 - ✅ **Location-scoped user visibility with admin cleanup functionality**
 - ✅ **Invitation revocation system for admin users**
+- ✅ **Complete email verification and invitation flow with proper UX**
 
 ## Development Todos
 
@@ -55,13 +56,14 @@ This file contains development todos, notes, and context for AI assistants worki
   - [x] ~~Implement proper location and shelf management UI with CRUD operations~~ ✅ COMPLETED
   - [ ] Complete profile editing UI with conditional fields based on auth provider
 
-### Low Priority - Future Enhancements
 - [ ] **Book Checkout System**
   - [ ] Add book status field (available, checked_out, checked_out_by, checked_out_date)
   - [ ] Allow users to mark books as "currently reading" (checkout)
   - [ ] Show book availability status in book listings
   - [ ] Add checkout history and return functionality
   - [ ] Implement checkout notifications and due date reminders
+
+### Low Priority - Future Enhancements
 
 - [ ] **Other Enhancements**
   - [ ] Add book details modal/page with full information, cover image, and editing options
@@ -136,6 +138,18 @@ This file contains development todos, notes, and context for AI assistants worki
 - **MIGRATED**: Production URLs to new domain - App: https://libarycard.tim52.io, API: https://api.libarycard.tim52.io
 - **UPDATED**: All frontend components and documentation to use new production URLs
 
+### Session June 2025 - Email Verification & Invitation Flow Completion
+- **DIAGNOSED**: Email verification flow issues causing "Invalid email or password" errors after invitation acceptance
+- **FIXED**: Development mode bypass preventing proper email verification flow testing
+- **CORRECTED**: Workers API deployment to use production environment with proper environment variables
+- **RESOLVED**: Missing `requires_verification: true` flag in registration API responses
+- **ENHANCED**: Frontend to properly handle email verification requirements and hide sign-in buttons during verification
+- **IMPLEMENTED**: Invitation context preservation through email verification process
+- **OPTIMIZED**: Verification email URLs to use proper API route structure
+- **IMPROVED**: User experience by hiding Google OAuth and email sign-in buttons when verification is required
+- **COMPLETED**: End-to-end invitation acceptance flow with seamless email verification
+- **VERIFIED**: Full invitation workflow now functioning: Accept invite → Create account → Verify email → Sign in → Auto-accept invitation → Access granted
+
 ### Session December 2024 - Permission System Implementation
 - **COMPLETED**: Added user_role column to database schema with migration
 - **DEPLOYED**: Database migration to production (tim.arnold@gmail.com set as admin)
@@ -153,4 +167,4 @@ This file contains development todos, notes, and context for AI assistants worki
 - Implement dark mode toggle with persistent user preference
 
 ---
-Last updated: June 2025
+Last updated: December 2024
