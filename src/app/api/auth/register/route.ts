@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://libarycard-api.tim-arnold.workers.dev'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://libarycard-api-production.tim-arnold.workers.dev'
 
 function validatePasswordStrength(password: string): { isValid: boolean; error?: string } {
   const minLength = 8;
@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
 
     // Call the workers API to register user
     const apiUrl = `${API_BASE}/api/auth/register`;
+    console.log('Production API URL:', apiUrl);
     
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -83,10 +84,13 @@ export async function POST(request: NextRequest) {
         errorMessage = `API returned ${response.status}: ${response.statusText}`
         console.log('Failed to parse error response:', e)
       }
+      console.log('API URL used:', apiUrl, 'Status:', response.status);
       return NextResponse.json({ error: errorMessage }, { status: response.status })
     }
   } catch (error) {
     console.error('Registration error:', error)
+    console.log('API_BASE value:', API_BASE);
+    console.log('Environment variables:', { NODE_ENV: process.env.NODE_ENV, NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL });
     return NextResponse.json({ error: 'Registration failed' }, { status: 500 })
   }
 }
