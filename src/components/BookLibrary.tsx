@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import type { Book } from './ISBNScanner'
 import { getBooks, updateBook, deleteBook as deleteBookAPI } from '@/lib/api'
+import ConfirmationModal from './ConfirmationModal'
+import AlertModal from './AlertModal'
+import { useModal } from '@/hooks/useModal'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
 
@@ -16,6 +19,7 @@ interface Shelf {
 
 export default function BookLibrary() {
   const { data: session } = useSession()
+  const { modalState, confirmAsync, alert, closeModal } = useModal()
   const [books, setBooks] = useState<Book[]>([])
   const [filteredBooks, setFilteredBooks] = useState<Book[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -107,13 +111,36 @@ export default function BookLibrary() {
     setFilteredBooks(filtered)
   }, [books, searchTerm, shelfFilter, categoryFilter])
 
-  const deleteBook = async (bookId: string) => {
-    if (confirm('Are you sure you want to remove this book from your library?')) {
-      const success = await deleteBookAPI(bookId)
-      if (success) {
-        const updatedBooks = books.filter(book => book.id !== bookId)
-        setBooks(updatedBooks)
+  const deleteBook = async (bookId: string, bookTitle: string) => {
+    const confirmed = await confirmAsync(
+      {
+        title: 'Remove Book',
+        message: `Are you sure you want to remove "${bookTitle}" from your library? This action cannot be undone.`,
+        confirmText: 'Remove Book',
+        variant: 'danger'
+      },
+      async () => {
+        const success = await deleteBookAPI(bookId)
+        if (success) {
+          const updatedBooks = books.filter(book => book.id !== bookId)
+          setBooks(updatedBooks)
+          await alert({
+            title: 'Book Removed',
+            message: `"${bookTitle}" has been successfully removed from your library.`,
+            variant: 'success'
+          })
+        } else {
+          throw new Error('Failed to remove book')
+        }
       }
+    )
+
+    if (!confirmed) {
+      await alert({
+        title: 'Remove Failed',
+        message: 'Failed to remove the book. Please try again.',
+        variant: 'error'
+      })
     }
   }
 
@@ -299,7 +326,7 @@ export default function BookLibrary() {
               </div>
 
               <button
-                onClick={() => deleteBook(book.id)}
+                onClick={() => deleteBook(book.id, book.title)}
                 style={{
                   marginTop: '0.5rem',
                   background: '#dc3545',
@@ -316,6 +343,32 @@ export default function BookLibrary() {
             </div>
           ))}
         </div>
+      )}
+      
+      {/* Bootstrap Modal Components */}
+      {modalState.type === 'confirm' && (
+        <ConfirmationModal
+          isOpen={modalState.isOpen}
+          onClose={closeModal}
+          onConfirm={modalState.onConfirm!}
+          title={modalState.options.title}
+          message={modalState.options.message}
+          confirmText={modalState.options.confirmText}
+          cancelText={modalState.options.cancelText}
+          variant={modalState.options.variant}
+          loading={modalState.loading}
+        />
+      )}
+      
+      {modalState.type === 'alert' && (
+        <AlertModal
+          isOpen={modalState.isOpen}
+          onClose={closeModal}
+          title={modalState.options.title}
+          message={modalState.options.message}
+          variant={modalState.options.variant}
+          buttonText={modalState.options.buttonText}
+        />
       )}
     </div>
   )

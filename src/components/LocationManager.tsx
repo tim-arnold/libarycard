@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import ConfirmationModal from './ConfirmationModal'
+import AlertModal from './AlertModal'
+import { useModal } from '@/hooks/useModal'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
 
@@ -35,6 +38,7 @@ interface LocationInvitation {
 
 export default function LocationManager() {
   const { data: session } = useSession()
+  const { modalState, confirmAsync, alert, closeModal } = useModal()
   const [locations, setLocations] = useState<Location[]>([])
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null)
   const [shelves, setShelves] = useState<Shelf[]>([])
@@ -209,35 +213,50 @@ export default function LocationManager() {
     }
   }
 
-  const deleteLocation = async (locationId: number) => {
-    if (!confirm('Are you sure you want to delete this location? This will also delete all its shelves and all books in those shelves.')) {
-      return
-    }
+  const deleteLocation = async (locationId: number, locationName: string) => {
+    const confirmed = await confirmAsync(
+      {
+        title: 'Delete Location',
+        message: `Are you sure you want to delete "${locationName}"? This will permanently delete all shelves and books in this location. This action cannot be undone.`,
+        confirmText: 'Delete Location',
+        variant: 'danger'
+      },
+      async () => {
+        if (!session?.user?.email) throw new Error('Not authenticated')
+        
+        const response = await fetch(`${API_BASE}/api/locations/${locationId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${session.user.email}`,
+            'Content-Type': 'application/json',
+          },
+        })
 
-    if (!session?.user?.email) return
-    
-    try {
-      const response = await fetch(`${API_BASE}/api/locations/${locationId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.user.email}`,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (response.ok) {
-        const updatedLocations = locations.filter(loc => loc.id !== locationId)
-        setLocations(updatedLocations)
-        if (selectedLocation?.id === locationId) {
-          setSelectedLocation(updatedLocations[0] || null)
-          setShelves([])
+        if (response.ok) {
+          const updatedLocations = locations.filter(loc => loc.id !== locationId)
+          setLocations(updatedLocations)
+          if (selectedLocation?.id === locationId) {
+            setSelectedLocation(updatedLocations[0] || null)
+            setShelves([])
+          }
+          await alert({
+            title: 'Location Deleted',
+            message: `"${locationName}" and all its contents have been successfully deleted.`,
+            variant: 'success'
+          })
+        } else {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to delete location')
         }
-      } else {
-        const errorData = await response.json()
-        setError(errorData.error || 'Failed to delete location')
       }
-    } catch (error) {
-      setError('Failed to delete location')
+    )
+
+    if (!confirmed) {
+      await alert({
+        title: 'Delete Failed',
+        message: 'Failed to delete the location. Please try again.',
+        variant: 'error'
+      })
     }
   }
 
@@ -316,31 +335,57 @@ export default function LocationManager() {
     }
   }
 
-  const deleteShelf = async (shelfId: number) => {
-    if (!selectedLocation || !confirm('Are you sure you want to delete this shelf?')) {
-      return
-    }
+  const deleteShelf = async (shelfId: number, shelfName: string) => {
+    const confirmed = await confirmAsync(
+      {
+        title: 'Delete Shelf',
+        message: `Are you sure you want to delete "${shelfName}"? If this shelf contains books, you'll need to move them first or choose to delete them as well.`,
+        confirmText: 'Delete Shelf',
+        variant: 'danger'
+      },
+      async () => {
+        if (!selectedLocation || !session?.user?.email) throw new Error('Invalid state')
+        
+        const response = await fetch(`${API_BASE}/api/shelves/${shelfId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${session.user.email}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        })
 
-    if (!session?.user?.email) return
-    
-    try {
-      const response = await fetch(`${API_BASE}/api/shelves/${shelfId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.user.email}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}),
-      })
-
-      if (response.ok) {
-        setShelves(shelves.filter(shelf => shelf.id !== shelfId))
-      } else {
-        const errorData = await response.json()
-        setError(errorData.error || 'Failed to delete shelf')
+        if (response.ok) {
+          setShelves(shelves.filter(shelf => shelf.id !== shelfId))
+          await alert({
+            title: 'Shelf Deleted',
+            message: `"${shelfName}" has been successfully deleted.`,
+            variant: 'success'
+          })
+        } else {
+          const errorData = await response.json()
+          
+          // Handle special case where shelf contains books
+          if (errorData.error && (errorData.error.includes('contains books') || errorData.bookCount > 0)) {
+            await alert({
+              title: 'Cannot Delete Shelf',
+              message: errorData.warningMessage || errorData.error,
+              variant: 'warning'
+            })
+            return
+          }
+          
+          throw new Error(errorData.error || 'Failed to delete shelf')
+        }
       }
-    } catch (error) {
-      setError('Failed to delete shelf')
+    )
+
+    if (!confirmed) {
+      await alert({
+        title: 'Delete Failed',
+        message: 'Failed to delete the shelf. Please try again.',
+        variant: 'error'
+      })
     }
   }
 
@@ -410,37 +455,46 @@ export default function LocationManager() {
   }
 
   const revokeInvitation = async (invitationId: number, invitedEmail: string) => {
-    if (!session?.user?.email) return
-    
-    // Show confirmation dialog
-    const confirmed = window.confirm(
-      `Are you sure you want to revoke the invitation for ${invitedEmail}?\n\nThis action cannot be undone and they will no longer be able to use their invitation link.`
-    )
-    
-    if (!confirmed) return
-    
-    try {
-      const response = await fetch(`${API_BASE}/api/invitations/${invitationId}/revoke`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.user.email}`,
-          'Content-Type': 'application/json',
-        },
-      })
+    const confirmed = await confirmAsync(
+      {
+        title: 'Revoke Invitation',
+        message: `Are you sure you want to revoke the invitation for ${invitedEmail}? This action cannot be undone and they will no longer be able to use their invitation link.`,
+        confirmText: 'Revoke Invitation',
+        variant: 'warning'
+      },
+      async () => {
+        if (!session?.user?.email) throw new Error('Not authenticated')
+        
+        const response = await fetch(`${API_BASE}/api/invitations/${invitationId}/revoke`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${session.user.email}`,
+            'Content-Type': 'application/json',
+          },
+        })
 
-      if (response.ok) {
-        // Remove the revoked invitation from the list
-        setInvitations(invitations.filter(inv => inv.id !== invitationId))
-        setError('')
-        // Show success message temporarily
-        setError(`✅ Invitation for ${invitedEmail} has been revoked`)
-        setTimeout(() => setError(''), 3000)
-      } else {
-        const errorData = await response.json()
-        setError(errorData.error || 'Failed to revoke invitation')
+        if (response.ok) {
+          // Remove the revoked invitation from the list
+          setInvitations(invitations.filter(inv => inv.id !== invitationId))
+          setError('')
+          await alert({
+            title: 'Invitation Revoked',
+            message: `Invitation for ${invitedEmail} has been successfully revoked.`,
+            variant: 'success'
+          })
+        } else {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to revoke invitation')
+        }
       }
-    } catch (error) {
-      setError('Failed to revoke invitation')
+    )
+
+    if (!confirmed) {
+      await alert({
+        title: 'Revoke Failed',
+        message: 'Failed to revoke the invitation. Please try again.',
+        variant: 'error'
+      })
     }
   }
 
@@ -541,7 +595,7 @@ export default function LocationManager() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          deleteLocation(location.id)
+                          deleteLocation(location.id, location.name)
                         }}
                         style={{
                           fontSize: '0.8em',
@@ -625,7 +679,7 @@ export default function LocationManager() {
                           Edit
                         </button>
                         <button
-                          onClick={() => deleteShelf(shelf.id)}
+                          onClick={() => deleteShelf(shelf.id, shelf.name)}
                           style={{
                             fontSize: '0.7em',
                             padding: '0.2rem 0.4rem',
@@ -937,6 +991,32 @@ export default function LocationManager() {
             </form>
           </div>
         </div>
+      )}
+      
+      {/* Modal Components */}
+      {modalState.type === 'confirm' && (
+        <ConfirmationModal
+          isOpen={modalState.isOpen}
+          onClose={closeModal}
+          onConfirm={modalState.onConfirm!}
+          title={modalState.options.title}
+          message={modalState.options.message}
+          confirmText={modalState.options.confirmText}
+          cancelText={modalState.options.cancelText}
+          variant={modalState.options.variant}
+          loading={modalState.loading}
+        />
+      )}
+      
+      {modalState.type === 'alert' && (
+        <AlertModal
+          isOpen={modalState.isOpen}
+          onClose={closeModal}
+          title={modalState.options.title}
+          message={modalState.options.message}
+          variant={modalState.options.variant}
+          buttonText={modalState.options.buttonText}
+        />
       )}
     </div>
   )
