@@ -42,7 +42,8 @@ const handler = NextAuth({
 
         try {
           // Call our API to verify credentials
-          const response = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/verify`, {
+          const baseUrl = process.env.NEXTAUTH_URL || 'https://libarycard.tim52.io'
+          const response = await fetch(`${baseUrl}/api/auth/verify`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -100,7 +101,8 @@ const handler = NextAuth({
 
 async function storeUser(user: any, userId: string) {
   try {
-    const response = await fetch(`${process.env.NEXTAUTH_URL}/api/users`, {
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://libarycard.tim52.io'
+    const response = await fetch(`${baseUrl}/api/users`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
