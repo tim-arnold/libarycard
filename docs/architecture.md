@@ -1,6 +1,6 @@
 # Architecture Overview
 
-LibaryCard is built as a modern, serverless web application using Cloudflare's edge computing platform for optimal performance and cost-effectiveness.
+LibaryCard is built as a modern, serverless web application using a hybrid architecture with Netlify for frontend hosting and Cloudflare Workers for the backend API.
 
 ## System Architecture
 
@@ -16,9 +16,10 @@ LibaryCard is built as a modern, serverless web application using Cloudflare's e
          ▼                       ▼
 ┌─────────────────┐    ┌──────────────────┐
 │                 │    │                  │
-│ Cloudflare Pages│    │ External APIs    │
+│   Netlify       │    │ External APIs    │
 │   (Hosting)     │    │ • Google Books   │
 │                 │    │ • OpenLibrary    │
+│                 │    │ • Resend (Email) │
 └─────────────────┘    └──────────────────┘
 ```
 
@@ -39,16 +40,19 @@ LibaryCard is built as a modern, serverless web application using Cloudflare's e
 - **API Framework**: Native Fetch API handlers
 
 ### Infrastructure
-- **Hosting**: Cloudflare Pages
-- **CDN**: Cloudflare global network
+- **Frontend Hosting**: Netlify
+- **Backend API**: Cloudflare Workers
 - **Database**: Cloudflare D1 (distributed SQLite)
-- **Domain**: Cloudflare DNS
-- **SSL**: Automatic HTTPS via Cloudflare
+- **CDN**: Netlify Edge Network
+- **SSL**: Automatic HTTPS via Netlify
+- **Email**: Resend for verification emails
 
 ### External Services
 - **Book Data**: Google Books API (primary)
 - **Fallback**: OpenLibrary API
-- **Barcode Scanning**: Quagga.js library
+- **Barcode Scanning**: ZXing library (@zxing/library)
+- **Email Service**: Resend for user verification
+- **Authentication**: NextAuth.js with Google OAuth and email/password
 
 ## Design Principles
 
@@ -82,7 +86,7 @@ LibaryCard is built as a modern, serverless web application using Cloudflare's e
 ```
 User scans ISBN
        ↓
-Quagga.js detects barcode
+ZXing library detects barcode
        ↓
 Fetch book data from Google Books API
        ↓
@@ -140,8 +144,41 @@ Schema:
 
 ## Database Design
 
-### Books Table
+### Multi-User Schema
 ```sql
+-- Users with authentication and roles
+users (
+  id                          TEXT PRIMARY KEY,
+  email                       TEXT UNIQUE NOT NULL,
+  first_name                  TEXT,
+  last_name                   TEXT,
+  password_hash               TEXT,
+  auth_provider               TEXT DEFAULT 'google',
+  email_verified              BOOLEAN DEFAULT FALSE,
+  user_role                   TEXT DEFAULT 'user',  -- 'admin' or 'user'
+  created_at                  DATETIME DEFAULT CURRENT_TIMESTAMP
+)
+
+-- Physical locations (homes, offices, etc.)
+locations (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  name            TEXT NOT NULL,
+  description     TEXT,
+  owner_id        TEXT NOT NULL,
+  created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (owner_id) REFERENCES users(id)
+)
+
+-- Shelves within locations
+shelves (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  name            TEXT NOT NULL,
+  location_id     INTEGER NOT NULL,
+  created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (location_id) REFERENCES locations(id)
+)
+
+-- Books assigned to shelves
 books (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
   isbn            TEXT NOT NULL,
@@ -151,31 +188,61 @@ books (
   thumbnail       TEXT,
   published_date  TEXT,
   categories      TEXT,             -- JSON array
-  location        TEXT,
+  shelf_id        INTEGER,
   tags            TEXT,             -- JSON array
-  created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+  added_by        TEXT NOT NULL,
+  created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (shelf_id) REFERENCES shelves(id),
+  FOREIGN KEY (added_by) REFERENCES users(id)
 )
 ```
 
 ### Design Decisions
+- **Role-based access**: Admin users control locations/shelves, all users can manage books
+- **Hierarchical structure**: Users → Locations → Shelves → Books
 - **JSON columns**: SQLite supports JSON for arrays (authors, categories, tags)
 - **Text storage**: ISBN as text to preserve leading zeros
-- **Indexes**: ISBN, location, and created_at for common queries
-- **Flexibility**: Nullable fields for optional book metadata
+- **User isolation**: Foreign key relationships ensure data ownership
+- **Flexible authentication**: Supports both OAuth and email/password
 
 ## API Design
 
 ### RESTful Endpoints
-- `GET /api/books` - List all books
+
+#### Authentication
+- `POST /api/auth/register` - Register new user with email/password
+- `POST /api/auth/verify` - Verify user credentials
+- `GET /api/auth/verify-email` - Verify email address
+
+#### User Management
+- `POST /api/users` - Create/update user (OAuth)
+- `GET /api/profile` - Get current user profile
+- `PUT /api/profile` - Update user profile
+
+#### Location Management (Admin Only)
+- `GET /api/locations` - List accessible locations
+- `POST /api/locations` - Create new location
+- `PUT /api/locations/:id` - Update location details
+- `DELETE /api/locations/:id` - Delete location
+
+#### Shelf Management (Admin Only)
+- `GET /api/locations/:id/shelves` - List shelves in location
+- `POST /api/locations/:id/shelves` - Create new shelf
+- `PUT /api/shelves/:id` - Update shelf name
+- `DELETE /api/shelves/:id` - Delete shelf
+
+#### Book Management (All Users)
+- `GET /api/books` - List accessible books
 - `POST /api/books` - Add new book
-- `PUT /api/books/:id` - Update book (location/tags only)
+- `PUT /api/books/:id` - Update book location/tags
 - `DELETE /api/books/:id` - Remove book
 
 ### Design Decisions
-- **Limited updates**: Only location and tags can be updated (book metadata is immutable)
+- **Role-based access**: Admin/user roles with permission enforcement
+- **Authentication**: NextAuth.js with Google OAuth and email/password
 - **CORS enabled**: Allows browser requests from any origin
-- **Simple auth**: No authentication (suitable for personal use)
 - **Error handling**: Consistent JSON error responses
+- **Multi-user support**: User isolation and location-based access control
 
 ## Security Considerations
 
@@ -187,9 +254,10 @@ books (
 
 ### Privacy
 - **No tracking**: No analytics or user tracking
-- **Local fallback**: Works offline with localStorage
+- **Secure authentication**: Email verification and strong password requirements
 - **Data export**: User owns and can export all data
 - **ISBN only**: Only book ISBNs sent to external APIs
+- **Role indicators**: Clear UI feedback for user permissions
 
 ## Performance Optimizations
 
@@ -223,11 +291,11 @@ Local Machine
 
 ### Production
 ```
-Cloudflare Global Network
-├── Pages (Static hosting)
-├── Workers (API endpoints)
-├── D1 (Distributed database)
-└── CDN (Asset delivery)
+Hybrid Architecture
+├── Netlify (Frontend hosting & CDN)
+├── Cloudflare Workers (API endpoints)
+├── Cloudflare D1 (Distributed database)
+└── Resend (Email service)
 ```
 
 ## Monitoring and Observability
@@ -235,7 +303,7 @@ Cloudflare Global Network
 ### Available Metrics
 - **Workers Analytics**: Request volume, latency, errors
 - **D1 Analytics**: Query performance, storage usage
-- **Pages Analytics**: Traffic, performance metrics
+- **Netlify Analytics**: Traffic, performance metrics, deployment stats
 - **Real User Monitoring**: Core Web Vitals
 
 ### Logging
@@ -245,10 +313,11 @@ Cloudflare Global Network
 
 ## Scalability Considerations
 
-### Current Limits (Cloudflare Free Tier)
-- **D1**: 25 GB storage, 5M reads, 100K writes/day
-- **Workers**: 100K requests/day
-- **Pages**: Unlimited static requests
+### Current Limits
+- **Cloudflare D1**: 25 GB storage, 5M reads, 100K writes/day
+- **Cloudflare Workers**: 100K requests/day
+- **Netlify**: 100 GB bandwidth/month, 300 build minutes/month
+- **Resend**: 3,000 emails/month (free tier)
 
 ### Growth Strategy
 - **Vertical scaling**: Upgrade to paid Cloudflare plans
@@ -259,9 +328,10 @@ Cloudflare Global Network
 ## Future Architecture Enhancements
 
 ### Potential Improvements
-1. **Authentication**: Add user accounts and multi-tenancy
+1. **Location sharing**: Invitation system for shared libraries
 2. **Real-time updates**: WebSocket support for live updates
 3. **Image storage**: Cloudflare Images for cover art
-4. **Search enhancement**: Full-text search with R2 + Algolia
+4. **Search enhancement**: Full-text search with enhanced filtering
 5. **Mobile app**: React Native version using same API
 6. **Backup integration**: Automated backups to external storage
+7. **Advanced permissions**: Location-scoped user access and granular roles
