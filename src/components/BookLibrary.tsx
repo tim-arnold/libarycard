@@ -17,6 +17,14 @@ interface Shelf {
   created_at: string
 }
 
+interface Location {
+  id: number
+  name: string
+  description?: string
+  owner_id: string
+  created_at: string
+}
+
 export default function BookLibrary() {
   const { data: session } = useSession()
   const { modalState, confirmAsync, alert, closeModal } = useModal()
@@ -27,6 +35,7 @@ export default function BookLibrary() {
   const [categoryFilter, setCategoryFilter] = useState('')
   const [shelves, setShelves] = useState<Shelf[]>([])
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [currentLocation, setCurrentLocation] = useState<Location | null>(null)
 
   useEffect(() => {
     if (session?.user) {
@@ -65,6 +74,9 @@ export default function BookLibrary() {
       if (response.ok) {
         const locations = await response.json()
         if (locations.length > 0) {
+          // Store the current location
+          setCurrentLocation(locations[0])
+          
           // Get shelves for the first location (user's assigned location)
           const shelvesResponse = await fetch(`${API_BASE}/api/locations/${locations[0].id}/shelves`, {
             headers: {
@@ -179,14 +191,59 @@ export default function BookLibrary() {
     setShelfFilter(shelfFilter === shelfName ? '' : shelfName)
   }
 
+  // Generate title based on user role and current shelf filter
+  const getLibraryTitle = () => {
+    if (userRole === 'admin') {
+      return `📖 My Library (${books.length} books)`
+    }
+    
+    if (!currentLocation) {
+      return `📖 My Library (${books.length} books)`
+    }
+    
+    if (shelves.length <= 1) {
+      // Single shelf - show location and shelf name
+      const shelfName = shelves[0]?.name || 'Main Library'
+      return `📖 ${currentLocation.name}: ${shelfName} (${books.length} books)`
+    }
+    
+    // Multiple shelves - show current filter or "All Shelves"
+    if (shelfFilter) {
+      return `📖 ${currentLocation.name}: ${shelfFilter} (${filteredBooks.length} books)`
+    } else {
+      return `📖 ${currentLocation.name}: All Shelves (${books.length} books)`
+    }
+  }
+
   return (
     <div className="card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2>📖 My Library ({books.length} books)</h2>
+        <h2>{getLibraryTitle()}</h2>
         <button className="btn" onClick={exportLibrary}>
           Export Library
         </button>
       </div>
+
+      {/* Shelf switcher for regular users with multiple shelves */}
+      {userRole !== 'admin' && shelves.length > 1 && (
+        <div style={{ marginBottom: '1rem' }}>
+          <select
+            value={shelfFilter}
+            onChange={(e) => setShelfFilter(e.target.value)}
+            style={{ 
+              padding: '0.5rem',
+              border: '1px solid #ccc',
+              borderRadius: '0.25rem',
+              fontSize: '0.9rem'
+            }}
+          >
+            <option value="">All Shelves</option>
+            {shelves.map(shelf => (
+              <option key={shelf.id} value={shelf.name}>{shelf.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Contextual help text based on user role and library state */}
       {books.length === 0 ? (
