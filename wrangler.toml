@@ -22,8 +22,8 @@ database_id = "368ab7bc-fb42-4607-a4cf-761dc7795284"
 [env.staging]
 [env.staging.vars]
 ENVIRONMENT = "staging"
-APP_URL = "https://your-staging-domain.netlify.app"
-FROM_EMAIL = "noreply@your-domain.com"
+APP_URL = "https://libarycard.netlify.app/"
+FROM_EMAIL = "LibaryCard <noreply@resend.dev>"
 
 [[env.staging.d1_databases]]
 binding = "DB"
