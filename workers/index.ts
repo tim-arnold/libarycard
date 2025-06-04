@@ -59,11 +59,6 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    console.log('Workers API Request:', {
-      method: request.method,
-      path: path,
-      url: request.url
-    });
 
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
@@ -76,17 +71,12 @@ export default {
     }
 
     try {
-      // Get user from session/token (simplified for now)
-      const userId = await getUserFromRequest(request);
-      
-      // Public auth endpoints
+      // Public auth endpoints (no authentication required)
       if (path === '/api/users' && request.method === 'POST') {
-        console.log('Matched: /api/users POST');
         return await createOrUpdateUser(request, env, corsHeaders);
       }
 
       if (path === '/api/auth/register' && request.method === 'POST') {
-        console.log('Matched: /api/auth/register POST');
         return await registerUser(request, env, corsHeaders);
       }
 
@@ -98,6 +88,9 @@ export default {
         return await verifyEmail(request, env, corsHeaders);
       }
 
+      // Get user from session/token for protected endpoints
+      const userId = await getUserFromRequest(request);
+      
       // All other endpoints require authentication
       if (!userId) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -434,8 +427,7 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
   // Generate user ID
   const userId = generateUUID();
   
-  // Auto-verify email in non-production environments (and temporarily in production for testing)
-  const isProduction = env.ENVIRONMENT === 'production';
+  // Auto-verify email in all environments for testing
   const emailVerified = true; // Temporarily auto-verify in all environments for testing
   
   // Create user

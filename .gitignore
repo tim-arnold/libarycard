@@ -9,6 +9,9 @@ yarn-error.log*
 # Next.js
 /.next/
 /out/
+# Webpack cache files (can be large)
+/.cache/
+/node_modules/.cache/
 
 # Production
 /build
