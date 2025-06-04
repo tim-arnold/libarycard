@@ -62,6 +62,19 @@ interface LocationInvitation {
   created_at?: string;
 }
 
+interface BookRemovalRequest {
+  id?: number;
+  book_id: number;
+  requester_id: string;
+  reason: string;
+  reason_details?: string;
+  status: string;
+  reviewed_by?: string;
+  review_comment?: string;
+  created_at?: string;
+  reviewed_at?: string;
+}
+
 const DEFAULT_SHELVES = [
   'my first shelf'
 ];
@@ -223,6 +236,25 @@ export default {
       if (path.match(/^\/api\/locations\/\d+\/leave$/) && request.method === 'POST') {
         const locationId = parseInt(path.split('/')[3]);
         return await leaveLocation(locationId, userId, env, corsHeaders);
+      }
+
+      // Book removal request endpoints
+      if (path === '/api/book-removal-requests' && request.method === 'POST') {
+        return await createBookRemovalRequest(request, userId, env, corsHeaders);
+      }
+
+      if (path === '/api/book-removal-requests' && request.method === 'GET') {
+        return await getBookRemovalRequests(userId, env, corsHeaders);
+      }
+
+      if (path.match(/^\/api\/book-removal-requests\/\d+\/approve$/) && request.method === 'POST') {
+        const requestId = parseInt(path.split('/')[3]);
+        return await approveBookRemovalRequest(requestId, userId, env, corsHeaders);
+      }
+
+      if (path.match(/^\/api\/book-removal-requests\/\d+\/deny$/) && request.method === 'POST') {
+        const requestId = parseInt(path.split('/')[3]);
+        return await denyBookRemovalRequest(request, requestId, userId, env, corsHeaders);
       }
 
       // Profile endpoints
@@ -1855,6 +1887,276 @@ async function leaveLocation(locationId: number, userId: string, env: Env, corsH
   } catch (error) {
     console.error('Error leaving location:', error);
     return new Response(JSON.stringify({ error: 'Failed to leave location' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+// Book removal request functions
+async function createBookRemovalRequest(request: Request, userId: string, env: Env, corsHeaders: Record<string, string>) {
+  const { book_id, reason, reason_details }: {
+    book_id: number;
+    reason: string;
+    reason_details?: string;
+  } = await request.json();
+
+  if (!book_id || !reason) {
+    return new Response(JSON.stringify({ error: 'book_id and reason are required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Validate reason
+  const validReasons = ['lost', 'damaged', 'missing', 'other'];
+  if (!validReasons.includes(reason)) {
+    return new Response(JSON.stringify({ error: 'Invalid reason. Must be one of: lost, damaged, missing, other' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  try {
+    // Check if user has access to this book
+    const bookAccessStmt = env.DB.prepare(`
+      SELECT b.id, b.title, b.authors, s.location_id, l.name as location_name
+      FROM books b
+      LEFT JOIN shelves s ON b.shelf_id = s.id
+      LEFT JOIN locations l ON s.location_id = l.id
+      LEFT JOIN location_members lm ON l.id = lm.location_id
+      WHERE b.id = ? AND (b.added_by = ? OR l.owner_id = ? OR lm.user_id = ?)
+    `);
+
+    const bookAccess = await bookAccessStmt.bind(book_id, userId, userId, userId).first();
+    
+    if (!bookAccess) {
+      return new Response(JSON.stringify({ error: 'Book not found or access denied' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Check if there's already a pending request for this book
+    const existingRequestStmt = env.DB.prepare(`
+      SELECT id FROM book_removal_requests 
+      WHERE book_id = ? AND status = 'pending'
+    `);
+    const existingRequest = await existingRequestStmt.bind(book_id).first();
+    
+    if (existingRequest) {
+      return new Response(JSON.stringify({ error: 'A removal request for this book is already pending' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Create the removal request
+    const createRequestStmt = env.DB.prepare(`
+      INSERT INTO book_removal_requests (book_id, requester_id, reason, reason_details, status, created_at)
+      VALUES (?, ?, ?, ?, 'pending', datetime('now'))
+    `);
+
+    const result = await createRequestStmt.bind(
+      book_id,
+      userId,
+      reason,
+      reason_details || null
+    ).run();
+
+    return new Response(JSON.stringify({ 
+      id: result.meta.last_row_id,
+      message: 'Book removal request submitted successfully',
+      book_title: bookAccess.title,
+      status: 'pending'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error creating book removal request:', error);
+    return new Response(JSON.stringify({ error: 'Failed to create removal request' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+async function getBookRemovalRequests(userId: string, env: Env, corsHeaders: Record<string, string>) {
+  try {
+    // Check if user is admin
+    const isAdmin = await isUserAdmin(userId, env);
+    
+    let requestsStmt;
+    let bindings: any[];
+
+    if (isAdmin) {
+      // Admins can see all requests
+      requestsStmt = env.DB.prepare(`
+        SELECT rr.*, 
+               b.title as book_title, 
+               b.authors as book_authors,
+               b.isbn as book_isbn,
+               l.name as location_name,
+               u_requester.first_name as requester_name,
+               u_requester.email as requester_email,
+               u_reviewer.first_name as reviewer_name
+        FROM book_removal_requests rr
+        LEFT JOIN books b ON rr.book_id = b.id
+        LEFT JOIN shelves s ON b.shelf_id = s.id
+        LEFT JOIN locations l ON s.location_id = l.id
+        LEFT JOIN users u_requester ON rr.requester_id = u_requester.id
+        LEFT JOIN users u_reviewer ON rr.reviewed_by = u_reviewer.id
+        ORDER BY rr.created_at DESC
+      `);
+      bindings = [];
+    } else {
+      // Regular users can only see their own requests
+      requestsStmt = env.DB.prepare(`
+        SELECT rr.*, 
+               b.title as book_title, 
+               b.authors as book_authors,
+               b.isbn as book_isbn,
+               l.name as location_name,
+               u_reviewer.first_name as reviewer_name
+        FROM book_removal_requests rr
+        LEFT JOIN books b ON rr.book_id = b.id
+        LEFT JOIN shelves s ON b.shelf_id = s.id
+        LEFT JOIN locations l ON s.location_id = l.id
+        LEFT JOIN users u_reviewer ON rr.reviewed_by = u_reviewer.id
+        WHERE rr.requester_id = ?
+        ORDER BY rr.created_at DESC
+      `);
+      bindings = [userId];
+    }
+
+    const result = await requestsStmt.bind(...bindings).all();
+    
+    const requests = result.results.map((request: any) => ({
+      ...request,
+      book_authors: request.book_authors ? JSON.parse(request.book_authors) : []
+    }));
+
+    return new Response(JSON.stringify(requests), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error fetching book removal requests:', error);
+    return new Response(JSON.stringify({ error: 'Failed to fetch removal requests' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+async function approveBookRemovalRequest(requestId: number, userId: string, env: Env, corsHeaders: Record<string, string>) {
+  // Check if user is admin (only admins can approve requests)
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required to approve removal requests' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  try {
+    // Get the removal request details
+    const requestStmt = env.DB.prepare(`
+      SELECT rr.*, b.title as book_title, b.authors as book_authors
+      FROM book_removal_requests rr
+      LEFT JOIN books b ON rr.book_id = b.id
+      WHERE rr.id = ? AND rr.status = 'pending'
+    `);
+    
+    const removalRequest = await requestStmt.bind(requestId).first();
+    
+    if (!removalRequest) {
+      return new Response(JSON.stringify({ error: 'Removal request not found or already processed' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Delete the book
+    const deleteBookStmt = env.DB.prepare('DELETE FROM books WHERE id = ?');
+    await deleteBookStmt.bind((removalRequest as any).book_id).run();
+
+    // Update the removal request status
+    const updateRequestStmt = env.DB.prepare(`
+      UPDATE book_removal_requests 
+      SET status = 'approved', reviewed_by = ?, reviewed_at = datetime('now')
+      WHERE id = ?
+    `);
+    
+    await updateRequestStmt.bind(userId, requestId).run();
+
+    return new Response(JSON.stringify({ 
+      message: 'Book removal request approved and book deleted successfully',
+      book_title: (removalRequest as any).book_title,
+      request_id: requestId
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error approving book removal request:', error);
+    return new Response(JSON.stringify({ error: 'Failed to approve removal request' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+async function denyBookRemovalRequest(request: Request, requestId: number, userId: string, env: Env, corsHeaders: Record<string, string>) {
+  // Check if user is admin (only admins can deny requests)
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required to deny removal requests' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const { review_comment }: { review_comment?: string } = await request.json();
+
+  try {
+    // Get the removal request details
+    const requestStmt = env.DB.prepare(`
+      SELECT rr.*, b.title as book_title
+      FROM book_removal_requests rr
+      LEFT JOIN books b ON rr.book_id = b.id
+      WHERE rr.id = ? AND rr.status = 'pending'
+    `);
+    
+    const removalRequest = await requestStmt.bind(requestId).first();
+    
+    if (!removalRequest) {
+      return new Response(JSON.stringify({ error: 'Removal request not found or already processed' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Update the removal request status
+    const updateRequestStmt = env.DB.prepare(`
+      UPDATE book_removal_requests 
+      SET status = 'denied', reviewed_by = ?, review_comment = ?, reviewed_at = datetime('now')
+      WHERE id = ?
+    `);
+    
+    await updateRequestStmt.bind(userId, review_comment || null, requestId).run();
+
+    return new Response(JSON.stringify({ 
+      message: 'Book removal request denied',
+      book_title: (removalRequest as any).book_title,
+      request_id: requestId,
+      review_comment: review_comment || null
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error denying book removal request:', error);
+    return new Response(JSON.stringify({ error: 'Failed to deny removal request' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

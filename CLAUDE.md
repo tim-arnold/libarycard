@@ -28,6 +28,7 @@ This file contains development todos, notes, and context for AI assistants worki
 - ✅ **Complete modal system integration across all components (Option A)**
 - ✅ **Single-shelf UX improvements for streamlined user experience (Option B)**
 - ✅ **Role-based book actions with admin/user permission separation (Option C)**
+- ✅ **Complete book removal request system with admin approval workflow**
 
 ## Development Todos
 
@@ -41,6 +42,14 @@ This file contains development todos, notes, and context for AI assistants worki
   - [x] ~~Add role-based UI restrictions and indicators~~ ✅ COMPLETED
   - [x] ~~Create invitation link system for admins to invite users to locations~~ ✅ COMPLETED
   - [x] ~~Implement location-scoped user visibility (users only see their assigned location)~~ ✅ COMPLETED
+
+- [x] ~~**Book Removal Request System**~~ ✅ **COMPLETED**
+  - [x] ~~Create database schema for book_removal_requests table~~ ✅ COMPLETED
+  - [x] ~~Implement backend API endpoints for removal request workflow~~ ✅ COMPLETED
+  - [x] ~~Update BookLibrary component to submit real removal requests~~ ✅ COMPLETED
+  - [x] ~~Add reason selection modal with predefined categories (lost, damaged, missing, other)~~ ✅ COMPLETED
+  - [x] ~~Implement comprehensive error handling and user feedback~~ ✅ COMPLETED
+  - [ ] **Create admin interface for managing removal requests** - IN PROGRESS
 
 ### Medium Priority - UI Improvements & Core Features
 - [x] ~~**Email Configuration**~~ ✅ **COMPLETED**
@@ -72,7 +81,7 @@ This file contains development todos, notes, and context for AI assistants worki
 
 - [ ] **Book Checkout System**
   - [x] ~~Regular users should not be able to "Remove" books. They can "Request Removal" and should be prompted for a reason (lost, missing, other)~~ ✅ COMPLETED
-  - [ ] Implement "Request Removal" workflow with admin approval system and database storage
+  - [x] ~~Implement "Request Removal" workflow with admin approval system and database storage~~ ✅ COMPLETED
   - [ ] Add admin notification system for user requests (removal requests, etc.)
   - [ ] Add book status field (available, checked_out, checked_out_by, checked_out_date)
   - [ ] Allow users to mark books as "currently reading" (checkout)
@@ -153,6 +162,19 @@ This file contains development todos, notes, and context for AI assistants worki
 - **ENHANCED**: Profile page with location listing, leave buttons, and informative messaging
 - **REPLACED**: Browser confirm() dialogs with custom modal system for better UX
 - **COMPLETED**: Modal-based confirmation and success/error feedback for leave location flow
+
+### Session January 2025 - Book Removal Request System Implementation
+- **CREATED**: Database schema for book_removal_requests table with proper foreign key relationships
+- **IMPLEMENTED**: Complete backend API with 4 endpoints: create, get, approve, deny removal requests
+- **ADDED**: Role-based access control (users create requests, admins approve/deny)
+- **ENHANCED**: BookLibrary component with real API integration instead of mock success messages
+- **CREATED**: Custom reason selection modal with predefined categories (lost, damaged, missing, other)
+- **IMPLEMENTED**: Two-step user flow: reason selection → confirmation → API submission
+- **ADDED**: Comprehensive error handling with meaningful user feedback
+- **INCLUDED**: Optional details field for users to provide additional context
+- **DESIGNED**: Audit trail with requester, reviewer, timestamps, and status tracking
+- **PREVENTED**: Duplicate requests for the same book with validation checks
+- **READY**: Backend infrastructure prepared for admin interface implementation
 
 ### Session January 2025 - Smart UI & UX Improvements (Options A, B & C)
 - **COMPLETED**: Option A - Modal System Extension across all components (ISBNScanner, BookLibrary, LocationManager, Profile)

@@ -157,34 +157,174 @@ export default function BookLibrary() {
   }
 
   const requestBookRemoval = async (bookId: string, bookTitle: string) => {
+    if (!session?.user?.email) return
+
+    // First, ask user to select a reason
+    const reason = await selectRemovalReason()
+    if (!reason) return // User cancelled reason selection
+
     const confirmed = await confirmAsync(
       {
         title: 'Request Book Removal',
-        message: `Submit a request to remove "${bookTitle}" from the library? An administrator will review your request and may ask for additional details about the reason for removal.`,
+        message: `Submit a request to remove "${bookTitle}" from the library?\n\nReason: ${reason.label}${reason.details ? `\nDetails: ${reason.details}` : ''}\n\nAn administrator will review your request.`,
         confirmText: 'Submit Request',
         variant: 'warning'
       },
       async () => {
-        // TODO: In a real implementation, this would:
-        // 1. Send a removal request to an admin notification system
-        // 2. Include reason selection (lost, missing, damaged, other)
-        // 3. Allow optional comments/details
-        // 4. Create a request record in the database
-        // For now, we'll simulate this with an alert
-        console.log(`Removal request submitted for book ${bookId}: ${bookTitle}`)
-        
-        await alert({
-          title: 'Removal Request Submitted',
-          message: `Your request to remove "${bookTitle}" has been submitted to the administrator for review. You will be notified when the request is processed.`,
-          variant: 'success'
-        })
+        try {
+          const response = await fetch(`${API_BASE}/api/book-removal-requests`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.user.email}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              book_id: parseInt(bookId),
+              reason: reason.value,
+              reason_details: reason.details || null
+            })
+          })
+
+          if (!response.ok) {
+            const errorData = await response.json()
+            throw new Error(errorData.error || 'Failed to submit removal request')
+          }
+
+          const result = await response.json()
+          
+          await alert({
+            title: 'Removal Request Submitted',
+            message: `Your request to remove "${bookTitle}" has been submitted to the administrator for review. Request ID: ${result.id}`,
+            variant: 'success'
+          })
+        } catch (error) {
+          console.error('Error submitting removal request:', error)
+          await alert({
+            title: 'Request Failed',
+            message: error instanceof Error ? error.message : 'Failed to submit removal request. Please try again.',
+            variant: 'error'
+          })
+        }
       }
     )
 
     if (!confirmed) {
-      // User cancelled - no need to show additional alert for cancellation
+      // User cancelled confirmation - no need to show additional alert
       return
     }
+  }
+
+  const selectRemovalReason = async (): Promise<{ value: string; label: string; details?: string } | null> => {
+    return new Promise((resolve) => {
+      const modal = document.createElement('div')
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      `
+
+      const modalContent = document.createElement('div')
+      modalContent.style.cssText = `
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      `
+
+      modalContent.innerHTML = `
+        <h3 style="margin: 0 0 1rem 0;">Select Removal Reason</h3>
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; margin-bottom: 0.5rem;">
+            <input type="radio" name="reason" value="lost" style="margin-right: 0.5rem;">
+            Book is lost
+          </label>
+          <label style="display: block; margin-bottom: 0.5rem;">
+            <input type="radio" name="reason" value="damaged" style="margin-right: 0.5rem;">
+            Book is damaged beyond repair
+          </label>
+          <label style="display: block; margin-bottom: 0.5rem;">
+            <input type="radio" name="reason" value="missing" style="margin-right: 0.5rem;">
+            Book is missing from its location
+          </label>
+          <label style="display: block; margin-bottom: 1rem;">
+            <input type="radio" name="reason" value="other" style="margin-right: 0.5rem;">
+            Other reason
+          </label>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label for="details" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">
+            Additional Details (optional):
+          </label>
+          <textarea 
+            id="details" 
+            placeholder="Provide any additional information about the reason for removal..."
+            style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; resize: vertical; min-height: 60px;"
+          ></textarea>
+        </div>
+        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+          <button id="cancel" style="padding: 0.5rem 1rem; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer;">
+            Cancel
+          </button>
+          <button id="submit" style="padding: 0.5rem 1rem; border: none; background: #fd7e14; color: white; border-radius: 4px; cursor: pointer;">
+            Continue
+          </button>
+        </div>
+      `
+
+      modal.appendChild(modalContent)
+      document.body.appendChild(modal)
+
+      const reasonLabels: Record<string, string> = {
+        lost: 'Book is lost',
+        damaged: 'Book is damaged beyond repair',
+        missing: 'Book is missing from its location',
+        other: 'Other reason'
+      }
+
+      const handleSubmit = () => {
+        const selectedRadio = modalContent.querySelector('input[name="reason"]:checked') as HTMLInputElement
+        const detailsTextarea = modalContent.querySelector('#details') as HTMLTextAreaElement
+        
+        if (!selectedRadio) {
+          alert('Please select a reason for removal.')
+          return
+        }
+
+        const reason = selectedRadio.value
+        const details = detailsTextarea.value.trim()
+
+        document.body.removeChild(modal)
+        resolve({
+          value: reason,
+          label: reasonLabels[reason],
+          details: details || undefined
+        })
+      }
+
+      const handleCancel = () => {
+        document.body.removeChild(modal)
+        resolve(null)
+      }
+
+      modalContent.querySelector('#submit')?.addEventListener('click', handleSubmit)
+      modalContent.querySelector('#cancel')?.addEventListener('click', handleCancel)
+
+      // Close on backdrop click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          handleCancel()
+        }
+      })
+    })
   }
 
   const updateBookShelf = async (bookId: string, newShelfId: number) => {
