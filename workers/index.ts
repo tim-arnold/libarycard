@@ -104,6 +104,10 @@ export default {
         return await getInvitationDetails(request, env, corsHeaders);
       }
 
+      if (path === '/api/users/check' && request.method === 'GET') {
+        return await checkUserExists(request, env, corsHeaders);
+      }
+
       // Get user from session/token for protected endpoints
       const userId = await getUserFromRequest(request, env);
       
@@ -1744,6 +1748,34 @@ async function debugListUsers(userId: string, env: Env, corsHeaders: Record<stri
     console.error('Error listing users:', error);
     return new Response(JSON.stringify({ error: 'Failed to list users' }), {
       status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+async function checkUserExists(request: Request, env: Env, corsHeaders: Record<string, string>) {
+  const url = new URL(request.url);
+  const email = url.searchParams.get('email');
+  
+  if (!email) {
+    return new Response(JSON.stringify({ error: 'Email parameter required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  
+  try {
+    const user = await env.DB.prepare(`
+      SELECT id FROM users WHERE email = ?
+    `).bind(email).first();
+    
+    return new Response(JSON.stringify({ exists: !!user }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+    
+  } catch (error) {
+    console.error('Error checking user existence:', error);
+    return new Response(JSON.stringify({ exists: false }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
