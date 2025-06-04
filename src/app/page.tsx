@@ -10,7 +10,7 @@ import LocationManager from '@/components/LocationManager'
 export default function Home() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'scan' | 'library' | 'locations'>('locations')
+  const [activeTab, setActiveTab] = useState<'scan' | 'library' | 'locations'>('library')
   const [userRole, setUserRole] = useState<string | null>(null)
 
   useEffect(() => {
@@ -20,6 +20,12 @@ export default function Home() {
         .then(data => {
           if (data.user_role) {
             setUserRole(data.user_role)
+            // Set default tab based on user role
+            if (data.user_role === 'admin') {
+              setActiveTab('locations')
+            } else {
+              setActiveTab('library')
+            }
           }
         })
         .catch(err => console.error('Failed to fetch user role:', err))
@@ -68,13 +74,15 @@ export default function Home() {
       </header>
 
       <nav style={{ marginBottom: '2rem', textAlign: 'center' }}>
-        <button
-          className={`btn ${activeTab === 'locations' ? '' : 'btn-secondary'}`}
-          onClick={() => setActiveTab('locations')}
-          style={{ marginRight: '1rem' }}
-        >
-          🏠 Locations
-        </button>
+        {userRole === 'admin' && (
+          <button
+            className={`btn ${activeTab === 'locations' ? '' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('locations')}
+            style={{ marginRight: '1rem' }}
+          >
+            🏠 Manage Locations
+          </button>
+        )}
         <button
           className={`btn ${activeTab === 'scan' ? '' : 'btn-secondary'}`}
           onClick={() => setActiveTab('scan')}
@@ -86,7 +94,7 @@ export default function Home() {
           className={`btn ${activeTab === 'library' ? '' : 'btn-secondary'}`}
           onClick={() => setActiveTab('library')}
         >
-          📖 My Libary
+          📖 My Library
         </button>
       </nav>
 

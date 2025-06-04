@@ -20,6 +20,7 @@ This file contains development todos, notes, and context for AI assistants worki
 - ✅ Admin/user role indicators in UI header
 - ✅ Location and shelf management restricted to admin users only
 - ✅ Role-based UI button visibility
+- ✅ **Complete invitation system with email notifications**
 
 ## Development Todos
 
@@ -107,6 +108,9 @@ This file contains development todos, notes, and context for AI assistants worki
 - **DEPLOYED**: Admin/user role restrictions for all location and shelf operations
 - **ADDED**: Visual role indicators in UI header (a) for admin, (u) for user
 - **UPDATED**: UI to hide admin-only buttons for regular users
+- **IMPLEMENTED**: Complete invitation system with email notifications using Resend
+- **ADDED**: Admin invitation management UI with status tracking and email templates
+- **ENHANCED**: Sign-in flow to support invitation acceptance for new and existing users
 
 ### Session December 2024 - Permission System Implementation
 - **COMPLETED**: Added user_role column to database schema with migration
@@ -117,11 +121,12 @@ This file contains development todos, notes, and context for AI assistants worki
 - **TESTED**: Permission system working correctly in production
 - **REMOVED**: Redundant Next.js API routes (now using Workers API directly)
 
-### Next Priority: User Experience Enhancements
-- UI styling improvements (SCSS migration)
-- Search and filtering functionality
-- User invitation system for location access
-- Enhanced mobile responsiveness
+### Next Priority: Location-Scoped User Visibility
+- Implement user-scoped UI visibility (regular users only see their assigned location)
+- Hide "Manage Locations" for regular users, show only "My Library" and "Scan Books"
+- Replace "Books by Location" tiles with "My Shelves" tiles using actual shelf data
+- Make shelf tiles clickable for filtering, remove location selector for regular users
+- Default regular users to their library view
 
 ---
 Last updated: June 2025

@@ -1,33 +1,83 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import type { Book } from './ISBNScanner'
 import { getBooks, updateBook, deleteBook as deleteBookAPI } from '@/lib/api'
 
-const LOCATIONS = [
-  'basement',
-  "julie's room",
-  "tim's room", 
-  'bench',
-  "julie's office",
-  'little library'
-]
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://libarycard-api.tim-arnold.workers.dev'
+
+interface Shelf {
+  id: number
+  name: string
+  location_id: number
+  created_at: string
+}
 
 export default function BookLibrary() {
+  const { data: session } = useSession()
   const [books, setBooks] = useState<Book[]>([])
   const [filteredBooks, setFilteredBooks] = useState<Book[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [locationFilter, setLocationFilter] = useState('')
+  const [shelfFilter, setShelfFilter] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
+  const [shelves, setShelves] = useState<Shelf[]>([])
+  const [userRole, setUserRole] = useState<string | null>(null)
 
   useEffect(() => {
-    const loadBooks = async () => {
-      const savedBooks = await getBooks()
-      setBooks(savedBooks)
-      setFilteredBooks(savedBooks)
+    if (session?.user) {
+      loadUserData()
     }
-    loadBooks()
-  }, [])
+  }, [session])
+
+  const loadUserData = async () => {
+    if (!session?.user?.email) return
+    
+    // Load user role
+    try {
+      const response = await fetch('/api/profile')
+      if (response.ok) {
+        const data = await response.json()
+        setUserRole(data.user_role || 'user')
+      }
+    } catch (error) {
+      console.error('Failed to fetch user role:', error)
+      setUserRole('user')
+    }
+
+    // Load books
+    const savedBooks = await getBooks()
+    setBooks(savedBooks)
+    setFilteredBooks(savedBooks)
+
+    // Load shelves from user's location
+    try {
+      const response = await fetch(`${API_BASE}/api/locations`, {
+        headers: {
+          'Authorization': `Bearer ${session.user.email}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      if (response.ok) {
+        const locations = await response.json()
+        if (locations.length > 0) {
+          // Get shelves for the first location (user's assigned location)
+          const shelvesResponse = await fetch(`${API_BASE}/api/locations/${locations[0].id}/shelves`, {
+            headers: {
+              'Authorization': `Bearer ${session.user.email}`,
+              'Content-Type': 'application/json',
+            },
+          })
+          if (shelvesResponse.ok) {
+            const shelvesData = await shelvesResponse.json()
+            setShelves(shelvesData)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load shelves:', error)
+    }
+  }
 
   useEffect(() => {
     let filtered = books
@@ -42,8 +92,8 @@ export default function BookLibrary() {
       )
     }
 
-    if (locationFilter) {
-      filtered = filtered.filter(book => book.location_name === locationFilter)
+    if (shelfFilter) {
+      filtered = filtered.filter(book => book.shelf_name === shelfFilter)
     }
 
     if (categoryFilter) {
@@ -55,7 +105,7 @@ export default function BookLibrary() {
     }
 
     setFilteredBooks(filtered)
-  }, [books, searchTerm, locationFilter, categoryFilter])
+  }, [books, searchTerm, shelfFilter, categoryFilter])
 
   const deleteBook = async (bookId: string) => {
     if (confirm('Are you sure you want to remove this book from your library?')) {
@@ -67,11 +117,12 @@ export default function BookLibrary() {
     }
   }
 
-  const updateBookLocation = async (bookId: string, newLocation: string) => {
-    const success = await updateBook(bookId, { location_name: newLocation })
+  const updateBookShelf = async (bookId: string, newShelfId: number) => {
+    const success = await updateBook(bookId, { shelf_id: newShelfId })
     if (success) {
+      const shelfName = shelves.find(s => s.id === newShelfId)?.name || ''
       const updatedBooks = books.map(book =>
-        book.id === bookId ? { ...book, location_name: newLocation } : book
+        book.id === bookId ? { ...book, shelf_id: newShelfId, shelf_name: shelfName } : book
       )
       setBooks(updatedBooks)
     }
@@ -92,10 +143,14 @@ export default function BookLibrary() {
     new Set(books.flatMap(book => book.categories || []))
   ).sort()
 
-  const booksByLocation = LOCATIONS.reduce((acc, location) => {
-    acc[location] = books.filter(book => book.location_name === location).length
+  const booksByShelf = shelves.reduce((acc: Record<string, number>, shelf) => {
+    acc[shelf.name] = books.filter(book => book.shelf_name === shelf.name).length
     return acc
-  }, {} as Record<string, number>)
+  }, {})
+
+  const handleShelfTileClick = (shelfName: string) => {
+    setShelfFilter(shelfFilter === shelfName ? '' : shelfName)
+  }
 
   return (
     <div className="card">
@@ -106,24 +161,33 @@ export default function BookLibrary() {
         </button>
       </div>
 
-      <div style={{ marginBottom: '2rem' }}>
-        <h3>📍 Books by Location</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem', marginTop: '0.5rem' }}>
-          {LOCATIONS.map(location => (
-            <div key={location} style={{ 
-              padding: '0.5rem', 
-              background: '#f5f5f5', 
-              borderRadius: '0.25rem',
-              textAlign: 'center'
-            }}>
-              <strong>{booksByLocation[location]}</strong><br />
-              <small>{location}</small>
-            </div>
-          ))}
+      {shelves.length > 1 && (
+        <div style={{ marginBottom: '2rem' }}>
+          <h3>📚 My Shelves</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem', marginTop: '0.5rem' }}>
+            {shelves.map(shelf => (
+              <div 
+                key={shelf.id} 
+                onClick={() => handleShelfTileClick(shelf.name)}
+                style={{ 
+                  padding: '0.5rem', 
+                  background: shelfFilter === shelf.name ? '#007bff' : '#f5f5f5',
+                  color: shelfFilter === shelf.name ? 'white' : 'black',
+                  borderRadius: '0.25rem',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <strong>{booksByShelf[shelf.name] || 0}</strong><br />
+                <small>{shelf.name}</small>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: userRole === 'admin' ? 'repeat(auto-fit, minmax(200px, 1fr))' : 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
         <input
           type="text"
           placeholder="Search books..."
@@ -136,20 +200,22 @@ export default function BookLibrary() {
           }}
         />
         
-        <select
-          value={locationFilter}
-          onChange={(e) => setLocationFilter(e.target.value)}
-          style={{ 
-            padding: '0.5rem',
-            border: '1px solid #ccc',
-            borderRadius: '0.25rem'
-          }}
-        >
-          <option value="">All locations</option>
-          {LOCATIONS.map(location => (
-            <option key={location} value={location}>{location}</option>
-          ))}
-        </select>
+        {userRole === 'admin' && shelves.length > 1 && (
+          <select
+            value={shelfFilter}
+            onChange={(e) => setShelfFilter(e.target.value)}
+            style={{ 
+              padding: '0.5rem',
+              border: '1px solid #ccc',
+              borderRadius: '0.25rem'
+            }}
+          >
+            <option value="">All shelves</option>
+            {shelves.map(shelf => (
+              <option key={shelf.id} value={shelf.name}>{shelf.name}</option>
+            ))}
+          </select>
+        )}
 
         <select
           value={categoryFilter}
@@ -203,10 +269,10 @@ export default function BookLibrary() {
               
               <div style={{ marginTop: '1rem' }}>
                 <div style={{ marginBottom: '0.5rem' }}>
-                  <strong>Location:</strong>
+                  <strong>Shelf:</strong>
                   <select
-                    value={book.location_name || ''}
-                    onChange={(e) => updateBookLocation(book.id, e.target.value)}
+                    value={book.shelf_id || ''}
+                    onChange={(e) => updateBookShelf(book.id, parseInt(e.target.value))}
                     style={{ 
                       marginLeft: '0.5rem',
                       padding: '0.25rem',
@@ -214,9 +280,9 @@ export default function BookLibrary() {
                       borderRadius: '0.25rem'
                     }}
                   >
-                    <option value="">Select location...</option>
-                    {LOCATIONS.map(location => (
-                      <option key={location} value={location}>{location}</option>
+                    <option value="">Select shelf...</option>
+                    {shelves.map(shelf => (
+                      <option key={shelf.id} value={shelf.id}>{shelf.name}</option>
                     ))}
                   </select>
                 </div>

@@ -215,6 +215,16 @@ export default {
         return await updateUserProfile(request, userId, env, corsHeaders);
       }
 
+      // Admin-only cleanup endpoint
+      if (path === '/api/admin/cleanup-user' && request.method === 'POST') {
+        return await cleanupUser(request, userId, env, corsHeaders);
+      }
+
+      // Admin-only debug endpoint to list all users
+      if (path === '/api/admin/debug-users' && request.method === 'GET') {
+        return await debugListUsers(userId, env, corsHeaders);
+      }
+
       return new Response('Not Found', { 
         status: 404, 
         headers: corsHeaders 
@@ -1497,5 +1507,129 @@ async function sendVerificationEmail(env: Env, email: string, firstName: string,
       Name: ${firstName}
       Verification URL: ${verificationUrl}
     `);
+  }
+}
+
+// Admin-only user cleanup function
+async function cleanupUser(request: Request, userId: string, env: Env, corsHeaders: Record<string, string>) {
+  // Check if user is admin
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const { email_to_delete }: { email_to_delete: string } = await request.json();
+
+  if (!email_to_delete) {
+    return new Response(JSON.stringify({ error: 'email_to_delete required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  try {
+    // Find the user to delete
+    const userToDelete = await env.DB.prepare(`
+      SELECT id, email FROM users WHERE email = ?
+    `).bind(email_to_delete).first();
+
+    if (!userToDelete) {
+      return new Response(JSON.stringify({ error: 'User not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const userIdToDelete = userToDelete.id as string;
+
+    // 1. Delete all books added by this user
+    await env.DB.prepare(`
+      DELETE FROM books WHERE added_by = ?
+    `).bind(userIdToDelete).run();
+
+    // 2. Find locations owned by this user
+    const ownedLocations = await env.DB.prepare(`
+      SELECT id FROM locations WHERE owner_id = ?
+    `).bind(userIdToDelete).all();
+
+    // 3. Delete shelves in those locations
+    for (const location of ownedLocations.results) {
+      await env.DB.prepare(`
+        DELETE FROM shelves WHERE location_id = ?
+      `).bind((location as any).id).run();
+    }
+
+    // 4. Delete the locations owned by this user
+    await env.DB.prepare(`
+      DELETE FROM locations WHERE owner_id = ?
+    `).bind(userIdToDelete).run();
+
+    // 5. Remove user from location memberships
+    await env.DB.prepare(`
+      DELETE FROM location_members WHERE user_id = ?
+    `).bind(userIdToDelete).run();
+
+    // 6. Delete invitations sent by this user
+    await env.DB.prepare(`
+      DELETE FROM location_invitations WHERE invited_by = ?
+    `).bind(userIdToDelete).run();
+
+    // 7. Delete invitations sent to this user
+    await env.DB.prepare(`
+      DELETE FROM location_invitations WHERE invited_email = ?
+    `).bind(email_to_delete).run();
+
+    // 8. Finally, delete the user
+    await env.DB.prepare(`
+      DELETE FROM users WHERE id = ?
+    `).bind(userIdToDelete).run();
+
+    return new Response(JSON.stringify({ 
+      message: `User ${email_to_delete} and all associated data deleted successfully`,
+      deleted_user_id: userIdToDelete,
+      owned_locations_count: ownedLocations.results.length
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error during user cleanup:', error);
+    return new Response(JSON.stringify({ error: 'Failed to cleanup user' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+// Admin-only debug function to list all users
+async function debugListUsers(userId: string, env: Env, corsHeaders: Record<string, string>) {
+  // Check if user is admin
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  try {
+    // Get all users
+    const users = await env.DB.prepare(`
+      SELECT id, email, first_name, last_name, auth_provider, email_verified, user_role, created_at
+      FROM users 
+      ORDER BY created_at DESC
+    `).all();
+
+    return new Response(JSON.stringify(users.results), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error listing users:', error);
+    return new Response(JSON.stringify({ error: 'Failed to list users' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 }
