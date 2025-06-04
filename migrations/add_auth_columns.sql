@@ -16,5 +16,11 @@ ALTER TABLE users ADD COLUMN email_verification_token TEXT;
 -- Add email_verification_expires column if it doesn't exist
 ALTER TABLE users ADD COLUMN email_verification_expires DATETIME;
 
+-- Add user_role column if it doesn't exist
+ALTER TABLE users ADD COLUMN user_role TEXT DEFAULT 'user';
+
 -- Update existing users to be email verified (since they were created before verification)
 UPDATE users SET email_verified = TRUE WHERE email_verified IS NULL;
+
+-- Set tim.arnold@gmail.com as admin user
+UPDATE users SET user_role = 'admin' WHERE email = 'tim.arnold@gmail.com';

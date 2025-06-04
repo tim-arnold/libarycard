@@ -8,12 +8,14 @@ This file contains development todos, notes, and context for AI assistants worki
 - ✅ Strong password validation (8+ chars, uppercase, lowercase, number, special char)
 - ✅ Development mode fallbacks for testing
 - ✅ Basic book management and ISBN scanning
-- ✅ Location and shelf management
+- ✅ Location and shelf management with complete CRUD operations
 - ✅ Registration and login working in production
 - ✅ Email verification with Resend integration
 - ✅ Profile API working with proper authentication
 - ✅ Database schema migration completed
 - ✅ Webpack cache optimization for Cloudflare Pages
+- ✅ Next.js API routes properly forwarding to Workers API
+- ✅ Book relocation between shelves functionality
 
 ## Development Todos
 
@@ -37,7 +39,7 @@ This file contains development todos, notes, and context for AI assistants worki
 
 - [ ] **Core Functionality**
   - [ ] Add search and filtering functionality for book collections
-  - [ ] Implement proper location and shelf management UI with CRUD operations
+  - [x] ~~Implement proper location and shelf management UI with CRUD operations~~ ✅ COMPLETED
   - [ ] Complete profile editing UI with conditional fields based on auth provider
 
 ### Low Priority - Future Enhancements
@@ -93,6 +95,9 @@ This file contains development todos, notes, and context for AI assistants worki
 - **IMPLEMENTED**: Production email verification with Resend integration
 - **DEPLOYED**: All fixes to production - registration, login, and email verification now working
 - **OPTIMIZED**: Environment configuration for Netlify production deployment
+- **COMPLETED**: Full location and shelf CRUD operations with book relocation
+- **FIXED**: Next.js API routes (replaced 501 placeholders with proper Workers API calls)
+- **UPDATED**: Database schema with updated_at columns for locations and shelves
 
 ### Next Priority: User Permission System
 - Need to implement admin/user roles with location-based access control

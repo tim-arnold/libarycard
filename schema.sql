@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
   email_verified BOOLEAN DEFAULT FALSE,
   email_verification_token TEXT,
   email_verification_expires DATETIME,
+  user_role TEXT DEFAULT 'user', -- 'admin' or 'user'
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

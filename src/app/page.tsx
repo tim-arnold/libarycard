@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import ISBNScanner from '@/components/ISBNScanner'
@@ -11,6 +11,20 @@ export default function Home() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'scan' | 'library' | 'locations'>('locations')
+  const [userRole, setUserRole] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (session) {
+      fetch('/api/profile')
+        .then(res => res.json())
+        .then(data => {
+          if (data.user_role) {
+            setUserRole(data.user_role)
+          }
+        })
+        .catch(err => console.error('Failed to fetch user role:', err))
+    }
+  }, [session])
 
   if (status === 'loading') {
     return (
@@ -36,7 +50,7 @@ export default function Home() {
           <h1>📚 LibaryCard</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <span style={{ fontSize: '0.9em', color: '#666' }}>
-              Hello, {session.user?.name?.split(' ')[0]}!
+              Hello, {session.user?.name?.split(' ')[0]}! {userRole && `(${userRole === 'admin' ? 'a' : 'u'})`}
             </span>
             <button 
               onClick={() => router.push('/profile')}

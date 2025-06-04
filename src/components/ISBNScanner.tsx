@@ -1,9 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useSession } from 'next-auth/react'
 import { fetchBookData } from '@/lib/bookApi'
 import { saveBook as saveBookAPI } from '@/lib/api'
 import { BrowserMultiFormatReader } from '@zxing/library'
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://libarycard-api.tim-arnold.workers.dev'
 
 export interface Book {
   id: string
@@ -37,6 +40,7 @@ interface Shelf {
 
 
 export default function ISBNScanner() {
+  const { data: session } = useSession()
   const scannerRef = useRef<HTMLDivElement>(null)
   const [isScanning, setIsScanning] = useState(false)
   const [scannedBook, setScannedBook] = useState<Book | null>(null)
@@ -58,15 +62,26 @@ export default function ISBNScanner() {
     } catch (error) {
       setError('Failed to initialize barcode scanner. Please refresh the page.')
     }
-
-    // Load locations and shelves
-    loadLocationsAndShelves()
   }, [])
 
+  useEffect(() => {
+    // Load locations and shelves when session is available
+    if (session?.user?.email) {
+      loadLocationsAndShelves()
+    }
+  }, [session])
+
   const loadLocationsAndShelves = async () => {
+    if (!session?.user?.email) return
+    
     try {
       setLoadingData(true)
-      const locationsResponse = await fetch('/api/locations')
+      const locationsResponse = await fetch(`${API_BASE}/api/locations`, {
+        headers: {
+          'Authorization': `Bearer ${session.user.email}`,
+          'Content-Type': 'application/json',
+        },
+      })
       if (locationsResponse.ok) {
         const locationsData = await locationsResponse.json()
         setLocations(locationsData)
@@ -74,7 +89,12 @@ export default function ISBNScanner() {
         // Load shelves for all locations
         const allShelvesData: Shelf[] = []
         for (const location of locationsData) {
-          const shelvesResponse = await fetch(`/api/locations/${location.id}/shelves`)
+          const shelvesResponse = await fetch(`${API_BASE}/api/locations/${location.id}/shelves`, {
+            headers: {
+              'Authorization': `Bearer ${session.user.email}`,
+              'Content-Type': 'application/json',
+            },
+          })
           if (shelvesResponse.ok) {
             const shelvesData = await shelvesResponse.json()
             allShelvesData.push(...shelvesData)

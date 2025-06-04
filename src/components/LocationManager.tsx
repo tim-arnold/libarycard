@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://libarycard-api.tim-arnold.workers.dev'
+
 interface Location {
   id: number
   name: string
@@ -33,24 +35,51 @@ export default function LocationManager() {
   const [newShelfName, setNewShelfName] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [userRole, setUserRole] = useState<string | null>(null)
 
   useEffect(() => {
     if (session?.user) {
       loadLocations()
+      loadUserRole()
     }
   }, [session])
 
-  const loadLocations = async () => {
+  const loadUserRole = async () => {
+    if (!session?.user?.email) return
+    
     try {
-      const response = await fetch('/api/locations')
+      const response = await fetch('/api/profile')
+      if (response.ok) {
+        const data = await response.json()
+        setUserRole(data.user_role || 'user')
+      }
+    } catch (error) {
+      console.error('Failed to fetch user role:', error)
+      setUserRole('user')
+    }
+  }
+
+  const loadLocations = async () => {
+    if (!session?.user?.email) return
+    
+    try {
+      const response = await fetch(`${API_BASE}/api/locations`, {
+        headers: {
+          'Authorization': `Bearer ${session.user.email}`,
+          'Content-Type': 'application/json',
+        },
+      })
       if (response.ok) {
         const data = await response.json()
         setLocations(data)
-        if (data.length === 0) {
+        if (data.length === 0 && userRole === 'admin') {
           setShowCreateForm(true)
         } else {
           setSelectedLocation(data[0])
         }
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to load locations')
       }
     } catch (error) {
       setError('Failed to load locations')
@@ -60,14 +89,24 @@ export default function LocationManager() {
   }
 
   const loadShelves = async (locationId: number) => {
+    if (!session?.user?.email) return
+    
     try {
-      const response = await fetch(`/api/locations/${locationId}/shelves`)
+      const response = await fetch(`${API_BASE}/api/locations/${locationId}/shelves`, {
+        headers: {
+          'Authorization': `Bearer ${session.user.email}`,
+          'Content-Type': 'application/json',
+        },
+      })
       if (response.ok) {
         const data = await response.json()
         setShelves(data)
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to load shelves')
       }
     } catch (error) {
-      // Handle error silently
+      setError('Failed to load shelves')
     }
   }
 
@@ -81,10 +120,13 @@ export default function LocationManager() {
     e.preventDefault()
     if (!newLocationName.trim()) return
 
+    if (!session?.user?.email) return
+    
     try {
-      const response = await fetch('/api/locations', {
+      const response = await fetch(`${API_BASE}/api/locations`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${session.user.email}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -103,7 +145,8 @@ export default function LocationManager() {
         // The API will create default shelves, so reload them
         await loadShelves(newLocation.id)
       } else {
-        setError('Failed to create location')
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to create location')
       }
     } catch (error) {
       setError('Failed to create location')
@@ -114,10 +157,13 @@ export default function LocationManager() {
     e.preventDefault()
     if (!editingLocation || !newLocationName.trim()) return
 
+    if (!session?.user?.email) return
+    
     try {
-      const response = await fetch(`/api/locations?id=${editingLocation.id}`, {
+      const response = await fetch(`${API_BASE}/api/locations/${editingLocation.id}`, {
         method: 'PUT',
         headers: {
+          'Authorization': `Bearer ${session.user.email}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -139,7 +185,8 @@ export default function LocationManager() {
         setNewLocationDescription('')
         setShowCreateForm(false)
       } else {
-        setError('Failed to update location')
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to update location')
       }
     } catch (error) {
       setError('Failed to update location')
@@ -151,9 +198,15 @@ export default function LocationManager() {
       return
     }
 
+    if (!session?.user?.email) return
+    
     try {
-      const response = await fetch(`/api/locations?id=${locationId}`, {
+      const response = await fetch(`${API_BASE}/api/locations/${locationId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.user.email}`,
+          'Content-Type': 'application/json',
+        },
       })
 
       if (response.ok) {
@@ -164,7 +217,8 @@ export default function LocationManager() {
           setShelves([])
         }
       } else {
-        setError('Failed to delete location')
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to delete location')
       }
     } catch (error) {
       setError('Failed to delete location')
@@ -183,10 +237,13 @@ export default function LocationManager() {
     e.preventDefault()
     if (!selectedLocation || !newShelfName.trim()) return
 
+    if (!session?.user?.email) return
+    
     try {
-      const response = await fetch(`/api/locations/${selectedLocation.id}/shelves`, {
+      const response = await fetch(`${API_BASE}/api/locations/${selectedLocation.id}/shelves`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${session.user.email}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -200,7 +257,8 @@ export default function LocationManager() {
         setNewShelfName('')
         setShowShelfForm(false)
       } else {
-        setError('Failed to create shelf')
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to create shelf')
       }
     } catch (error) {
       setError('Failed to create shelf')
@@ -211,10 +269,13 @@ export default function LocationManager() {
     e.preventDefault()
     if (!selectedLocation || !editingShelf || !newShelfName.trim()) return
 
+    if (!session?.user?.email) return
+    
     try {
-      const response = await fetch(`/api/locations/${selectedLocation.id}/shelves?shelfId=${editingShelf.id}`, {
+      const response = await fetch(`${API_BASE}/api/shelves/${editingShelf.id}`, {
         method: 'PUT',
         headers: {
+          'Authorization': `Bearer ${session.user.email}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -231,7 +292,8 @@ export default function LocationManager() {
         setNewShelfName('')
         setShowShelfForm(false)
       } else {
-        setError('Failed to update shelf')
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to update shelf')
       }
     } catch (error) {
       setError('Failed to update shelf')
@@ -243,15 +305,23 @@ export default function LocationManager() {
       return
     }
 
+    if (!session?.user?.email) return
+    
     try {
-      const response = await fetch(`/api/locations/${selectedLocation.id}/shelves?shelfId=${shelfId}`, {
+      const response = await fetch(`${API_BASE}/api/shelves/${shelfId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.user.email}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
       })
 
       if (response.ok) {
         setShelves(shelves.filter(shelf => shelf.id !== shelfId))
       } else {
-        setError('Failed to delete shelf')
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to delete shelf')
       }
     } catch (error) {
       setError('Failed to delete shelf')
@@ -285,27 +355,34 @@ export default function LocationManager() {
       {locations.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '2rem' }}>
           <p style={{ marginBottom: '1rem', color: '#666' }}>
-            You don't have any locations yet. Create your first location to start organizing your books!
+            {userRole === 'admin' 
+              ? "You don't have any locations yet. Create your first location to start organizing your books!"
+              : "No locations are available. Contact an administrator to create locations."
+            }
           </p>
-          <button 
-            onClick={() => setShowCreateForm(true)} 
-            className="btn"
-          >
-            Create Your First Location
-          </button>
+          {userRole === 'admin' && (
+            <button 
+              onClick={() => setShowCreateForm(true)} 
+              className="btn"
+            >
+              Create Your First Location
+            </button>
+          )}
         </div>
       ) : (
         <div>
           <div style={{ marginBottom: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3>Your Locations</h3>
-              <button 
-                onClick={() => setShowCreateForm(true)} 
-                className="btn"
-                style={{ fontSize: '0.9em', padding: '0.5rem 1rem' }}
-              >
-                + Add Location
-              </button>
+              {userRole === 'admin' && (
+                <button 
+                  onClick={() => setShowCreateForm(true)} 
+                  className="btn"
+                  style={{ fontSize: '0.9em', padding: '0.5rem 1rem' }}
+                >
+                  + Add Location
+                </button>
+              )}
             </div>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
@@ -325,41 +402,43 @@ export default function LocationManager() {
                       <p style={{ fontSize: '0.9em', color: '#666', margin: 0 }}>{location.description}</p>
                     )}
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        startEditLocation(location)
-                      }}
-                      style={{
-                        fontSize: '0.8em',
-                        padding: '0.25rem 0.5rem',
-                        background: '#f0f0f0',
-                        border: '1px solid #ccc',
-                        borderRadius: '0.25rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        deleteLocation(location.id)
-                      }}
-                      style={{
-                        fontSize: '0.8em',
-                        padding: '0.25rem 0.5rem',
-                        background: '#ff4444',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '0.25rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  {userRole === 'admin' && (
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          startEditLocation(location)
+                        }}
+                        style={{
+                          fontSize: '0.8em',
+                          padding: '0.25rem 0.5rem',
+                          background: '#f0f0f0',
+                          border: '1px solid #ccc',
+                          borderRadius: '0.25rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deleteLocation(location.id)
+                        }}
+                        style={{
+                          fontSize: '0.8em',
+                          padding: '0.25rem 0.5rem',
+                          background: '#ff4444',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '0.25rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -369,13 +448,15 @@ export default function LocationManager() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <h3>Shelves in {selectedLocation.name}</h3>
-                <button 
-                  onClick={() => setShowShelfForm(true)} 
-                  className="btn"
-                  style={{ fontSize: '0.9em', padding: '0.5rem 1rem' }}
-                >
-                  + Add Shelf
-                </button>
+                {userRole === 'admin' && (
+                  <button 
+                    onClick={() => setShowShelfForm(true)} 
+                    className="btn"
+                    style={{ fontSize: '0.9em', padding: '0.5rem 1rem' }}
+                  >
+                    + Add Shelf
+                  </button>
+                )}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
                 {shelves.map(shelf => (
@@ -388,35 +469,37 @@ export default function LocationManager() {
                     <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
                       <strong>{shelf.name}</strong>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
-                      <button
-                        onClick={() => startEditShelf(shelf)}
-                        style={{
-                          fontSize: '0.7em',
-                          padding: '0.2rem 0.4rem',
-                          background: '#e0e0e0',
-                          border: '1px solid #ccc',
-                          borderRadius: '0.2rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => deleteShelf(shelf.id)}
-                        style={{
-                          fontSize: '0.7em',
-                          padding: '0.2rem 0.4rem',
-                          background: '#ff6666',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '0.2rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    {userRole === 'admin' && (
+                      <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
+                        <button
+                          onClick={() => startEditShelf(shelf)}
+                          style={{
+                            fontSize: '0.7em',
+                            padding: '0.2rem 0.4rem',
+                            background: '#e0e0e0',
+                            border: '1px solid #ccc',
+                            borderRadius: '0.2rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => deleteShelf(shelf.id)}
+                          style={{
+                            fontSize: '0.7em',
+                            padding: '0.2rem 0.4rem',
+                            background: '#ff6666',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '0.2rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
