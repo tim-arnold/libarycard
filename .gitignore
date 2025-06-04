@@ -12,6 +12,8 @@ yarn-error.log*
 # Webpack cache files (can be large)
 /.cache/
 /node_modules/.cache/
+/cache/
+.next/cache/
 
 # Production
 /build

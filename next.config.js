@@ -5,8 +5,11 @@ const nextConfig = {
   },
   // Optimize for Cloudflare Pages deployment
   webpack: (config) => {
-    // Reduce webpack cache size for Cloudflare Pages 25MB limit
-    if (config.cache && config.cache.type === 'filesystem') {
+    // Disable filesystem cache for Cloudflare Pages to avoid large files
+    if (process.env.CF_PAGES) {
+      config.cache = false;
+    } else if (config.cache && config.cache.type === 'filesystem') {
+      // Reduce webpack cache size for other deployments
       config.cache.maxMemoryGenerations = 1;
     }
     
@@ -15,6 +18,8 @@ const nextConfig = {
   // Additional optimizations
   swcMinify: true,
   compress: true,
+  // Disable source maps in production to reduce file sizes
+  productionBrowserSourceMaps: false,
 }
 
 module.exports = nextConfig
