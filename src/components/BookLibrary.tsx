@@ -748,24 +748,6 @@ export default function BookLibrary() {
           </Typography>
         </Box>
 
-      {/* Shelf switcher for regular users with multiple shelves */}
-        {userRole !== 'admin' && shelves.length > 1 && (
-          <Box sx={{ mb: 2 }}>
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Shelf</InputLabel>
-              <Select
-                value={shelfFilter}
-                label="Shelf"
-                onChange={(e) => setShelfFilter(e.target.value)}
-              >
-                <MenuItem value="">All Shelves</MenuItem>
-                {shelves.map(shelf => (
-                  <MenuItem key={shelf.id} value={shelf.name}>{shelf.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-        )}
 
         {/* Contextual help text based on user role and library state */}
         {books.length === 0 ? (
@@ -810,6 +792,27 @@ export default function BookLibrary() {
               📚 My Shelves
             </Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 1, mt: 1 }}>
+              {/* All Shelves tile */}
+              <Button
+                variant={!shelfFilter ? 'contained' : 'outlined'}
+                onClick={() => setShelfFilter('')}
+                sx={{ 
+                  p: 1,
+                  textAlign: 'center',
+                  flexDirection: 'column',
+                  height: 'auto',
+                  minHeight: '60px'
+                }}
+              >
+                <Typography variant="h6" component="div">
+                  {books.length}
+                </Typography>
+                <Typography variant="caption">
+                  All Shelves
+                </Typography>
+              </Button>
+              
+              {/* Individual shelf tiles */}
               {shelves.map(shelf => (
                 <Button
                   key={shelf.id}
