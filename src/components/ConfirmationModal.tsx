@@ -1,6 +1,15 @@
 'use client'
 
-import Modal from './Modal'
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Typography,
+  Button,
+  IconButton,
+} from '@mui/material'
+import { Close } from '@mui/icons-material'
 
 interface ConfirmationModalProps {
   isOpen: boolean
@@ -25,55 +34,74 @@ export default function ConfirmationModal({
   variant = 'primary',
   loading = false
 }: ConfirmationModalProps) {
-  const variantStyles = {
-    danger: { backgroundColor: '#dc3545' },
-    warning: { backgroundColor: '#ffc107', color: '#000' },
-    primary: { backgroundColor: '#0070f3' }
+  const getButtonColor = () => {
+    switch (variant) {
+      case 'danger':
+        return 'error'
+      case 'warning':
+        return 'warning'
+      default:
+        return 'primary'
+    }
   }
 
   const handleConfirm = () => {
     onConfirm()
-    // Don't auto-close here - let the parent handle it after async operations
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
-      <div>
-        <p style={{ marginBottom: '1.5rem', lineHeight: 1.5 }}>
+    <Dialog
+      open={isOpen}
+      onClose={onClose}
+      maxWidth="xs"
+      fullWidth
+    >
+      <DialogTitle
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          pb: 1,
+        }}
+      >
+        <Typography variant="h6" component="div">
+          {title}
+        </Typography>
+        <IconButton
+          aria-label="close"
+          onClick={onClose}
+          disabled={loading}
+          sx={{
+            color: (theme) => theme.palette.grey[500],
+          }}
+        >
+          <Close />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent sx={{ pt: 1 }}>
+        <Typography variant="body1" sx={{ lineHeight: 1.5, whiteSpace: 'pre-line' }}>
           {message}
-        </p>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'flex-end', 
-          gap: '0.75rem' 
-        }}>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="btn btn-secondary"
-            style={{
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.6 : 1
-            }}
-          >
-            {cancelText}
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={loading}
-            className="btn"
-            style={{
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.6 : 1,
-              ...variantStyles[variant]
-            }}
-          >
-            {loading ? 'Processing...' : confirmText}
-          </button>
-        </div>
-      </div>
-    </Modal>
+        </Typography>
+      </DialogContent>
+      <DialogActions sx={{ p: 3, pt: 2 }}>
+        <Button
+          onClick={onClose}
+          disabled={loading}
+          color="inherit"
+          variant="outlined"
+        >
+          {cancelText}
+        </Button>
+        <Button
+          onClick={handleConfirm}
+          disabled={loading}
+          color={getButtonColor()}
+          variant="contained"
+          autoFocus
+        >
+          {loading ? 'Processing...' : confirmText}
+        </Button>
+      </DialogActions>
+    </Dialog>
   )
 }

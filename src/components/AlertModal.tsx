@@ -1,6 +1,22 @@
 'use client'
 
-import Modal from './Modal'
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Typography,
+  Button,
+  IconButton,
+  Alert,
+} from '@mui/material'
+import { 
+  Close,
+  CheckCircle,
+  Error,
+  Warning,
+  Info,
+} from '@mui/icons-material'
 
 interface AlertModalProps {
   isOpen: boolean
@@ -19,71 +35,82 @@ export default function AlertModal({
   variant = 'info',
   buttonText = 'OK'
 }: AlertModalProps) {
-  const variantStyles = {
-    success: { 
-      backgroundColor: '#d4edda', 
-      borderColor: '#c3e6cb', 
-      color: '#155724',
-      icon: '✅'
-    },
-    error: { 
-      backgroundColor: '#f8d7da', 
-      borderColor: '#f5c6cb', 
-      color: '#721c24',
-      icon: '❌'
-    },
-    warning: { 
-      backgroundColor: '#fff3cd', 
-      borderColor: '#ffeaa7', 
-      color: '#856404',
-      icon: '⚠️'
-    },
-    info: { 
-      backgroundColor: '#e1f5fe', 
-      borderColor: '#b3e5fc', 
-      color: '#0277bd',
-      icon: 'ℹ️'
+  const getAlertSeverity = () => {
+    switch (variant) {
+      case 'success':
+        return 'success'
+      case 'error':
+        return 'error'
+      case 'warning':
+        return 'warning'
+      default:
+        return 'info'
     }
   }
 
-  const style = variantStyles[variant]
+  const getIcon = () => {
+    switch (variant) {
+      case 'success':
+        return <CheckCircle />
+      case 'error':
+        return <Error />
+      case 'warning':
+        return <Warning />
+      default:
+        return <Info />
+    }
+  }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
-      <div>
-        <div 
-          style={{
-            padding: '1rem',
-            marginBottom: '1.5rem',
-            borderRadius: '0.375rem',
-            border: `1px solid ${style.borderColor}`,
-            backgroundColor: style.backgroundColor,
-            color: style.color,
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '0.75rem'
+    <Dialog
+      open={isOpen}
+      onClose={onClose}
+      maxWidth="xs"
+      fullWidth
+    >
+      <DialogTitle
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          pb: 1,
+        }}
+      >
+        <Typography variant="h6" component="div">
+          {title}
+        </Typography>
+        <IconButton
+          aria-label="close"
+          onClick={onClose}
+          sx={{
+            color: (theme) => theme.palette.grey[500],
           }}
         >
-          <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>
-            {style.icon}
-          </span>
-          <div style={{ flex: 1, lineHeight: 1.5 }}>
+          <Close />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent sx={{ pt: 1 }}>
+        <Alert 
+          severity={getAlertSeverity()}
+          icon={getIcon()}
+          sx={{ mb: 2 }}
+        >
+          <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
             {message}
-          </div>
-        </div>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'flex-end' 
-        }}>
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn"
-          >
-            {buttonText}
-          </button>
-        </div>
-      </div>
-    </Modal>
+          </Typography>
+        </Alert>
+      </DialogContent>
+      <DialogActions sx={{ p: 3, pt: 0 }}>
+        <Button
+          onClick={onClose}
+          variant="contained"
+          color="primary"
+          autoFocus
+          fullWidth
+        >
+          {buttonText}
+        </Button>
+      </DialogActions>
+    </Dialog>
   )
 }

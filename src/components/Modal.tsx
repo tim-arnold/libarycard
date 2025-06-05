@@ -1,6 +1,14 @@
 'use client'
 
-import { ReactNode, useEffect } from 'react'
+import { ReactNode } from 'react'
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton,
+  Typography,
+} from '@mui/material'
+import { Close } from '@mui/icons-material'
 
 interface ModalProps {
   isOpen: boolean
@@ -11,95 +19,51 @@ interface ModalProps {
 }
 
 export default function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
-  // Handle ESC key to close modal
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose()
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape)
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden'
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape)
-      document.body.style.overflow = 'unset'
-    }
-  }, [isOpen, onClose])
-
-  if (!isOpen) return null
-
-  const sizeClasses = {
-    sm: { maxWidth: '400px' },
-    md: { maxWidth: '600px' },
-    lg: { maxWidth: '800px' },
-    xl: { maxWidth: '1000px' }
-  }
+  const sizeMap = {
+    sm: 'xs',
+    md: 'sm',
+    lg: 'md',
+    xl: 'lg'
+  } as const
 
   return (
-    <div 
-      style={{ 
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose()
+    <Dialog
+      open={isOpen}
+      onClose={onClose}
+      maxWidth={sizeMap[size]}
+      fullWidth
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: 2,
+          }
         }
       }}
     >
-      <div 
-        className="card"
-        style={{ 
-          margin: '2rem',
-          width: '100%',
-          ...sizeClasses[size]
+      <DialogTitle
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          pb: 1,
         }}
       >
-        <div style={{ 
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '1rem'
-        }}>
-          <h3 style={{ 
-            margin: 0,
-            fontSize: '1.25rem',
-            fontWeight: 500
-          }}>
-            {title}
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '1.5rem',
-              fontWeight: 700,
-              lineHeight: 1,
-              color: '#666',
-              cursor: 'pointer',
-              padding: '0.25rem'
-            }}
-          >
-            ×
-          </button>
-        </div>
+        <Typography variant="h6" component="div">
+          {title}
+        </Typography>
+        <IconButton
+          aria-label="close"
+          onClick={onClose}
+          sx={{
+            color: (theme) => theme.palette.grey[500],
+          }}
+        >
+          <Close />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent sx={{ pt: 1 }}>
         {children}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -2,6 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import {
+  Container,
+  Paper,
+  Typography,
+  Button,
+  Box,
+} from '@mui/material'
+import { FileDownload } from '@mui/icons-material'
 import type { Book } from './ISBNScanner'
 import { getBooks, updateBook, deleteBook as deleteBookAPI } from '@/lib/api'
 import ConfirmationModal from './ConfirmationModal'
@@ -581,13 +589,20 @@ export default function BookLibrary() {
   const booksByLocation = getBooksByLocation()
 
   return (
-    <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2>{getLibraryTitle()}</h2>
-        <button className="btn" onClick={exportLibrary}>
-          Export Library
-        </button>
-      </div>
+    <Container maxWidth="xl" sx={{ py: 2 }}>
+      <Paper sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4" component="h2">
+            {getLibraryTitle()}
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<FileDownload />}
+            onClick={exportLibrary}
+          >
+            Export Library
+          </Button>
+        </Box>
 
       {/* Shelf switcher for regular users with multiple shelves */}
       {userRole !== 'admin' && shelves.length > 1 && (
@@ -966,16 +981,17 @@ export default function BookLibrary() {
         />
       )}
       
-      {modalState.type === 'alert' && (
-        <AlertModal
-          isOpen={modalState.isOpen}
-          onClose={closeModal}
-          title={modalState.options.title}
-          message={modalState.options.message}
-          variant={modalState.options.variant}
-          buttonText={modalState.options.buttonText}
-        />
-      )}
-    </div>
+        {modalState.type === 'alert' && (
+          <AlertModal
+            isOpen={modalState.isOpen}
+            onClose={closeModal}
+            title={modalState.options.title}
+            message={modalState.options.message}
+            variant={modalState.options.variant}
+            buttonText={modalState.options.buttonText}
+          />
+        )}
+      </Paper>
+    </Container>
   )
 }
