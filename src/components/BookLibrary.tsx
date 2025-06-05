@@ -72,6 +72,35 @@ function MoreDetailsModal({ book, isOpen, onClose }: MoreDetailsModalProps) {
       </DialogTitle>
       <DialogContent>
         <Box sx={{ py: 1 }}>
+          {/* ISBN Number */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              ISBN
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {book.isbn}
+            </Typography>
+          </Box>
+          
+          {/* Complete Genres List */}
+          {(book.enhancedGenres || book.categories) && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                All Genres
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {(book.enhancedGenres || book.categories || []).map((genre, index) => (
+                  <Chip 
+                    key={index} 
+                    label={genre} 
+                    size="small" 
+                    color={book.enhancedGenres ? 'primary' : 'default'}
+                  />
+                ))}
+              </Box>
+            </Box>
+          )}
+          
           {book.extendedDescription && (
             <Box sx={{ mb: 3 }}>
               <Typography variant="h6" gutterBottom>
@@ -125,7 +154,7 @@ function MoreDetailsModal({ book, isOpen, onClose }: MoreDetailsModalProps) {
             {book.averageRating && (
               <Box>
                 <Typography variant="subtitle2" color="primary">
-                  Average Rating
+                  Google Books Rating
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {book.averageRating}/5 ({book.ratingsCount || 0} ratings)
@@ -544,7 +573,7 @@ export default function BookLibrary() {
       `
 
       modalContent.innerHTML = `
-        <h3 style="margin: 0 0 1rem 0;">Select Removal Reason</h3>
+        <h3 style="margin: 0 0 1rem 0;">Notify the Libarian</h3>
         <div style="margin-bottom: 1rem;">
           <label style="display: block; margin-bottom: 0.5rem;">
             <input type="radio" name="reason" value="lost" style="margin-right: 0.5rem;">
@@ -1081,7 +1110,13 @@ export default function BookLibrary() {
                             component="img"
                             src={book.thumbnail}
                             alt={book.title}
-                            sx={{ width: 80, height: 'auto', flexShrink: 0 }}
+                            sx={{ 
+                              width: 80, 
+                              height: 120, 
+                              objectFit: 'cover', 
+                              flexShrink: 0,
+                              borderRadius: 1
+                            }}
                           />
                         )}
                         <Box sx={{ flex: 1 }}>
@@ -1089,7 +1124,7 @@ export default function BookLibrary() {
                             {book.title}
                           </Typography>
                           <Typography variant="body2" color="text.secondary" gutterBottom>
-                            <strong>Authors:</strong> {book.authors.map((author, index) => (
+                            <strong>Author:</strong> {book.authors.map((author, index) => (
                               <span key={index}>
                                 <Typography 
                                   component="span" 
@@ -1107,12 +1142,9 @@ export default function BookLibrary() {
                               </span>
                             ))}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary" gutterBottom>
-                            <strong>ISBN:</strong> {book.isbn}
-                          </Typography>
                           {book.publishedDate && (
                             <Typography variant="body2" color="text.secondary" gutterBottom>
-                              <strong>Published:</strong> {book.publishedDate}
+                              <strong>Published:</strong> {new Date(book.publishedDate).getFullYear()}
                             </Typography>
                           )}
                           {book.series && (
@@ -1134,29 +1166,15 @@ export default function BookLibrary() {
                               {book.seriesNumber && ` (#${book.seriesNumber})`}
                             </Typography>
                           )}
-                          {/* Enhanced genres with fallback to categories */}
-                          {(book.enhancedGenres || book.categories) && (
+                          {/* Show only first genre */}
+                          {(book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
                             <Box sx={{ mt: 1, mb: 1 }}>
-                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                                <strong>Genres:</strong>
-                              </Typography>
-                              {(book.enhancedGenres || book.categories || []).slice(0, 4).map((genre, index) => (
-                                <Chip 
-                                  key={index} 
-                                  label={genre} 
-                                  size="small" 
-                                  color={book.enhancedGenres ? 'primary' : 'default'}
-                                  sx={{ mr: 0.5, mb: 0.5 }} 
-                                />
-                              ))}
-                              {book.enhancedGenres && book.enhancedGenres.length > 4 && (
-                                <Chip 
-                                  label={`+${book.enhancedGenres.length - 4} more`} 
-                                  size="small" 
-                                  variant="outlined"
-                                  sx={{ mr: 0.5, mb: 0.5 }} 
-                                />
-                              )}
+                              <Chip 
+                                label={book.enhancedGenres?.[0] || book.categories?.[0]}
+                                size="small" 
+                                color={book.enhancedGenres ? 'primary' : 'default'}
+                                sx={{ mr: 0.5, mb: 0.5 }} 
+                              />
                             </Box>
                           )}
                           {book.description && (
@@ -1271,7 +1289,13 @@ export default function BookLibrary() {
                       component="img"
                       src={book.thumbnail}
                       alt={book.title}
-                      sx={{ width: 80, height: 'auto', flexShrink: 0 }}
+                      sx={{ 
+                        width: 80, 
+                        height: 120, 
+                        objectFit: 'cover', 
+                        flexShrink: 0,
+                        borderRadius: 1
+                      }}
                     />
                   )}
                   <Box sx={{ flex: 1 }}>
@@ -1279,7 +1303,7 @@ export default function BookLibrary() {
                       {book.title}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
-                      <strong>Authors:</strong> {book.authors.map((author, index) => (
+                      <strong>Author:</strong> {book.authors.map((author, index) => (
                         <span key={index}>
                           <Typography 
                             component="span" 
@@ -1297,9 +1321,11 @@ export default function BookLibrary() {
                         </span>
                       ))}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      <strong>ISBN:</strong> {book.isbn}
-                    </Typography>
+                    {book.publishedDate && (
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        <strong>Published:</strong> {new Date(book.publishedDate).getFullYear()}
+                      </Typography>
+                    )}
                     {book.series && (
                       <Typography variant="body2" color="text.secondary" gutterBottom>
                         <strong>Series:</strong> 
@@ -1319,34 +1345,15 @@ export default function BookLibrary() {
                         {book.seriesNumber && ` (#${book.seriesNumber})`}
                       </Typography>
                     )}
-                    {book.publishedDate && (
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        <strong>Published:</strong> {book.publishedDate}
-                      </Typography>
-                    )}
-                    {/* Enhanced genres with fallback to categories */}
-                    {(book.enhancedGenres || book.categories) && (
+                    {/* Show only first genre */}
+                    {(book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
                       <Box sx={{ mt: 1, mb: 1 }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                          <strong>Genres:</strong>
-                        </Typography>
-                        {(book.enhancedGenres || book.categories || []).slice(0, 4).map((genre, index) => (
-                          <Chip 
-                            key={index} 
-                            label={genre} 
-                            size="small" 
-                            color={book.enhancedGenres ? 'primary' : 'default'}
-                            sx={{ mr: 0.5, mb: 0.5 }} 
-                          />
-                        ))}
-                        {book.enhancedGenres && book.enhancedGenres.length > 4 && (
-                          <Chip 
-                            label={`+${book.enhancedGenres.length - 4} more`} 
-                            size="small" 
-                            variant="outlined"
-                            sx={{ mr: 0.5, mb: 0.5 }} 
-                          />
-                        )}
+                        <Chip 
+                          label={book.enhancedGenres?.[0] || book.categories?.[0]} 
+                          size="small" 
+                          color={book.enhancedGenres ? 'primary' : 'default'}
+                          sx={{ mr: 0.5, mb: 0.5 }} 
+                        />
                       </Box>
                     )}
                     {book.description && (
