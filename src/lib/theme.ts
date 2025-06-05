@@ -3,27 +3,44 @@ import { createTheme } from '@mui/material/styles'
 export const theme = createTheme({
   palette: {
     primary: {
-      main: '#0070f3',
-      light: '#3390ff',
-      dark: '#0051a2',
+      main: '#673ab7', // Deep Purple
+      light: '#9c27b0',
+      dark: '#512da8',
+      contrastText: '#ffffff',
     },
     secondary: {
-      main: '#666',
-      light: '#888',
-      dark: '#555',
-    },
-    warning: {
-      main: '#fd7e14',
+      main: '#e1bee7', // Light Purple (complementary)
+      light: '#f3e5f5',
+      dark: '#ce93d8',
+      contrastText: '#000000',
     },
     error: {
-      main: '#dc3545',
+      main: '#f44336',
+      light: '#e57373',
+      dark: '#d32f2f',
+    },
+    warning: {
+      main: '#ff9800',
+      light: '#ffb74d',
+      dark: '#f57c00',
+    },
+    info: {
+      main: '#2196f3',
+      light: '#64b5f6',
+      dark: '#1976d2',
     },
     success: {
-      main: '#28a745',
+      main: '#4caf50',
+      light: '#81c784',
+      dark: '#388e3c',
     },
     background: {
-      default: '#fff',
-      paper: '#fff',
+      default: '#fafafa',
+      paper: '#ffffff',
+    },
+    text: {
+      primary: 'rgba(0, 0, 0, 0.87)',
+      secondary: 'rgba(0, 0, 0, 0.6)',
     },
   },
   typography: {
