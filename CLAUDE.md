@@ -107,7 +107,7 @@ This file contains development todos, notes, and context for AI assistants worki
   - [ ] Improve ISBN scanner interface with better camera controls and feedback
   - [ ] Add profile picture upload functionality with image resizing and storage
   - [ ] Implement dark mode toggle with persistent user preference
-  - [ ] Add export functionality for book collections (CSV, PDF formats)
+  - [x] ~~Add export functionality for book collections (CSV, PDF formats)~~ ✅ COMPLETED (Export Library button removed)
   - [ ] If an admin moves a book from a shelf in Location A to a shelf in Location B, that book should no longer be visible to users in Location A.
   - [ ] Add support for multiple locations for regular users
   - [x] ~~Remove "Export Library" button~~ ✅ COMPLETED
@@ -309,7 +309,6 @@ This file contains development todos, notes, and context for AI assistants worki
 - Create comprehensive admin dashboard with analytics and bulk actions
 - Implement dark mode toggle with persistent user preference
 - Add book rating system and enhanced book detail views
-- Implement export functionality for book collections
 - Add checkout notifications and due date reminders
 
 ---
