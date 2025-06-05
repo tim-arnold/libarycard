@@ -3,6 +3,26 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import {
+  Container,
+  Paper,
+  Typography,
+  Button,
+  Box,
+  TextField,
+  Alert,
+  CircularProgress,
+  Card,
+  CardContent,
+  Divider,
+} from '@mui/material'
+import {
+  ArrowBack,
+  Save,
+  Person,
+  LocationOn,
+  ExitToApp,
+} from '@mui/icons-material'
 import ConfirmationModal from '@/components/ConfirmationModal'
 import AlertModal from '@/components/AlertModal'
 import { useModal } from '@/hooks/useModal'
@@ -182,9 +202,12 @@ export default function ProfilePage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="container" style={{ textAlign: 'center', padding: '4rem 0' }}>
-        <p>Loading...</p>
-      </div>
+      <Container maxWidth="md" sx={{ py: 4, textAlign: 'center' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2 }}>
+          <CircularProgress />
+          <Typography>Loading...</Typography>
+        </Box>
+      </Container>
     )
   }
 
@@ -193,240 +216,174 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container" style={{ maxWidth: '600px', margin: '0 auto', padding: '2rem' }}>
-      <header style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-          <button 
+    <Container maxWidth="md" sx={{ py: 3 }}>
+      <Paper sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+          <Button 
+            variant="outlined"
+            startIcon={<ArrowBack />}
             onClick={() => router.push('/')}
-            className="btn btn-secondary"
-            style={{ fontSize: '0.9em' }}
           >
-            ← Back to App
-          </button>
-          <h1>👤 Edit Profile</h1>
-        </div>
-        <p style={{ color: '#666', fontSize: '0.9em' }}>
-          Signed in with {profile.auth_provider === 'google' ? 'Google' : 'Email/Password'}
-        </p>
-      </header>
-
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        {error && (
-          <div style={{ 
-            padding: '1rem', 
-            backgroundColor: '#fee', 
-            border: '1px solid #fcc', 
-            borderRadius: '4px',
-            color: '#c00'
-          }}>
-            {error}
-          </div>
-        )}
+            Back to App
+          </Button>
+          <Typography variant="h4" component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Person /> Edit Profile
+          </Typography>
+        </Box>
         
-        {success && (
-          <div style={{ 
-            padding: '1rem', 
-            backgroundColor: '#efe', 
-            border: '1px solid #cfc', 
-            borderRadius: '4px',
-            color: '#060'
-          }}>
-            {success}
-          </div>
-        )}
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <Typography variant="body2">
+            Signed in with {profile.auth_provider === 'google' ? 'Google' : 'Email/Password'}
+          </Typography>
+        </Alert>
 
-        <div>
-          <label htmlFor="email" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-            Email Address
-          </label>
-          <input
+        <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {error && (
+            <Alert severity="error" onClose={() => setError('')}>
+              {error}
+            </Alert>
+          )}
+          
+          {success && (
+            <Alert severity="success" onClose={() => setSuccess('')}>
+              {success}
+            </Alert>
+          )}
+
+          <TextField
+            fullWidth
             type="email"
-            id="email"
+            label="Email Address"
             name="email"
             value={formData.email}
             onChange={handleInputChange}
             disabled={profile.auth_provider === 'google'}
             required
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '1rem',
-              backgroundColor: profile.auth_provider === 'google' ? '#f5f5f5' : 'white'
-            }}
+            helperText={profile.auth_provider === 'google' ? 'Email cannot be changed for Google accounts' : ''}
+            variant="outlined"
           />
-          {profile.auth_provider === 'google' && (
-            <p style={{ fontSize: '0.8em', color: '#666', marginTop: '0.25rem' }}>
-              Email cannot be changed for Google accounts
-            </p>
-          )}
-        </div>
 
-        <div>
-          <label htmlFor="first_name" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-            First Name
-          </label>
-          <input
+          <TextField
+            fullWidth
             type="text"
-            id="first_name"
+            label="First Name"
             name="first_name"
             value={formData.first_name}
             onChange={handleInputChange}
             required
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '1rem'
-            }}
+            variant="outlined"
           />
-        </div>
 
-        <div>
-          <label htmlFor="last_name" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-            Last Name
-          </label>
-          <input
+          <TextField
+            fullWidth
             type="text"
-            id="last_name"
+            label="Last Name"
             name="last_name"
             value={formData.last_name}
             onChange={handleInputChange}
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '1rem'
-            }}
+            variant="outlined"
           />
-        </div>
 
-        <button
-          type="submit"
-          disabled={saving}
-          className="btn"
-          style={{
-            padding: '1rem',
-            fontSize: '1rem',
-            opacity: saving ? 0.6 : 1,
-            cursor: saving ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {saving ? 'Saving...' : 'Save Changes'}
-        </button>
-      </form>
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={saving}
+            startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <Save />}
+            sx={{ alignSelf: 'flex-start' }}
+          >
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </Box>
 
-      {/* Location Management Section */}
-      <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid #ddd' }}>
-        <h2 style={{ marginBottom: '1rem' }}>📍 Library Locations</h2>
+        <Divider sx={{ my: 3 }} />
+        
+        <Typography variant="h5" component="h2" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <LocationOn /> Library Locations
+        </Typography>
         
         {locations.length === 0 ? (
-          <div style={{ 
-            padding: '1.5rem', 
-            backgroundColor: '#f8f9fa', 
-            border: '1px solid #e9ecef', 
-            borderRadius: '4px',
-            textAlign: 'center'
-          }}>
-            <p style={{ margin: 0, color: '#666' }}>
+          <Paper variant="outlined" sx={{ p: 3, textAlign: 'center', backgroundColor: 'grey.50' }}>
+            <Typography color="text.secondary">
               You don't have access to any library locations yet. Contact an administrator to get invited.
-            </p>
-          </div>
+            </Typography>
+          </Paper>
         ) : (
-          <div>
-            <p style={{ color: '#666', fontSize: '0.9em', marginBottom: '1rem' }}>
+          <Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               You have access to {locations.length} library location{locations.length > 1 ? 's' : ''}. 
               You can leave locations you no longer need access to.
-            </p>
+            </Typography>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               {locations.map(location => (
-                <div 
-                  key={location.id}
-                  style={{ 
-                    padding: '1rem',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    backgroundColor: 'white',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                >
-                  <div>
-                    <h4 style={{ margin: '0 0 0.25rem 0' }}>{location.name}</h4>
-                    {location.description && (
-                      <p style={{ margin: 0, fontSize: '0.9em', color: '#666' }}>
-                        {location.description}
-                      </p>
-                    )}
-                  </div>
-                  
-                  {locations.length > 1 && (
-                    <button
-                      onClick={() => leaveLocation(location.id, location.name)}
-                      style={{
-                        background: '#dc3545',
-                        color: 'white',
-                        border: 'none',
-                        padding: '0.5rem 1rem',
-                        borderRadius: '4px',
-                        fontSize: '0.85em',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Leave Location
-                    </button>
-                  )}
-                </div>
+                <Card key={location.id} variant="outlined">
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box>
+                        <Typography variant="h6" component="h4">
+                          {location.name}
+                        </Typography>
+                        {location.description && (
+                          <Typography variant="body2" color="text.secondary">
+                            {location.description}
+                          </Typography>
+                        )}
+                      </Box>
+                      
+                      {locations.length > 1 && (
+                        <Button
+                          variant="contained"
+                          color="error"
+                          size="small"
+                          startIcon={<ExitToApp />}
+                          onClick={() => leaveLocation(location.id, location.name)}
+                        >
+                          Leave Location
+                        </Button>
+                      )}
+                    </Box>
+                  </CardContent>
+                </Card>
               ))}
-            </div>
+            </Box>
             
             {locations.length === 1 && (
-              <div style={{ 
-                padding: '0.75rem', 
-                backgroundColor: '#fff3cd', 
-                border: '1px solid #ffeaa7', 
-                borderRadius: '4px',
-                marginTop: '1rem'
-              }}>
-                <p style={{ margin: 0, fontSize: '0.85em', color: '#856404' }}>
-                  ℹ️ You can't leave your last location. You need access to at least one library.
-                </p>
-              </div>
+              <Alert severity="warning" sx={{ mt: 2 }}>
+                <Typography variant="body2">
+                  You can't leave your last location. You need access to at least one library.
+                </Typography>
+              </Alert>
             )}
-          </div>
+          </Box>
         )}
-      </div>
 
-      {/* Modal Components */}
-      {modalState.type === 'confirm' && (
-        <ConfirmationModal
-          isOpen={modalState.isOpen}
-          onClose={closeModal}
-          onConfirm={modalState.onConfirm!}
-          title={modalState.options.title}
-          message={modalState.options.message}
-          confirmText={modalState.options.confirmText}
-          cancelText={modalState.options.cancelText}
-          variant={modalState.options.variant}
-          loading={modalState.loading}
-        />
-      )}
-      
-      {modalState.type === 'alert' && (
-        <AlertModal
-          isOpen={modalState.isOpen}
-          onClose={closeModal}
-          title={modalState.options.title}
-          message={modalState.options.message}
-          variant={modalState.options.variant}
-          buttonText={modalState.options.buttonText}
-        />
-      )}
-    </div>
+        
+        {/* Modal Components */}
+        {modalState.type === 'confirm' && (
+          <ConfirmationModal
+            isOpen={modalState.isOpen}
+            onClose={closeModal}
+            onConfirm={modalState.onConfirm!}
+            title={modalState.options.title}
+            message={modalState.options.message}
+            confirmText={modalState.options.confirmText}
+            cancelText={modalState.options.cancelText}
+            variant={modalState.options.variant}
+            loading={modalState.loading}
+          />
+        )}
+        
+        {modalState.type === 'alert' && (
+          <AlertModal
+            isOpen={modalState.isOpen}
+            onClose={closeModal}
+            title={modalState.options.title}
+            message={modalState.options.message}
+            variant={modalState.options.variant}
+            buttonText={modalState.options.buttonText}
+          />
+        )}
+      </Paper>
+    </Container>
   )
 }
