@@ -22,6 +22,8 @@ import {
   Person,
   LocationOn,
   ExitToApp,
+  History,
+  Book,
 } from '@mui/icons-material'
 import ConfirmationModal from '@/components/ConfirmationModal'
 import AlertModal from '@/components/AlertModal'
@@ -45,13 +47,30 @@ interface Location {
   created_at: string
 }
 
+interface CheckoutHistoryItem {
+  id: number
+  book_id: number
+  user_id: string
+  action: string // 'checkout' or 'return'
+  action_date: string
+  due_date: string | null
+  notes: string | null
+  created_at: string
+  book_title: string
+  book_authors: string[] // JSON parsed array
+  book_isbn: string
+  location_name: string
+}
+
 export default function ProfilePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const { modalState, confirmAsync, alert, closeModal } = useModal()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [locations, setLocations] = useState<Location[]>([])
+  const [checkoutHistory, setCheckoutHistory] = useState<CheckoutHistoryItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [historyLoading, setHistoryLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -70,6 +89,7 @@ export default function ProfilePage() {
     if (status === 'authenticated') {
       fetchProfile()
       fetchLocations()
+      fetchCheckoutHistory()
     }
   }, [status, router])
 
@@ -110,6 +130,28 @@ export default function ProfilePage() {
       }
     } catch (err) {
       console.error('Failed to load locations:', err)
+    }
+  }
+
+  const fetchCheckoutHistory = async () => {
+    try {
+      setHistoryLoading(true)
+      if (!session?.user?.email) return
+      
+      const response = await fetch('/api/checkout-history', {
+        headers: {
+          'Authorization': `Bearer ${session.user.email}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      if (response.ok) {
+        const historyData = await response.json()
+        setCheckoutHistory(historyData)
+      }
+    } catch (err) {
+      console.error('Failed to load checkout history:', err)
+    } finally {
+      setHistoryLoading(false)
     }
   }
 
@@ -351,6 +393,85 @@ export default function ProfilePage() {
               <Alert severity="warning" sx={{ mt: 2 }}>
                 <Typography variant="body2">
                   You can't leave your last location. You need access to at least one library.
+                </Typography>
+              </Alert>
+            )}
+          </Box>
+        )}
+        
+        <Divider sx={{ my: 3 }} />
+        
+        <Typography variant="h5" component="h2" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <History /> Checkout History
+        </Typography>
+        
+        {historyLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, p: 3 }}>
+            <CircularProgress size={20} />
+            <Typography>Loading checkout history...</Typography>
+          </Box>
+        ) : checkoutHistory.length === 0 ? (
+          <Paper variant="outlined" sx={{ p: 3, textAlign: 'center', backgroundColor: 'grey.50' }}>
+            <Typography color="text.secondary">
+              No checkout history yet. Check out a book to see your reading activity here.
+            </Typography>
+          </Paper>
+        ) : (
+          <Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Your recent book checkout and return activity ({checkoutHistory.length} record{checkoutHistory.length > 1 ? 's' : ''}).
+            </Typography>
+            
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {checkoutHistory.slice(0, 10).map(item => (
+                <Card key={item.id} variant="outlined">
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h6" component="h4" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Book fontSize="small" />
+                          {item.book_title}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          by {Array.isArray(item.book_authors) ? item.book_authors.join(', ') : item.book_authors}
+                        </Typography>
+                        {item.notes && (
+                          <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontStyle: 'italic' }}>
+                            {item.notes}
+                          </Typography>
+                        )}
+                      </Box>
+                      
+                      <Box sx={{ textAlign: 'right', ml: 2 }}>
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            color: item.action === 'checkout' ? 'success.main' : 'info.main',
+                            fontWeight: 500,
+                            textTransform: 'capitalize'
+                          }}
+                        >
+                          {item.action === 'checkout' ? 'Checked Out' : 'Returned'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(item.action_date).toLocaleDateString()}
+                        </Typography>
+                        {item.due_date && item.action === 'checkout' && (
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                            Due: {new Date(item.due_date).toLocaleDateString()}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+            
+            {checkoutHistory.length > 10 && (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                <Typography variant="body2">
+                  Showing most recent 10 entries. You have {checkoutHistory.length - 10} more entries in your history.
                 </Typography>
               </Alert>
             )}
