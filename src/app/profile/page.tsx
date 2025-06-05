@@ -29,7 +29,7 @@ import ConfirmationModal from '@/components/ConfirmationModal'
 import AlertModal from '@/components/AlertModal'
 import { useModal } from '@/hooks/useModal'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://libarycard-api.tim-arnold.workers.dev'
 
 interface ProfileData {
   id: string
