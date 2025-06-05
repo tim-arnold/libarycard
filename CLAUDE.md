@@ -35,6 +35,7 @@ This file contains development todos, notes, and context for AI assistants worki
 - ✅ **Deep Purple color palette implementation**
 - ✅ **Complete book checkout system with status tracking and history**
 - ✅ **Enhanced ISBN scanner with camera controls and Google Books API search integration**
+- ✅ **AddBooks component with persistent shelf selection and duplicate detection**
 
 ## Development Todos
 
@@ -321,6 +322,17 @@ This file contains development todos, notes, and context for AI assistants worki
 - **CONSOLIDATED**: Complete genre list moved to More Details modal under "All Genres" section
 - **REFINED**: Book card information hierarchy prioritizing title, author, publication year, single genre, and description
 - **MAINTAINED**: Enhanced book data features including clickable authors, series links, and comprehensive More Details modal
+
+### Session June 2025 - AddBooks Component UX Enhancements
+- **IMPLEMENTED**: Persistent shelf selection using localStorage to remember user's last chosen shelf across sessions
+- **ADDED**: Comprehensive duplicate detection system using ISBN and title/author matching to prevent adding the same book twice
+- **ENHANCED**: Search results UI to display "Already in Your Library" for duplicate books with disabled styling and checkmark icon
+- **CREATED**: Auto-focus functionality that automatically focuses the correct input field when switching between tabs (Scanner vs Search)
+- **OPTIMIZED**: Real-time duplicate checking by loading existing books during component initialization
+- **IMPROVED**: Shelf selector to persist user selections for enhanced workflow continuity
+- **STREAMLINED**: Field sizing consistency between ISBN manual entry and search input fields
+- **ADDED**: CheckCircle icon import and usage for clear duplicate book indication
+- **ENHANCED**: User experience with intelligent shelf restoration and duplicate prevention workflow
 
 ### Session December 2024 - Permission System Implementation
 - **COMPLETED**: Added user_role column to database schema with migration
