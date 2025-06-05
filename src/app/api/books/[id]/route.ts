@@ -1,8 +1,8 @@
 import { getServerSession } from 'next-auth'
 import { NextRequest, NextResponse } from 'next/server'
 
-// Use direct Workers domain until custom domain checkout routing is fixed
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://libarycard-api.tim-arnold.workers.dev'
+// Force direct Workers domain to bypass environment variable overrides
+const API_BASE = 'https://libarycard-api.tim-arnold.workers.dev'
 
 export async function PUT(
   request: NextRequest,
