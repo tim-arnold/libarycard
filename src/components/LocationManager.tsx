@@ -2,6 +2,41 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import {
+  Container,
+  Paper,
+  Typography,
+  Button,
+  Box,
+  TextField,
+  Card,
+  CardContent,
+  CardActions,
+  Alert,
+  CircularProgress,
+  Divider,
+  Chip,
+  IconButton,
+  Collapse,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from '@mui/material'
+import {
+  Add,
+  Edit,
+  Delete,
+  Email,
+  Shelves,
+  PersonAdd,
+  Cancel,
+  Save,
+} from '@mui/icons-material'
 import ConfirmationModal from './ConfirmationModal'
 import AlertModal from './AlertModal'
 import { useModal } from '@/hooks/useModal'
@@ -508,21 +543,38 @@ export default function LocationManager() {
 
   if (loading) {
     return (
-      <div className="card">
-        <p>Loading locations...</p>
-      </div>
+      <Container maxWidth="xl" sx={{ py: 2 }}>
+        <Paper sx={{ p: 3 }}>
+          <Typography variant="h4" component="h2" gutterBottom>
+            🏠 Location Management
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
+            <CircularProgress sx={{ mr: 2 }} />
+            <Typography color="text.secondary">
+              Loading locations...
+            </Typography>
+          </Box>
+        </Paper>
+      </Container>
     )
   }
 
   return (
-    <div className="card">
-      <h2>🏠 Location Management</h2>
-      
-      {error && (
-        <div style={{ marginBottom: '1rem', padding: '0.5rem', background: '#ffe6e6', border: '1px solid #ff9999', borderRadius: '0.25rem' }}>
-          <p style={{ color: '#cc0000', margin: 0 }}>{error}</p>
-        </div>
-      )}
+    <Container maxWidth="xl" sx={{ py: 2 }}>
+      <Paper sx={{ p: 3 }}>
+        <Typography variant="h4" component="h2" gutterBottom>
+          🏠 Location Management
+        </Typography>
+        
+        {error && (
+          <Alert 
+            severity={error.startsWith('✅') ? 'success' : 'error'} 
+            sx={{ mb: 2 }}
+            onClose={() => setError('')}
+          >
+            {error.replace('✅ ', '')}
+          </Alert>
+        )}
 
       {locations.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '2rem' }}>
@@ -533,12 +585,13 @@ export default function LocationManager() {
             }
           </p>
           {userRole === 'admin' && (
-            <button 
-              onClick={() => setShowCreateForm(true)} 
-              className="btn"
+            <Button 
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => setShowCreateForm(true)}
             >
               Create Your First Location
-            </button>
+            </Button>
           )}
         </div>
       ) : (
@@ -547,13 +600,14 @@ export default function LocationManager() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3>Your Locations</h3>
               {userRole === 'admin' && (
-                <button 
-                  onClick={() => setShowCreateForm(true)} 
-                  className="btn"
-                  style={{ fontSize: '0.9em', padding: '0.5rem 1rem' }}
+                <Button 
+                  variant="contained"
+                  startIcon={<Add />}
+                  onClick={() => setShowCreateForm(true)}
+                  size="small"
                 >
-                  + Add Location
-                </button>
+                  Add Location
+                </Button>
               )}
             </div>
             
@@ -575,41 +629,31 @@ export default function LocationManager() {
                     )}
                   </div>
                   {userRole === 'admin' && (
-                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                      <button
+                    <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<Edit />}
                         onClick={(e) => {
                           e.stopPropagation()
                           startEditLocation(location)
                         }}
-                        style={{
-                          fontSize: '0.8em',
-                          padding: '0.25rem 0.5rem',
-                          background: '#f0f0f0',
-                          border: '1px solid #ccc',
-                          borderRadius: '0.25rem',
-                          cursor: 'pointer'
-                        }}
                       >
                         Edit
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color="error"
+                        size="small"
+                        startIcon={<Delete />}
                         onClick={(e) => {
                           e.stopPropagation()
                           deleteLocation(location.id, location.name)
                         }}
-                        style={{
-                          fontSize: '0.8em',
-                          padding: '0.25rem 0.5rem',
-                          background: '#ff4444',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '0.25rem',
-                          cursor: 'pointer'
-                        }}
                       >
                         Delete
-                      </button>
-                    </div>
+                      </Button>
+                    </Box>
                   )}
                 </div>
               ))}
@@ -623,31 +667,28 @@ export default function LocationManager() {
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   {userRole === 'admin' && (
                     <>
-                      <button 
+                      <Button 
+                        variant="contained"
+                        color="success"
+                        startIcon={<Email />}
                         onClick={() => {
                           setShowInvitations(!showInvitations)
                           if (!showInvitations) {
                             loadLocationInvitations(selectedLocation.id)
                           }
-                        }} 
-                        className="btn"
-                        style={{ 
-                          fontSize: '0.9em', 
-                          padding: '0.5rem 1rem',
-                          background: '#28a745',
-                          color: 'white',
-                          border: 'none'
                         }}
+                        size="small"
                       >
-                        📧 Invitations
-                      </button>
-                      <button 
-                        onClick={() => setShowShelfForm(true)} 
-                        className="btn"
-                        style={{ fontSize: '0.9em', padding: '0.5rem 1rem' }}
+                        Invitations
+                      </Button>
+                      <Button 
+                        variant="contained"
+                        startIcon={<Shelves />}
+                        onClick={() => setShowShelfForm(true)}
+                        size="small"
                       >
-                        + Add Shelf
-                      </button>
+                        Add Shelf
+                      </Button>
                     </>
                   )}
                 </div>
@@ -664,35 +705,31 @@ export default function LocationManager() {
                       <strong>{shelf.name}</strong>
                     </div>
                     {userRole === 'admin' && (
-                      <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
-                        <button
+                      <Box sx={{ display: 'flex', gap: 0.25, justifyContent: 'center' }}>
+                        <IconButton
+                          size="small"
                           onClick={() => startEditShelf(shelf)}
-                          style={{
-                            fontSize: '0.7em',
-                            padding: '0.2rem 0.4rem',
-                            background: '#e0e0e0',
-                            border: '1px solid #ccc',
-                            borderRadius: '0.2rem',
-                            cursor: 'pointer'
+                          sx={{ 
+                            p: 0.5,
+                            backgroundColor: 'grey.200',
+                            '&:hover': { backgroundColor: 'grey.300' }
                           }}
                         >
-                          Edit
-                        </button>
-                        <button
+                          <Edit fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
                           onClick={() => deleteShelf(shelf.id, shelf.name)}
-                          style={{
-                            fontSize: '0.7em',
-                            padding: '0.2rem 0.4rem',
-                            background: '#ff6666',
+                          sx={{ 
+                            p: 0.5,
+                            backgroundColor: 'error.main',
                             color: 'white',
-                            border: 'none',
-                            borderRadius: '0.2rem',
-                            cursor: 'pointer'
+                            '&:hover': { backgroundColor: 'error.dark' }
                           }}
                         >
-                          Delete
-                        </button>
-                      </div>
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      </Box>
                     )}
                   </div>
                 ))}
@@ -703,13 +740,14 @@ export default function LocationManager() {
                 <div style={{ marginTop: '2rem', border: '1px solid #e0e0e0', borderRadius: '0.5rem', padding: '1rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <h4 style={{ margin: 0 }}>📧 Location Invitations</h4>
-                    <button 
-                      onClick={() => setShowInviteForm(true)} 
-                      className="btn"
-                      style={{ fontSize: '0.9em', padding: '0.5rem 1rem' }}
+                    <Button 
+                      variant="contained"
+                      startIcon={<PersonAdd />}
+                      onClick={() => setShowInviteForm(true)}
+                      size="small"
                     >
-                      + Send Invitation
-                    </button>
+                      Send Invitation
+                    </Button>
                   </div>
                   
                   {invitations.length === 0 ? (
@@ -749,21 +787,17 @@ export default function LocationManager() {
                               {invitation.used_at ? 'Accepted' : 'Pending'}
                             </div>
                             {!invitation.used_at && (
-                              <button
+                              <Button
+                                variant="contained"
+                                color="error"
+                                size="small"
+                                startIcon={<Cancel />}
                                 onClick={() => revokeInvitation(invitation.id, invitation.invited_email)}
-                                style={{
-                                  fontSize: '0.7em',
-                                  padding: '0.25rem 0.5rem',
-                                  background: '#dc3545',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '0.25rem',
-                                  cursor: 'pointer'
-                                }}
                                 title="Revoke this invitation"
+                                sx={{ fontSize: '0.7em' }}
                               >
                                 Revoke
-                              </button>
+                              </Button>
                             )}
                           </div>
                         </div>
@@ -777,247 +811,195 @@ export default function LocationManager() {
         </div>
       )}
 
-      {showCreateForm && (
-        <div style={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          background: 'rgba(0,0,0,0.5)', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{ 
-            background: 'white', 
-            padding: '2rem', 
-            borderRadius: '0.5rem', 
-            maxWidth: '400px', 
-            width: '90%' 
-          }}>
-            <h3 style={{ marginBottom: '1rem' }}>
-              {editingLocation ? 'Edit Location' : 'Create New Location'}
-            </h3>
-            <form onSubmit={editingLocation ? updateLocation : createLocation}>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  Location Name *
-                </label>
-                <input
-                  type="text"
-                  value={newLocationName}
-                  onChange={(e) => setNewLocationName(e.target.value)}
-                  placeholder="e.g., Finsbury Road, Main Office"
-                  required
-                  style={{ 
-                    width: '100%', 
-                    padding: '0.5rem', 
-                    border: '1px solid #ccc', 
-                    borderRadius: '0.25rem' 
-                  }}
-                />
-              </div>
+      <Dialog 
+        open={showCreateForm} 
+        onClose={() => {
+          setShowCreateForm(false)
+          setEditingLocation(null)
+          setNewLocationName('')
+          setNewLocationDescription('')
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {editingLocation ? 'Edit Location' : 'Create New Location'}
+        </DialogTitle>
+        <form onSubmit={editingLocation ? updateLocation : createLocation}>
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+              <TextField
+                autoFocus
+                label="Location Name"
+                type="text"
+                fullWidth
+                required
+                value={newLocationName}
+                onChange={(e) => setNewLocationName(e.target.value)}
+                placeholder="e.g., Finsbury Road, Main Office"
+              />
               
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  Description (optional)
-                </label>
-                <textarea
-                  value={newLocationDescription}
-                  onChange={(e) => setNewLocationDescription(e.target.value)}
-                  placeholder="Brief description of this location"
-                  rows={3}
-                  style={{ 
-                    width: '100%', 
-                    padding: '0.5rem', 
-                    border: '1px solid #ccc', 
-                    borderRadius: '0.25rem',
-                    resize: 'vertical'
-                  }}
-                />
-              </div>
-              
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setShowCreateForm(false)
-                    setEditingLocation(null)
-                    setNewLocationName('')
-                    setNewLocationDescription('')
-                  }}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn">
-                  {editingLocation ? 'Update Location' : 'Create Location'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+              <TextField
+                label="Description"
+                fullWidth
+                multiline
+                rows={3}
+                value={newLocationDescription}
+                onChange={(e) => setNewLocationDescription(e.target.value)}
+                placeholder="Brief description of this location"
+                helperText="Optional"
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button 
+              onClick={() => {
+                setShowCreateForm(false)
+                setEditingLocation(null)
+                setNewLocationName('')
+                setNewLocationDescription('')
+              }}
+              startIcon={<Cancel />}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              variant="contained"
+              startIcon={<Save />}
+            >
+              {editingLocation ? 'Update Location' : 'Create Location'}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
 
-      {showShelfForm && (
-        <div style={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          background: 'rgba(0,0,0,0.5)', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{ 
-            background: 'white', 
-            padding: '2rem', 
-            borderRadius: '0.5rem', 
-            maxWidth: '400px', 
-            width: '90%' 
-          }}>
-            <h3 style={{ marginBottom: '1rem' }}>
-              {editingShelf ? 'Edit Shelf' : 'Add New Shelf'}
-            </h3>
-            <form onSubmit={editingShelf ? updateShelf : createShelf}>
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  Shelf Name *
-                </label>
-                <input
-                  type="text"
-                  value={newShelfName}
-                  onChange={(e) => setNewShelfName(e.target.value)}
-                  placeholder="e.g., Fiction, Cookbooks, Reference"
-                  required
-                  style={{ 
-                    width: '100%', 
-                    padding: '0.5rem', 
-                    border: '1px solid #ccc', 
-                    borderRadius: '0.25rem' 
-                  }}
-                />
-              </div>
-              
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setShowShelfForm(false)
-                    setEditingShelf(null)
-                    setNewShelfName('')
-                  }}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn">
-                  {editingShelf ? 'Update Shelf' : 'Add Shelf'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <Dialog 
+        open={showShelfForm} 
+        onClose={() => {
+          setShowShelfForm(false)
+          setEditingShelf(null)
+          setNewShelfName('')
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {editingShelf ? 'Edit Shelf' : 'Add New Shelf'}
+        </DialogTitle>
+        <form onSubmit={editingShelf ? updateShelf : createShelf}>
+          <DialogContent>
+            <TextField
+              autoFocus
+              label="Shelf Name"
+              type="text"
+              fullWidth
+              required
+              value={newShelfName}
+              onChange={(e) => setNewShelfName(e.target.value)}
+              placeholder="e.g., Fiction, Cookbooks, Reference"
+              sx={{ mt: 1 }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button 
+              onClick={() => {
+                setShowShelfForm(false)
+                setEditingShelf(null)
+                setNewShelfName('')
+              }}
+              startIcon={<Cancel />}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              variant="contained"
+              startIcon={<Save />}
+            >
+              {editingShelf ? 'Update Shelf' : 'Add Shelf'}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
 
-      {showInviteForm && (
-        <div style={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          background: 'rgba(0,0,0,0.5)', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{ 
-            background: 'white', 
-            padding: '2rem', 
-            borderRadius: '0.5rem', 
-            maxWidth: '400px', 
-            width: '90%' 
-          }}>
-            <h3 style={{ marginBottom: '1rem' }}>Send Location Invitation</h3>
-            <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '1rem' }}>
+      <Dialog 
+        open={showInviteForm} 
+        onClose={() => {
+          setShowInviteForm(false)
+          setInviteEmail('')
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Send Location Invitation</DialogTitle>
+        <form onSubmit={sendInvitation}>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Invite a user to join the <strong>{selectedLocation?.name}</strong> location. 
               They'll receive an email with an invitation link.
-            </p>
-            <form onSubmit={sendInvitation}>
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  Email Address *
-                </label>
-                <input
-                  type="email"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="user@example.com"
-                  required
-                  style={{ 
-                    width: '100%', 
-                    padding: '0.5rem', 
-                    border: '1px solid #ccc', 
-                    borderRadius: '0.25rem' 
-                  }}
-                />
-                <div style={{ fontSize: '0.8em', color: '#666', marginTop: '0.5rem' }}>
-                  If the user doesn't have a LibaryCard account, they can create one when accepting the invitation.
-                </div>
-              </div>
-              
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setShowInviteForm(false)
-                    setInviteEmail('')
-                  }}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn">
-                  Send Invitation
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      
-      {/* Modal Components */}
-      {modalState.type === 'confirm' && (
-        <ConfirmationModal
-          isOpen={modalState.isOpen}
-          onClose={closeModal}
-          onConfirm={modalState.onConfirm!}
-          title={modalState.options.title}
-          message={modalState.options.message}
-          confirmText={modalState.options.confirmText}
-          cancelText={modalState.options.cancelText}
-          variant={modalState.options.variant}
-          loading={modalState.loading}
-        />
-      )}
-      
-      {modalState.type === 'alert' && (
-        <AlertModal
-          isOpen={modalState.isOpen}
-          onClose={closeModal}
-          title={modalState.options.title}
-          message={modalState.options.message}
-          variant={modalState.options.variant}
-          buttonText={modalState.options.buttonText}
-        />
-      )}
-    </div>
+            </Typography>
+            
+            <TextField
+              autoFocus
+              label="Email Address"
+              type="email"
+              fullWidth
+              required
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="user@example.com"
+              helperText="If the user doesn't have a LibaryCard account, they can create one when accepting the invitation."
+              sx={{ mt: 1 }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button 
+              onClick={() => {
+                setShowInviteForm(false)
+                setInviteEmail('')
+              }}
+              startIcon={<Cancel />}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              variant="contained"
+              startIcon={<Email />}
+            >
+              Send Invitation
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+        
+        {/* Modal Components */}
+        {modalState.type === 'confirm' && (
+          <ConfirmationModal
+            isOpen={modalState.isOpen}
+            onClose={closeModal}
+            onConfirm={modalState.onConfirm!}
+            title={modalState.options.title}
+            message={modalState.options.message}
+            confirmText={modalState.options.confirmText}
+            cancelText={modalState.options.cancelText}
+            variant={modalState.options.variant}
+            loading={modalState.loading}
+          />
+        )}
+        
+        {modalState.type === 'alert' && (
+          <AlertModal
+            isOpen={modalState.isOpen}
+            onClose={closeModal}
+            title={modalState.options.title}
+            message={modalState.options.message}
+            variant={modalState.options.variant}
+            buttonText={modalState.options.buttonText}
+          />
+        )}
+      </Paper>
+    </Container>
   )
 }
