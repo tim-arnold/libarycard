@@ -2,6 +2,31 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
+import {
+  Container,
+  Paper,
+  Typography,
+  Button,
+  Box,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Alert,
+  Chip,
+  Card,
+  CardContent,
+  CardMedia,
+  CircularProgress,
+} from '@mui/material'
+import {
+  Search,
+  Save,
+  Cancel,
+  PhotoCamera,
+  Stop,
+} from '@mui/icons-material'
 import { fetchBookData } from '@/lib/bookApi'
 import { saveBook as saveBookAPI } from '@/lib/api'
 import { BrowserMultiFormatReader } from '@zxing/library'
@@ -330,231 +355,253 @@ export default function ISBNScanner() {
   }
 
   return (
-    <div className="card">
-      <h2>📱 Scan ISBN</h2>
+    <Container maxWidth="md" sx={{ py: 2 }}>
+      <Paper sx={{ p: 3 }}>
+        <Typography variant="h4" component="h2" gutterBottom>
+          📱 Scan ISBN
+        </Typography>
       
-      {/* Contextual help text based on available options */}
-      {!loadingData && (
-        <div style={{ 
-          marginBottom: '1.5rem', 
-          padding: '0.75rem', 
-          background: '#f8f9fa', 
-          border: '1px solid #e9ecef', 
-          borderRadius: '0.375rem',
-          fontSize: '0.9em',
-          color: '#495057'
-        }}>
-          {allShelves.length === 0 ? (
-            <>
-              📚 <strong>Getting Started:</strong> You don't have access to any library yet. Contact an administrator to get access before adding books.
-            </>
-          ) : allShelves.length === 1 ? (
-            <>
-              📚 <strong>Ready to Add Books:</strong> Scan or enter an ISBN to add books to your library!
-            </>
-          ) : locations.length === 1 ? (
-            <>
-              📚 <strong>Ready to Scan:</strong> Choose from {allShelves.length} shelves in {locations[0].name}. Books will be organized automatically!
-            </>
-          ) : (
-            <>
-              📚 <strong>Multi-Location Setup:</strong> You have access to {locations.length} locations with {allShelves.length} total shelves. Select the right shelf when adding books.
-            </>
-          )}
-        </div>
-      )}
-      
-      {!isScanning && !scannedBook && (
-        <div>
-          <button 
-            className="btn" 
-            onClick={startScanner}
-            disabled={isScannerLoading || isScanning || !codeReader}
-            style={{ marginBottom: '1rem' }}
+        {/* Contextual help text based on available options */}
+        {!loadingData && (
+          <Alert 
+            severity="info" 
+            variant="outlined"
+            sx={{ mb: 3 }}
           >
-            {isScannerLoading ? 'Starting Camera...' : isScanning ? 'Scanning...' : 'Start Camera Scanner'}
-          </button>
-          
-          {isScannerLoading && (
-            <p style={{ fontSize: '0.8em', color: '#666' }}>
-              Initializing camera and scanner...
-            </p>
-          )}
-          
-          
-          <form onSubmit={manualISBNEntry} style={{ marginTop: '1rem' }}>
-            <input
-              type="text"
-              name="isbn"
-              placeholder="Or enter ISBN manually"
-              style={{ 
-                padding: '0.5rem', 
-                marginRight: '0.5rem',
-                border: '1px solid #ccc',
-                borderRadius: '0.25rem'
-              }}
-            />
-            <button type="submit" className="btn">
-              Look Up Book
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* Scanner container - always present for ref */}
-      <div ref={scannerRef} style={{ width: '100%', maxWidth: '640px', minHeight: isScanning ? '300px' : '0px' }} />
-      
-      {isScanning && (
-        <div>
-          <button 
-            className="btn" 
-            onClick={stopScanner}
-            style={{ marginTop: '1rem' }}
-          >
-            Stop Scanner
-          </button>
-        </div>
-      )}
-
-      {isLoading && <p>Loading book data...</p>}
-
-      {scannedBook && (
-        <div style={{ marginTop: '2rem' }}>
-          <h3>Book Found!</h3>
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-            {scannedBook.thumbnail && (
-              <img 
-                src={scannedBook.thumbnail} 
-                alt={scannedBook.title}
-                style={{ width: '120px', height: 'auto' }}
-              />
+            {allShelves.length === 0 ? (
+              <Typography variant="body2">
+                📚 <strong>Getting Started:</strong> You don't have access to any library yet. Contact an administrator to get access before adding books.
+              </Typography>
+            ) : allShelves.length === 1 ? (
+              <Typography variant="body2">
+                📚 <strong>Ready to Add Books:</strong> Scan or enter an ISBN to add books to your library!
+              </Typography>
+            ) : locations.length === 1 ? (
+              <Typography variant="body2">
+                📚 <strong>Ready to Scan:</strong> Choose from {allShelves.length} shelves in {locations[0].name}. Books will be organized automatically!
+              </Typography>
+            ) : (
+              <Typography variant="body2">
+                📚 <strong>Multi-Location Setup:</strong> You have access to {locations.length} locations with {allShelves.length} total shelves. Select the right shelf when adding books.
+              </Typography>
             )}
-            <div>
-              <h4>{scannedBook.title}</h4>
-              <p><strong>Authors:</strong> {scannedBook.authors.join(', ')}</p>
-              <p><strong>ISBN:</strong> {scannedBook.isbn}</p>
-              {scannedBook.publishedDate && (
-                <p><strong>Published:</strong> {scannedBook.publishedDate}</p>
-              )}
-              {scannedBook.categories && (
-                <p><strong>Categories:</strong> {scannedBook.categories.join(', ')}</p>
-              )}
-              {scannedBook.description && (
-                <p style={{ marginTop: '0.5rem', fontSize: '0.9em' }}>
-                  {scannedBook.description.substring(0, 200)}...
-                </p>
-              )}
-            </div>
-          </div>
+          </Alert>
+        )}
+      
+        {!isScanning && !scannedBook && (
+          <Box>
+            <Button
+              variant="contained"
+              startIcon={isScannerLoading ? <CircularProgress size={16} color="inherit" /> : <PhotoCamera />}
+              onClick={startScanner}
+              disabled={isScannerLoading || isScanning || !codeReader}
+              sx={{ mb: 2 }}
+            >
+              {isScannerLoading ? 'Starting Camera...' : isScanning ? 'Scanning...' : 'Start Camera Scanner'}
+            </Button>
+            
+            {isScannerLoading && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                Initializing camera and scanner...
+              </Typography>
+            )}
+            
+            <Box component="form" onSubmit={manualISBNEntry} sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 2 }}>
+              <TextField
+                name="isbn"
+                placeholder="Or enter ISBN manually"
+                variant="outlined"
+                size="small"
+                sx={{ flexGrow: 1 }}
+              />
+              <Button 
+                type="submit" 
+                variant="outlined"
+                startIcon={<Search />}
+              >
+                Look Up Book
+              </Button>
+            </Box>
+          </Box>
+        )}
 
-          {/* Only show shelf selector if multiple shelves available */}
-          {!loadingData && allShelves.length > 1 && (
-            <div style={{ marginTop: '1rem' }}>
-              <label>
-                <strong>Shelf:</strong>
-                <select 
-                  value={selectedShelfId || ''} 
-                  onChange={(e) => setSelectedShelfId(e.target.value ? parseInt(e.target.value) : null)}
-                  style={{ 
-                    marginLeft: '0.5rem', 
-                    padding: '0.25rem',
-                    border: '1px solid #ccc',
-                    borderRadius: '0.25rem',
-                    minWidth: '200px'
-                  }}
-                >
-                  <option value="">Select shelf...</option>
-                  {locations.length === 1 ? (
-                    // Single location - simple list without grouping
-                    allShelves.map(shelf => (
-                      <option key={shelf.id} value={shelf.id}>
-                        {shelf.name}
-                      </option>
-                    ))
-                  ) : (
-                    // Multiple locations - group by location
-                    locations.map(location => (
-                      <optgroup key={location.id} label={location.name}>
-                        {allShelves
+        {/* Scanner container - always present for ref */}
+        <Box 
+          ref={scannerRef} 
+          sx={{ 
+            width: '100%', 
+            maxWidth: '640px', 
+            minHeight: isScanning ? '300px' : '0px',
+            border: isScanning ? '1px solid #e0e0e0' : 'none',
+            borderRadius: 1,
+            overflow: 'hidden'
+          }} 
+        />
+      
+        {isScanning && (
+          <Box sx={{ mt: 2 }}>
+            <Button 
+              variant="outlined"
+              color="error"
+              startIcon={<Stop />}
+              onClick={stopScanner}
+            >
+              Stop Scanner
+            </Button>
+          </Box>
+        )}
+
+        {isLoading && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            Loading book data...
+          </Typography>
+        )}
+
+        {scannedBook && (
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="h5" gutterBottom color="success.main">
+              Book Found!
+            </Typography>
+            
+            <Card sx={{ mb: 3 }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  {scannedBook.thumbnail && (
+                    <CardMedia
+                      component="img"
+                      src={scannedBook.thumbnail}
+                      alt={scannedBook.title}
+                      sx={{ width: 120, height: 'auto', flexShrink: 0 }}
+                    />
+                  )}
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="h6" gutterBottom>
+                      {scannedBook.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      <strong>Authors:</strong> {scannedBook.authors.join(', ')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      <strong>ISBN:</strong> {scannedBook.isbn}
+                    </Typography>
+                    {scannedBook.publishedDate && (
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        <strong>Published:</strong> {scannedBook.publishedDate}
+                      </Typography>
+                    )}
+                    {scannedBook.categories && (
+                      <Box sx={{ mt: 1, mb: 1 }}>
+                        {scannedBook.categories.slice(0, 3).map((category, index) => (
+                          <Chip key={index} label={category} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
+                        ))}
+                      </Box>
+                    )}
+                    {scannedBook.description && (
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        {scannedBook.description.substring(0, 200)}...
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+
+            {/* Only show shelf selector if multiple shelves available */}
+            {!loadingData && allShelves.length > 1 && (
+              <Box sx={{ mb: 2 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Shelf</InputLabel>
+                  <Select 
+                    value={selectedShelfId || ''} 
+                    label="Shelf"
+                    onChange={(e) => setSelectedShelfId(e.target.value ? parseInt(String(e.target.value)) : null)}
+                  >
+                    <MenuItem value="">Select shelf...</MenuItem>
+                    {locations.length === 1 ? (
+                      // Single location - simple list without grouping
+                      allShelves.map(shelf => (
+                        <MenuItem key={shelf.id} value={shelf.id}>
+                          {shelf.name}
+                        </MenuItem>
+                      ))
+                    ) : (
+                      // Multiple locations - group by location
+                      locations.map(location => [
+                        <MenuItem key={`${location.id}-header`} disabled sx={{ fontWeight: 'bold' }}>
+                          {location.name}
+                        </MenuItem>,
+                        ...allShelves
                           .filter(shelf => shelf.location_id === location.id)
                           .map(shelf => (
-                            <option key={shelf.id} value={shelf.id}>
+                            <MenuItem key={shelf.id} value={shelf.id} sx={{ pl: 3 }}>
                               {shelf.name}
-                            </option>
+                            </MenuItem>
                           ))
-                        }
-                      </optgroup>
-                    ))
-                  )}
-                </select>
-              </label>
-            </div>
-          )}
+                      ]).flat()
+                    )}
+                  </Select>
+                </FormControl>
+              </Box>
+            )}
 
-          <div style={{ marginTop: '1rem' }}>
-            <label>
-              <strong>Tags (comma-separated):</strong>
-              <input
-                type="text"
+            <Box sx={{ mb: 2 }}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Tags (comma-separated)"
                 value={customTags}
                 onChange={(e) => setCustomTags(e.target.value)}
                 placeholder="e.g. fiction, mystery, favorite"
-                style={{ 
-                  marginLeft: '0.5rem', 
-                  padding: '0.25rem',
-                  border: '1px solid #ccc',
-                  borderRadius: '0.25rem',
-                  width: '200px'
-                }}
+                helperText="Add custom tags to organize your books"
               />
-            </label>
-          </div>
+            </Box>
 
-          <div style={{ marginTop: '1rem' }}>
-            <button 
-              className="btn" 
-              onClick={saveBook}
-              disabled={!selectedShelfId}
-              style={{ marginRight: '0.5rem' }}
-            >
-              {allShelves.length === 1 ? 'Add to Library' : 'Save to Library'}
-            </button>
-            <button 
-              className="btn" 
-              onClick={() => setScannedBook(null)}
-              style={{ background: '#666' }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button 
+                variant="contained"
+                startIcon={<Save />}
+                onClick={saveBook}
+                disabled={!selectedShelfId}
+              >
+                {allShelves.length === 1 ? 'Add to Library' : 'Save to Library'}
+              </Button>
+              <Button 
+                variant="outlined"
+                startIcon={<Cancel />}
+                onClick={() => setScannedBook(null)}
+              >
+                Cancel
+              </Button>
+            </Box>
+          </Box>
+        )}
 
-      {/* Modal Components */}
-      {modalState.type === 'confirm' && (
-        <ConfirmationModal
-          isOpen={modalState.isOpen}
-          onClose={closeModal}
-          onConfirm={modalState.onConfirm!}
-          title={modalState.options.title}
-          message={modalState.options.message}
-          confirmText={modalState.options.confirmText}
-          cancelText={modalState.options.cancelText}
-          variant={modalState.options.variant}
-          loading={modalState.loading}
-        />
-      )}
-      
-      {modalState.type === 'alert' && (
-        <AlertModal
-          isOpen={modalState.isOpen}
-          onClose={closeModal}
-          title={modalState.options.title}
-          message={modalState.options.message}
-          variant={modalState.options.variant}
-          buttonText={modalState.options.buttonText}
-        />
-      )}
-    </div>
+        {/* Modal Components */}
+        {modalState.type === 'confirm' && (
+          <ConfirmationModal
+            isOpen={modalState.isOpen}
+            onClose={closeModal}
+            onConfirm={modalState.onConfirm!}
+            title={modalState.options.title}
+            message={modalState.options.message}
+            confirmText={modalState.options.confirmText}
+            cancelText={modalState.options.cancelText}
+            variant={modalState.options.variant}
+            loading={modalState.loading}
+          />
+        )}
+        
+        {modalState.type === 'alert' && (
+          <AlertModal
+            isOpen={modalState.isOpen}
+            onClose={closeModal}
+            title={modalState.options.title}
+            message={modalState.options.message}
+            variant={modalState.options.variant}
+            buttonText={modalState.options.buttonText}
+          />
+        )}
+      </Paper>
+    </Container>
   )
 }
