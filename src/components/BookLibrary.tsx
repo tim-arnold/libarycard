@@ -20,7 +20,6 @@ import {
   CardActions,
 } from '@mui/material'
 import { 
-  FileDownload,
   Search,
   Delete,
   ReportProblem,
@@ -666,16 +665,6 @@ export default function BookLibrary() {
     }
   }
 
-  const exportLibrary = () => {
-    const dataStr = JSON.stringify(books, null, 2)
-    const dataBlob = new Blob([dataStr], { type: 'application/json' })
-    const url = URL.createObjectURL(dataBlob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = 'my-library.json'
-    link.click()
-    URL.revokeObjectURL(url)
-  }
 
   const allCategories = Array.from(
     new Set(books.flatMap(book => book.categories || []))
@@ -753,17 +742,10 @@ export default function BookLibrary() {
   return (
     <Container maxWidth="xl" sx={{ py: 2 }}>
       <Paper sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ mb: 3 }}>
           <Typography variant="h4" component="h2">
             {getLibraryTitle()}
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<FileDownload />}
-            onClick={exportLibrary}
-          >
-            Export Library
-          </Button>
         </Box>
 
       {/* Shelf switcher for regular users with multiple shelves */}
