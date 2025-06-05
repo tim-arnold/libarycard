@@ -1,7 +1,8 @@
 import { getServerSession } from 'next-auth'
 import { NextRequest, NextResponse } from 'next/server'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://libarycard-api.tim-arnold.workers.dev'
+// Temporarily force direct Workers domain to resolve 404 issues
+const API_BASE = 'https://libarycard-api.tim-arnold.workers.dev'
 
 export async function PUT(
   request: NextRequest,

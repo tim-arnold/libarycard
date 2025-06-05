@@ -34,7 +34,8 @@ import ConfirmationModal from './ConfirmationModal'
 import AlertModal from './AlertModal'
 import { useModal } from '@/hooks/useModal'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://libarycard-api.tim-arnold.workers.dev'
+// Temporarily force direct Workers domain to resolve 404 issues
+const API_BASE = 'https://libarycard-api.tim-arnold.workers.dev'
 
 interface Shelf {
   id: number
