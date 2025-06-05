@@ -2236,7 +2236,21 @@ async function deleteBookRemovalRequest(requestId: number, userId: string, env: 
 
 // Book checkout functions
 async function checkoutBook(request: Request, bookId: number, userId: string, env: Env, corsHeaders: Record<string, string>) {
-  const { due_date, notes }: { due_date?: string; notes?: string } = await request.json();
+  let due_date: string | undefined;
+  let notes: string | undefined;
+  
+  // Safely parse JSON body, handling empty/missing body
+  try {
+    const body = await request.text();
+    if (body.trim()) {
+      const parsed = JSON.parse(body);
+      due_date = parsed.due_date;
+      notes = parsed.notes;
+    }
+  } catch (error) {
+    // If JSON parsing fails, continue with undefined values
+    console.warn('Failed to parse checkout request body:', error);
+  }
 
   try {
     // Check if user has access to this book and that it's available
