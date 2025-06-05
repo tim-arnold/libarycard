@@ -281,20 +281,6 @@ export default {
         return await deleteBookRemovalRequest(requestId, userId, env, corsHeaders);
       }
 
-      // Book checkout endpoints
-      if (path.match(/^\/api\/books\/\d+\/checkout$/) && request.method === 'POST') {
-        const bookId = parseInt(path.split('/')[3]);
-        return await checkoutBook(request, bookId, userId, env, corsHeaders);
-      }
-
-      if (path.match(/^\/api\/books\/\d+\/checkin$/) && request.method === 'POST') {
-        const bookId = parseInt(path.split('/')[3]);
-        return await checkinBook(bookId, userId, env, corsHeaders);
-      }
-
-      if (path === '/api/books/checkout-history' && request.method === 'GET') {
-        return await getCheckoutHistory(userId, env, corsHeaders);
-      }
 
       // Profile endpoints
       if (path === '/api/profile' && request.method === 'GET') {
