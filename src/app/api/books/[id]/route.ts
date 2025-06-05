@@ -1,8 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { NextRequest, NextResponse } from 'next/server'
 
-// Force direct Workers domain to bypass environment variable overrides
-const API_BASE = 'https://libarycard-api.tim-arnold.workers.dev'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
 
 export async function PUT(
   request: NextRequest,
