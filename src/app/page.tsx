@@ -26,7 +26,7 @@ import {
   ExitToApp,
   Build,
 } from '@mui/icons-material'
-import ISBNScanner from '@/components/ISBNScanner'
+import AddBooks from '@/components/AddBooks'
 import BookLibrary from '@/components/BookLibrary'
 import LocationManager from '@/components/LocationManager'
 import RemovalRequestManager from '@/components/RemovalRequestManager'
@@ -144,7 +144,7 @@ export default function Home() {
       <Container maxWidth="xl" sx={{ py: 2 }}>
         <Paper sx={{ mb: 2, p: 2, textAlign: 'center' }}>
           <Typography variant="body1" color="text.secondary">
-            Scan and manage your personal book collection
+            Add books by scanning barcodes or searching titles, and manage your personal collection
           </Typography>
         </Paper>
 
@@ -173,15 +173,15 @@ export default function Home() {
               />
             )}
             <Tab 
-              value="scan" 
-              label="Scan Books" 
-              icon={<QrCodeScanner />}
+              value="library" 
+              label="My Libary" 
+              icon={<LibraryBooks />}
               iconPosition="start"
             />
             <Tab 
-              value="library" 
-              label="My Library" 
-              icon={<LibraryBooks />}
+              value="scan" 
+              label="Add Books" 
+              icon={<QrCodeScanner />}
               iconPosition="start"
             />
           </Tabs>
@@ -189,7 +189,7 @@ export default function Home() {
 
         {activeTab === 'locations' && <LocationManager />}
         {activeTab === 'requests' && <RemovalRequestManager />}
-        {activeTab === 'scan' && <ISBNScanner />}
+        {activeTab === 'scan' && <AddBooks />}
         {activeTab === 'library' && <BookLibrary />}
       </Container>
     </Box>
