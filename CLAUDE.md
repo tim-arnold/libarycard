@@ -106,7 +106,7 @@ This file contains development todos, notes, and context for AI assistants worki
 
 - [ ] **Other Enhancements**
   - [x] ~~When entering ISBN manually on a phone, device should use the numeric keyboard rather than QUERTY~~ ✅ COMPLETED
-  - [ ] Add switcher to change library listing from the card view to a list view
+  - [x] ~~Add switcher to change library listing from the card view to a list view~~ ✅ COMPLETED
   - [ ] Add star rating system, just display average rating for each book from scoped to the location
   - [x] ~~Add book details modal/page with full information, cover image, and editing options~~ ✅ COMPLETED
   - [x] ~~Improve ISBN scanner interface with better camera controls and feedback~~ ✅ COMPLETED
@@ -359,6 +359,22 @@ This file contains development todos, notes, and context for AI assistants worki
 - **PREVENTED**: Flash of unstyled content (FOUC) with proper theme loading states and isLoaded flag
 - **ENHANCED**: Material UI component overrides for dark mode including MuiCard, MuiLink, MuiButton, and MuiChip
 - **VALIDATED**: Complete dark mode functionality across all components with proper accessibility standards
+
+### Session June 2025 - Library View Switcher Implementation
+- **IMPLEMENTED**: Complete view switcher functionality with card and list display modes
+- **ADDED**: Material UI ToggleButtonGroup with GridView and ViewList icons for intuitive view switching
+- **CREATED**: Comprehensive `renderBookListItem` function for compact horizontal list layout
+- **ESTABLISHED**: localStorage persistence for user view preference with automatic restoration
+- **MAINTAINED**: Complete feature parity between card and list views including:
+  - Checkout/return buttons with proper role-based permissions (admin vs user)
+  - Remove/request removal actions with admin approval workflows
+  - More Details modal access and shelf selectors
+  - Location grouping for admin users in both display modes
+- **DESIGNED**: Responsive list view with 60x90px rectangular thumbnails and condensed information display
+- **OPTIMIZED**: List view for mobile-friendly horizontal layout with action buttons positioned on the right
+- **IMPLEMENTED**: Conditional rendering logic supporting both admin location-grouped and regular user flat list views
+- **ENHANCED**: User experience with seamless switching between traditional card grid and compact list layouts
+- **VALIDATED**: Complete view switcher functionality working across all user roles and library configurations
 
 ### Next Priority: Feature Enhancements
 - Add admin notification system for user requests and activities  
