@@ -149,7 +149,6 @@ export default function Home() {
             onChange={(_, newValue) => setActiveTab(newValue)}
             variant="scrollable"
             scrollButtons="auto"
-            centered
           >
             {userRole === 'admin' && (
               <Tab 
