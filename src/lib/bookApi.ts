@@ -2,6 +2,19 @@ import type { Book } from '@/components/ISBNScanner'
 
 const GOOGLE_BOOKS_API = 'https://www.googleapis.com/books/v1/volumes'
 
+export interface EnhancedBook extends Book {
+  enhancedGenres?: string[]
+  series?: string
+  seriesNumber?: string
+  openLibraryKey?: string
+  extendedDescription?: string
+  subjects?: string[]
+  publisherInfo?: string
+  pageCount?: number
+  averageRating?: number
+  ratingsCount?: number
+}
+
 export async function fetchBookData(isbn: string): Promise<Book | null> {
   try {
     const response = await fetch(`${GOOGLE_BOOKS_API}?q=isbn:${isbn}`)
@@ -55,4 +68,133 @@ export async function fetchBookData(isbn: string): Promise<Book | null> {
     
     return null
   }
+}
+
+export async function fetchEnhancedBookData(isbn: string): Promise<EnhancedBook | null> {
+  try {
+    // First get basic data from Google Books
+    const googleResponse = await fetch(`${GOOGLE_BOOKS_API}?q=isbn:${isbn}`)
+    const googleData = await googleResponse.json()
+
+    if (!googleData.items || googleData.items.length === 0) {
+      return null
+    }
+
+    const bookInfo = googleData.items[0].volumeInfo
+
+    // Create base book object from Google Books
+    const enhancedBook: EnhancedBook = {
+      id: `${isbn}-${Date.now()}`,
+      isbn,
+      title: bookInfo.title || 'Unknown Title',
+      authors: bookInfo.authors || ['Unknown Author'],
+      description: bookInfo.description,
+      thumbnail: bookInfo.imageLinks?.thumbnail || bookInfo.imageLinks?.smallThumbnail,
+      publishedDate: bookInfo.publishedDate,
+      categories: bookInfo.categories,
+      publisherInfo: bookInfo.publisher,
+      pageCount: bookInfo.pageCount,
+      averageRating: bookInfo.averageRating,
+      ratingsCount: bookInfo.ratingsCount
+    }
+
+    // Try to enhance with OpenLibrary data
+    try {
+      // Search OpenLibrary for the book
+      const searchResponse = await fetch(`https://openlibrary.org/search.json?isbn=${isbn}&limit=1`)
+      const searchData = await searchResponse.json()
+      
+      if (searchData.docs && searchData.docs.length > 0) {
+        const olDoc = searchData.docs[0]
+        const workKey = olDoc.key
+        
+        if (workKey) {
+          enhancedBook.openLibraryKey = workKey
+          
+          // Get detailed work information
+          const workResponse = await fetch(`https://openlibrary.org${workKey}.json`)
+          const workData = await workResponse.json()
+          
+          if (workData.subjects) {
+            // Extract enhanced genre information
+            const subjects = workData.subjects
+            enhancedBook.subjects = subjects
+            
+            // Extract specific genres and series info
+            const genres = subjects.filter((subject: string) => 
+              subject.toLowerCase().includes('fantasy') ||
+              subject.toLowerCase().includes('science fiction') ||
+              subject.toLowerCase().includes('mystery') ||
+              subject.toLowerCase().includes('romance') ||
+              subject.toLowerCase().includes('thriller') ||
+              subject.toLowerCase().includes('horror') ||
+              subject.toLowerCase().includes('historical') ||
+              subject.toLowerCase().includes('biography') ||
+              subject.toLowerCase().includes('adventure')
+            )
+            
+            if (genres.length > 0) {
+              enhancedBook.enhancedGenres = genres
+            }
+            
+            // Extract series information
+            const seriesSubjects = subjects.filter((subject: string) => 
+              subject.toLowerCase().startsWith('series:')
+            )
+            
+            if (seriesSubjects.length > 0) {
+              const seriesInfo = seriesSubjects[0].replace(/^series:\s*/i, '')
+              enhancedBook.series = seriesInfo
+            }
+          }
+          
+          // Use OpenLibrary description if it's more detailed
+          if (workData.description) {
+            const olDescription = typeof workData.description === 'string' 
+              ? workData.description 
+              : workData.description.value
+            
+            if (olDescription && olDescription.length > (enhancedBook.description?.length || 0)) {
+              enhancedBook.extendedDescription = olDescription
+            }
+          }
+        }
+      }
+    } catch (olError) {
+      console.log('OpenLibrary enhancement failed, using Google Books data only:', olError)
+    }
+
+    return enhancedBook
+  } catch (error) {
+    console.error('Error fetching enhanced book data:', error)
+    return null
+  }
+}
+
+export async function fetchEnhancedBookFromSearch(googleBookItem: any): Promise<EnhancedBook | null> {
+  const isbn = googleBookItem.volumeInfo.industryIdentifiers?.find(
+    (id: any) => id.type === 'ISBN_13' || id.type === 'ISBN_10'
+  )?.identifier
+
+  if (isbn) {
+    return await fetchEnhancedBookData(isbn)
+  }
+
+  // Fallback to basic Google Books data if no ISBN
+  const enhancedBook: EnhancedBook = {
+    id: googleBookItem.id,
+    isbn: googleBookItem.id, // Use Google Books ID as fallback
+    title: googleBookItem.volumeInfo.title,
+    authors: googleBookItem.volumeInfo.authors || ['Unknown Author'],
+    description: googleBookItem.volumeInfo.description,
+    thumbnail: googleBookItem.volumeInfo.imageLinks?.thumbnail,
+    publishedDate: googleBookItem.volumeInfo.publishedDate,
+    categories: googleBookItem.volumeInfo.categories,
+    publisherInfo: googleBookItem.volumeInfo.publisher,
+    pageCount: googleBookItem.volumeInfo.pageCount,
+    averageRating: googleBookItem.volumeInfo.averageRating,
+    ratingsCount: googleBookItem.volumeInfo.ratingsCount
+  }
+
+  return enhancedBook
 }

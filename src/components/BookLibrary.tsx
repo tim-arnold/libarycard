@@ -26,12 +26,19 @@ import {
   Cancel,
   CheckCircle,
   Undo,
+  Info,
 } from '@mui/icons-material'
-import type { Book } from './ISBNScanner'
+import type { EnhancedBook } from '@/lib/bookApi'
 import { getBooks, updateBook, deleteBook as deleteBookAPI } from '@/lib/api'
 import ConfirmationModal from './ConfirmationModal'
 import AlertModal from './AlertModal'
 import { useModal } from '@/hooks/useModal'
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from '@mui/material'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
 
@@ -50,11 +57,109 @@ interface Location {
   created_at: string
 }
 
+// More Details Modal Component
+interface MoreDetailsModalProps {
+  book: EnhancedBook
+  isOpen: boolean
+  onClose: () => void
+}
+
+function MoreDetailsModal({ book, isOpen, onClose }: MoreDetailsModalProps) {
+  return (
+    <Dialog open={isOpen} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>
+        📖 More Details: {book.title}
+      </DialogTitle>
+      <DialogContent>
+        <Box sx={{ py: 1 }}>
+          {book.extendedDescription && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Extended Description
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {book.extendedDescription}
+              </Typography>
+            </Box>
+          )}
+          
+          {book.subjects && book.subjects.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Subjects & Topics
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {book.subjects.slice(0, 10).map((subject, index) => (
+                  <Chip key={index} label={subject} size="small" variant="outlined" />
+                ))}
+                {book.subjects.length > 10 && (
+                  <Chip label={`+${book.subjects.length - 10} more`} size="small" variant="outlined" />
+                )}
+              </Box>
+            </Box>
+          )}
+          
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
+            {book.publisherInfo && (
+              <Box>
+                <Typography variant="subtitle2" color="primary">
+                  Publisher
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {book.publisherInfo}
+                </Typography>
+              </Box>
+            )}
+            
+            {book.pageCount && (
+              <Box>
+                <Typography variant="subtitle2" color="primary">
+                  Page Count
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {book.pageCount} pages
+                </Typography>
+              </Box>
+            )}
+            
+            {book.averageRating && (
+              <Box>
+                <Typography variant="subtitle2" color="primary">
+                  Average Rating
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {book.averageRating}/5 ({book.ratingsCount || 0} ratings)
+                </Typography>
+              </Box>
+            )}
+            
+            {book.openLibraryKey && (
+              <Box>
+                <Typography variant="subtitle2" color="primary">
+                  OpenLibrary ID
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {book.openLibraryKey}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} variant="outlined">
+          Close
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
 export default function BookLibrary() {
   const { data: session } = useSession()
   const { modalState, confirmAsync, alert, closeModal } = useModal()
-  const [books, setBooks] = useState<Book[]>([])
-  const [filteredBooks, setFilteredBooks] = useState<Book[]>([])
+  const [books, setBooks] = useState<EnhancedBook[]>([])
+  const [filteredBooks, setFilteredBooks] = useState<EnhancedBook[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [shelfFilter, setShelfFilter] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
@@ -64,6 +169,8 @@ export default function BookLibrary() {
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null)
   const [allLocations, setAllLocations] = useState<Location[]>([])
   const [pendingRemovalRequests, setPendingRemovalRequests] = useState<Record<string, number>>({})
+  const [showMoreDetailsModal, setShowMoreDetailsModal] = useState(false)
+  const [selectedBookForDetails, setSelectedBookForDetails] = useState<EnhancedBook | null>(null)
 
   useEffect(() => {
     if (session?.user) {
@@ -313,6 +420,27 @@ export default function BookLibrary() {
         variant: 'error'
       })
     }
+  }
+
+  const handleAuthorClick = (authorName: string) => {
+    alert({
+      title: 'Author Search',
+      message: `This feature will search your library for other books by ${authorName}. Feature coming soon!`,
+      variant: 'info'
+    })
+  }
+
+  const handleSeriesClick = (seriesName: string) => {
+    alert({
+      title: 'Series Search', 
+      message: `This feature will search your library for other books in the ${seriesName} series. Feature coming soon!`,
+      variant: 'info'
+    })
+  }
+
+  const handleMoreDetailsClick = (book: EnhancedBook) => {
+    setSelectedBookForDetails(book)
+    setShowMoreDetailsModal(true)
   }
 
   const requestBookRemoval = async (bookId: string, bookTitle: string) => {
@@ -944,7 +1072,7 @@ export default function BookLibrary() {
               </div>
               
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 2 }}>
-                {location.books.map((book: Book) => (
+                {location.books.map((book: EnhancedBook) => (
                   <Card key={book.id} sx={{ height: 'fit-content' }}>
                     <CardContent>
                       <Box sx={{ display: 'flex', gap: 2 }}>
@@ -961,18 +1089,91 @@ export default function BookLibrary() {
                             {book.title}
                           </Typography>
                           <Typography variant="body2" color="text.secondary" gutterBottom>
-                            {book.authors.join(', ')}
+                            <strong>Authors:</strong> {book.authors.map((author, index) => (
+                              <span key={index}>
+                                <Typography 
+                                  component="span" 
+                                  sx={{ 
+                                    color: 'primary.main', 
+                                    cursor: 'pointer',
+                                    textDecoration: 'underline',
+                                    '&:hover': { textDecoration: 'none' }
+                                  }}
+                                  onClick={() => handleAuthorClick(author)}
+                                >
+                                  {author}
+                                </Typography>
+                                {index < book.authors.length - 1 && ', '}
+                              </span>
+                            ))}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            <strong>ISBN:</strong> {book.isbn}
                           </Typography>
                           {book.publishedDate && (
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              Published: {book.publishedDate}
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                              <strong>Published:</strong> {book.publishedDate}
                             </Typography>
                           )}
-                          {book.categories && (
-                            <Box sx={{ mt: 1 }}>
-                              {book.categories.slice(0, 2).map((category, index) => (
-                                <Chip key={index} label={category} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
+                          {book.series && (
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                              <strong>Series:</strong> 
+                              <Typography 
+                                component="span" 
+                                sx={{ 
+                                  color: 'primary.main', 
+                                  cursor: 'pointer',
+                                  textDecoration: 'underline',
+                                  ml: 0.5,
+                                  '&:hover': { textDecoration: 'none' }
+                                }}
+                                onClick={() => handleSeriesClick(book.series!)}
+                              >
+                                {book.series}
+                              </Typography>
+                              {book.seriesNumber && ` (#${book.seriesNumber})`}
+                            </Typography>
+                          )}
+                          {/* Enhanced genres with fallback to categories */}
+                          {(book.enhancedGenres || book.categories) && (
+                            <Box sx={{ mt: 1, mb: 1 }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                                <strong>Genres:</strong>
+                              </Typography>
+                              {(book.enhancedGenres || book.categories || []).slice(0, 4).map((genre, index) => (
+                                <Chip 
+                                  key={index} 
+                                  label={genre} 
+                                  size="small" 
+                                  color={book.enhancedGenres ? 'primary' : 'default'}
+                                  sx={{ mr: 0.5, mb: 0.5 }} 
+                                />
                               ))}
+                              {book.enhancedGenres && book.enhancedGenres.length > 4 && (
+                                <Chip 
+                                  label={`+${book.enhancedGenres.length - 4} more`} 
+                                  size="small" 
+                                  variant="outlined"
+                                  sx={{ mr: 0.5, mb: 0.5 }} 
+                                />
+                              )}
+                            </Box>
+                          )}
+                          {book.description && (
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                              {book.description.substring(0, 200)}...
+                            </Typography>
+                          )}
+                          {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
+                            <Box sx={{ mt: 1 }}>
+                              <Button
+                                size="small"
+                                startIcon={<Info />}
+                                onClick={() => handleMoreDetailsClick(book)}
+                                sx={{ textTransform: 'none' }}
+                              >
+                                More Details
+                              </Button>
                             </Box>
                           )}
                         </Box>
@@ -1002,10 +1203,6 @@ export default function BookLibrary() {
                           </Typography>
                         </Box>
                       )}
-                      
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                        ISBN: {book.isbn}
-                      </Typography>
                       
                       {/* Checkout status display */}
                       {book.status === 'checked_out' && (
@@ -1082,18 +1279,91 @@ export default function BookLibrary() {
                       {book.title}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
-                      {book.authors.join(', ')}
+                      <strong>Authors:</strong> {book.authors.map((author, index) => (
+                        <span key={index}>
+                          <Typography 
+                            component="span" 
+                            sx={{ 
+                              color: 'primary.main', 
+                              cursor: 'pointer',
+                              textDecoration: 'underline',
+                              '&:hover': { textDecoration: 'none' }
+                            }}
+                            onClick={() => handleAuthorClick(author)}
+                          >
+                            {author}
+                          </Typography>
+                          {index < book.authors.length - 1 && ', '}
+                        </span>
+                      ))}
                     </Typography>
-                    {book.publishedDate && (
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        Published: {book.publishedDate}
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      <strong>ISBN:</strong> {book.isbn}
+                    </Typography>
+                    {book.series && (
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        <strong>Series:</strong> 
+                        <Typography 
+                          component="span" 
+                          sx={{ 
+                            color: 'primary.main', 
+                            cursor: 'pointer',
+                            textDecoration: 'underline',
+                            ml: 0.5,
+                            '&:hover': { textDecoration: 'none' }
+                          }}
+                          onClick={() => handleSeriesClick(book.series!)}
+                        >
+                          {book.series}
+                        </Typography>
+                        {book.seriesNumber && ` (#${book.seriesNumber})`}
                       </Typography>
                     )}
-                    {book.categories && (
-                      <Box sx={{ mt: 1 }}>
-                        {book.categories.slice(0, 2).map((category, index) => (
-                          <Chip key={index} label={category} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
+                    {book.publishedDate && (
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        <strong>Published:</strong> {book.publishedDate}
+                      </Typography>
+                    )}
+                    {/* Enhanced genres with fallback to categories */}
+                    {(book.enhancedGenres || book.categories) && (
+                      <Box sx={{ mt: 1, mb: 1 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                          <strong>Genres:</strong>
+                        </Typography>
+                        {(book.enhancedGenres || book.categories || []).slice(0, 4).map((genre, index) => (
+                          <Chip 
+                            key={index} 
+                            label={genre} 
+                            size="small" 
+                            color={book.enhancedGenres ? 'primary' : 'default'}
+                            sx={{ mr: 0.5, mb: 0.5 }} 
+                          />
                         ))}
+                        {book.enhancedGenres && book.enhancedGenres.length > 4 && (
+                          <Chip 
+                            label={`+${book.enhancedGenres.length - 4} more`} 
+                            size="small" 
+                            variant="outlined"
+                            sx={{ mr: 0.5, mb: 0.5 }} 
+                          />
+                        )}
+                      </Box>
+                    )}
+                    {book.description && (
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        {book.description.substring(0, 200)}...
+                      </Typography>
+                    )}
+                    {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
+                      <Box sx={{ mt: 1 }}>
+                        <Button
+                          size="small"
+                          startIcon={<Info />}
+                          onClick={() => handleMoreDetailsClick(book)}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          More Details
+                        </Button>
                       </Box>
                     )}
                   </Box>
@@ -1125,10 +1395,6 @@ export default function BookLibrary() {
                     </Typography>
                   </Box>
                 )}
-                
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                  ISBN: {book.isbn}
-                </Typography>
                 
                 {/* Checkout status display */}
                 {book.status === 'checked_out' && (
@@ -1213,6 +1479,18 @@ export default function BookLibrary() {
             message={modalState.options.message}
             variant={modalState.options.variant}
             buttonText={modalState.options.buttonText}
+          />
+        )}
+
+        {/* More Details Modal */}
+        {showMoreDetailsModal && selectedBookForDetails && (
+          <MoreDetailsModal
+            book={selectedBookForDetails}
+            isOpen={showMoreDetailsModal}
+            onClose={() => {
+              setShowMoreDetailsModal(false)
+              setSelectedBookForDetails(null)
+            }}
           />
         )}
       </Paper>

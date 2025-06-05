@@ -1,6 +1,6 @@
-import type { Book } from '@/components/ISBNScanner'
+import type { EnhancedBook } from '@/lib/bookApi'
 
-export async function saveBook(book: Omit<Book, 'id'>): Promise<boolean> {
+export async function saveBook(book: Omit<EnhancedBook, 'id'>): Promise<boolean> {
   try {
     const response = await fetch('/api/books', {
       method: 'POST',
@@ -9,6 +9,7 @@ export async function saveBook(book: Omit<Book, 'id'>): Promise<boolean> {
       },
       body: JSON.stringify(book),
     })
+    
     return response.ok
   } catch (error) {
     console.error('Failed to save book:', error)
@@ -22,11 +23,21 @@ export async function saveBook(book: Omit<Book, 'id'>): Promise<boolean> {
   }
 }
 
-export async function getBooks(): Promise<Book[]> {
+export async function getBooks(): Promise<EnhancedBook[]> {
   try {
     const response = await fetch('/api/books')
     if (response.ok) {
-      return await response.json()
+      const books = await response.json()
+      // Debug: check what enhanced data we're getting
+      console.log('Enhanced book data received:', books.map((book: any) => ({
+        title: book.title,
+        enhancedGenres: book.enhancedGenres,
+        subjects: book.subjects,
+        pageCount: book.pageCount,
+        extendedDescription: book.extendedDescription,
+        publisherInfo: book.publisherInfo
+      })))
+      return books
     }
   } catch (error) {
     console.error('Failed to fetch books:', error)
@@ -36,7 +47,7 @@ export async function getBooks(): Promise<Book[]> {
   return JSON.parse(localStorage.getItem('library') || '[]')
 }
 
-export async function updateBook(id: string | number, updates: Partial<Book>): Promise<boolean> {
+export async function updateBook(id: string | number, updates: Partial<EnhancedBook>): Promise<boolean> {
   try {
     const response = await fetch(`/api/books/${id}`, {
       method: 'PUT',
@@ -51,7 +62,7 @@ export async function updateBook(id: string | number, updates: Partial<Book>): P
     
     // Fallback to localStorage
     const existingBooks = JSON.parse(localStorage.getItem('library') || '[]')
-    const updatedBooks = existingBooks.map((book: Book) =>
+    const updatedBooks = existingBooks.map((book: EnhancedBook) =>
       book.id === id ? { ...book, ...updates } : book
     )
     localStorage.setItem('library', JSON.stringify(updatedBooks))
@@ -70,7 +81,7 @@ export async function deleteBook(id: string | number): Promise<boolean> {
     
     // Fallback to localStorage
     const existingBooks = JSON.parse(localStorage.getItem('library') || '[]')
-    const updatedBooks = existingBooks.filter((book: Book) => book.id !== id)
+    const updatedBooks = existingBooks.filter((book: EnhancedBook) => book.id !== id)
     localStorage.setItem('library', JSON.stringify(updatedBooks))
     return true
   }

@@ -41,18 +41,29 @@ interface Book {
   id?: number;
   isbn: string;
   title: string;
-  authors: string;
+  authors: string | string[]; // Can be string or array
   description?: string;
   thumbnail?: string;
   published_date?: string;
-  categories?: string;
+  categories?: string | string[]; // Can be string or array
   shelf_id?: number;
-  tags?: string;
+  tags?: string | string[]; // Can be string or array
   added_by: string;
   status?: string; // 'available', 'checked_out'
   checked_out_by?: string;
   checked_out_date?: string;
   due_date?: string;
+  // Enhanced book fields
+  extended_description?: string;
+  subjects?: string | string[]; // Can be string or array
+  page_count?: number;
+  average_rating?: number;
+  ratings_count?: number;
+  publisher_info?: string;
+  open_library_key?: string;
+  enhanced_genres?: string | string[]; // Can be string or array
+  series?: string;
+  series_number?: string;
 }
 
 interface LocationInvitation {
@@ -821,6 +832,16 @@ async function getUserBooks(userId: string, env: Env, corsHeaders: Record<string
     authors: book.authors ? JSON.parse(book.authors) : [],
     categories: book.categories ? JSON.parse(book.categories) : [],
     tags: book.tags ? JSON.parse(book.tags) : [],
+    subjects: book.subjects ? JSON.parse(book.subjects) : [],
+    enhancedGenres: book.enhanced_genres ? JSON.parse(book.enhanced_genres) : [],
+    // Map database field names to frontend field names
+    extendedDescription: book.extended_description,
+    pageCount: book.page_count,
+    averageRating: book.average_rating,
+    ratingsCount: book.ratings_count,
+    publisherInfo: book.publisher_info,
+    openLibraryKey: book.open_library_key,
+    seriesNumber: book.series_number,
     status: book.status || 'available', // Default to available if not set
   }));
 
@@ -833,21 +854,36 @@ async function createBook(request: Request, userId: string, env: Env, corsHeader
   const book: Book = await request.json();
   
   const stmt = env.DB.prepare(`
-    INSERT INTO books (isbn, title, authors, description, thumbnail, published_date, categories, shelf_id, tags, added_by, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    INSERT INTO books (
+      isbn, title, authors, description, thumbnail, published_date, categories, 
+      shelf_id, tags, added_by, created_at,
+      extended_description, subjects, page_count, average_rating, ratings_count,
+      publisher_info, open_library_key, enhanced_genres, series, series_number
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   await stmt.bind(
     book.isbn,
     book.title,
-    JSON.stringify(book.authors || []),
+    typeof book.authors === 'string' ? book.authors : JSON.stringify(book.authors || []),
     book.description || null,
     book.thumbnail || null,
     book.published_date || null,
-    JSON.stringify(book.categories || []),
+    typeof book.categories === 'string' ? book.categories : JSON.stringify(book.categories || []),
     book.shelf_id || null,
-    JSON.stringify(book.tags || []),
-    userId
+    typeof book.tags === 'string' ? book.tags : JSON.stringify(book.tags || []),
+    userId,
+    book.extended_description || null,
+    typeof book.subjects === 'string' ? book.subjects : (book.subjects ? JSON.stringify(book.subjects) : null),
+    book.page_count || null,
+    book.average_rating || null,
+    book.ratings_count || null,
+    book.publisher_info || null,
+    book.open_library_key || null,
+    typeof book.enhanced_genres === 'string' ? book.enhanced_genres : (book.enhanced_genres ? JSON.stringify(book.enhanced_genres) : null),
+    book.series || null,
+    book.series_number || null
   ).run();
 
   return new Response(JSON.stringify({ success: true }), {
