@@ -8,8 +8,24 @@ import {
   Typography,
   Button,
   Box,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Alert,
+  Chip,
+  Card,
+  CardContent,
+  CardActions,
 } from '@mui/material'
-import { FileDownload } from '@mui/icons-material'
+import { 
+  FileDownload,
+  Search,
+  Delete,
+  ReportProblem,
+  Cancel,
+} from '@mui/icons-material'
 import type { Book } from './ISBNScanner'
 import { getBooks, updateBook, deleteBook as deleteBookAPI } from '@/lib/api'
 import ConfirmationModal from './ConfirmationModal'
@@ -605,136 +621,136 @@ export default function BookLibrary() {
         </Box>
 
       {/* Shelf switcher for regular users with multiple shelves */}
-      {userRole !== 'admin' && shelves.length > 1 && (
-        <div style={{ marginBottom: '1rem' }}>
-          <select
-            value={shelfFilter}
-            onChange={(e) => setShelfFilter(e.target.value)}
-            style={{ 
-              padding: '0.5rem',
-              border: '1px solid #ccc',
-              borderRadius: '0.25rem',
-              fontSize: '0.9rem'
-            }}
-          >
-            <option value="">All Shelves</option>
-            {shelves.map(shelf => (
-              <option key={shelf.id} value={shelf.name}>{shelf.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* Contextual help text based on user role and library state */}
-      {books.length === 0 ? (
-        <div style={{ 
-          marginBottom: '1.5rem', 
-          padding: '1rem', 
-          background: '#e1f5fe', 
-          border: '1px solid #b3e5fc', 
-          borderRadius: '0.375rem',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📚</div>
-          <h3 style={{ margin: '0 0 0.5rem 0', color: '#0277bd' }}>Welcome to Your Library!</h3>
-          <p style={{ margin: 0, color: '#0288d1' }}>
-            Your library is empty. Head over to the <strong>ISBN Scanner</strong> to add your first book!
-          </p>
-        </div>
-      ) : (
-        <div style={{ 
-          marginBottom: '1.5rem', 
-          padding: '0.75rem', 
-          background: '#f8f9fa', 
-          border: '1px solid #e9ecef', 
-          borderRadius: '0.375rem',
-          fontSize: '0.9em',
-          color: '#495057'
-        }}>
-          {shelves.length <= 1 ? (
-            <>
-              📖 <strong>Your Library:</strong> Use search and category filters to find what you're looking for.{userRole !== 'admin' && ' Click "Request Removal" to submit requests to an administrator.'}
-            </>
-          ) : userRole === 'admin' ? (
-            <>
-              🔧 <strong>Admin View:</strong> You can see all {books.length} books across {allLocations.length} location{allLocations.length !== 1 ? 's' : ''} and {shelves.length} shelves. Use filters to organize your view. You can permanently remove books from the library.
-            </>
-          ) : (
-            <>
-              📚 <strong>Your Collection:</strong> Browse your {books.length} books across {shelves.length} shelves. Click shelf tiles to filter, or use the search bar to find specific titles. Click "Request Removal" to submit requests to an administrator.
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Shelf tiles for regular users, hidden for admin */}
-      {userRole !== 'admin' && shelves.length > 1 && (
-        <div style={{ marginBottom: '2rem' }}>
-          <h3>📚 My Shelves</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem', marginTop: '0.5rem' }}>
-            {shelves.map(shelf => (
-              <div 
-                key={shelf.id} 
-                onClick={() => handleShelfTileClick(shelf.name)}
-                style={{ 
-                  padding: '0.5rem', 
-                  background: shelfFilter === shelf.name ? '#007bff' : '#f5f5f5',
-                  color: shelfFilter === shelf.name ? 'white' : 'black',
-                  borderRadius: '0.25rem',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
+        {userRole !== 'admin' && shelves.length > 1 && (
+          <Box sx={{ mb: 2 }}>
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>Shelf</InputLabel>
+              <Select
+                value={shelfFilter}
+                label="Shelf"
+                onChange={(e) => setShelfFilter(e.target.value)}
               >
-                <strong>{booksByShelf[shelf.name] || 0}</strong><br />
-                <small>{shelf.name}</small>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: userRole === 'admin' ? 'repeat(auto-fit, minmax(200px, 1fr))' : 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-        <input
-          type="text"
-          placeholder="Search books..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ 
-            padding: '0.5rem',
-            border: '1px solid #ccc',
-            borderRadius: '0.25rem'
-          }}
-        />
-        
-        {userRole === 'admin' && allLocations.length > 1 && (
-          <select
-            value={locationFilter}
-            onChange={(e) => setLocationFilter(e.target.value)}
-            style={{ 
-              padding: '0.5rem',
-              border: '1px solid #ccc',
-              borderRadius: '0.25rem'
-            }}
-          >
-            <option value="">All locations</option>
-            {allLocations.map(location => (
-              <option key={location.id} value={location.name}>{location.name}</option>
-            ))}
-          </select>
+                <MenuItem value="">All Shelves</MenuItem>
+                {shelves.map(shelf => (
+                  <MenuItem key={shelf.id} value={shelf.name}>{shelf.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
         )}
 
-        {userRole === 'admin' && shelves.length > 1 && (
-          <select
-            value={shelfFilter}
-            onChange={(e) => setShelfFilter(e.target.value)}
-            style={{ 
-              padding: '0.5rem',
-              border: '1px solid #ccc',
-              borderRadius: '0.25rem'
-            }}
+        {/* Contextual help text based on user role and library state */}
+        {books.length === 0 ? (
+          <Alert 
+            severity="info" 
+            icon={<Typography sx={{ fontSize: '1.5rem' }}>📚</Typography>}
+            sx={{ mb: 3, textAlign: 'center' }}
           >
-            <option value="">All shelves</option>
+            <Typography variant="h6" gutterBottom>
+              Welcome to Your Library!
+            </Typography>
+            <Typography variant="body2">
+              Your library is empty. Head over to the <strong>ISBN Scanner</strong> to add your first book!
+            </Typography>
+          </Alert>
+        ) : (
+          <Alert 
+            severity="info" 
+            variant="outlined"
+            sx={{ mb: 3 }}
+          >
+            {shelves.length <= 1 ? (
+              <Typography variant="body2">
+                📖 <strong>Your Library:</strong> Use search and category filters to find what you're looking for.{userRole !== 'admin' && ' Click "Request Removal" to submit requests to an administrator.'}
+              </Typography>
+            ) : userRole === 'admin' ? (
+              <Typography variant="body2">
+                🔧 <strong>Admin View:</strong> You can see all {books.length} books across {allLocations.length} location{allLocations.length !== 1 ? 's' : ''} and {shelves.length} shelves. Use filters to organize your view. You can permanently remove books from the library.
+              </Typography>
+            ) : (
+              <Typography variant="body2">
+                📚 <strong>Your Collection:</strong> Browse your {books.length} books across {shelves.length} shelves. Click shelf tiles to filter, or use the search bar to find specific titles. Click "Request Removal" to submit requests to an administrator.
+              </Typography>
+            )}
+          </Alert>
+        )}
+
+      {/* Shelf tiles for regular users, hidden for admin */}
+        {userRole !== 'admin' && shelves.length > 1 && (
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              📚 My Shelves
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 1, mt: 1 }}>
+              {shelves.map(shelf => (
+                <Button
+                  key={shelf.id}
+                  variant={shelfFilter === shelf.name ? 'contained' : 'outlined'}
+                  onClick={() => handleShelfTileClick(shelf.name)}
+                  sx={{ 
+                    p: 1,
+                    textAlign: 'center',
+                    flexDirection: 'column',
+                    height: 'auto',
+                    minHeight: '60px'
+                  }}
+                >
+                  <Typography variant="h6" component="div">
+                    {booksByShelf[shelf.name] || 0}
+                  </Typography>
+                  <Typography variant="caption">
+                    {shelf.name}
+                  </Typography>
+                </Button>
+              ))}
+            </Box>
+          </Box>
+        )}
+
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+          <Box sx={{ flex: '1 1 200px', minWidth: 200 }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search books..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              slotProps={{
+                input: {
+                  startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />
+                }
+              }}
+            />
+          </Box>
+          
+          {userRole === 'admin' && allLocations.length > 1 && (
+            <Box sx={{ flex: '1 1 200px', minWidth: 200 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Location</InputLabel>
+                <Select
+                  value={locationFilter}
+                  label="Location"
+                  onChange={(e) => setLocationFilter(e.target.value)}
+                >
+                  <MenuItem value="">All locations</MenuItem>
+                  {allLocations.map(location => (
+                    <MenuItem key={location.id} value={location.name}>{location.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          )}
+
+        {userRole === 'admin' && shelves.length > 1 && (
+            <Box sx={{ flex: '1 1 200px', minWidth: 200 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Shelf</InputLabel>
+                <Select
+                  value={shelfFilter}
+                  label="Shelf"
+                  onChange={(e) => setShelfFilter(e.target.value)}
+                >
+                  <MenuItem value="">All shelves</MenuItem>
             {(() => {
               // Filter shelves based on selected location
               const filteredShelves = locationFilter 
@@ -745,27 +761,30 @@ export default function BookLibrary() {
                 : shelves
               
               return filteredShelves.map(shelf => (
-                <option key={shelf.id} value={shelf.name}>{shelf.name}</option>
+                      <MenuItem key={shelf.id} value={shelf.name}>{shelf.name}</MenuItem>
               ))
             })()}
-          </select>
-        )}
+                </Select>
+              </FormControl>
+            </Box>
+          )}
 
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          style={{ 
-            padding: '0.5rem',
-            border: '1px solid #ccc',
-            borderRadius: '0.25rem'
-          }}
-        >
-          <option value="">All categories</option>
-          {allCategories.map(category => (
-            <option key={category} value={category}>{category}</option>
-          ))}
-        </select>
-      </div>
+          <Box sx={{ flex: '1 1 200px', minWidth: 200 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Category</InputLabel>
+              <Select
+                value={categoryFilter}
+                label="Category"
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              >
+                <MenuItem value="">All categories</MenuItem>
+                {allCategories.map(category => (
+                  <MenuItem key={category} value={category}>{category}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        </Box>
 
       {filteredBooks.length === 0 ? (
         <p style={{ textAlign: 'center', color: '#666', padding: '2rem' }}>
@@ -793,177 +812,177 @@ export default function BookLibrary() {
                 )}
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 2 }}>
                 {location.books.map((book: Book) => (
-                  <div key={book.id} className="card" style={{ margin: 0 }}>
-                    <div style={{ display: 'flex', gap: '1rem' }}>
-                      {book.thumbnail && (
-                        <img 
-                          src={book.thumbnail} 
-                          alt={book.title}
-                          style={{ width: '80px', height: 'auto', flexShrink: 0 }}
-                        />
-                      )}
-                      <div style={{ flex: 1 }}>
-                        <h4 style={{ marginBottom: '0.5rem' }}>{book.title}</h4>
-                        <p style={{ fontSize: '0.9em', color: '#666' }}>
-                          {book.authors.join(', ')}
-                        </p>
-                        {book.publishedDate && (
-                          <p style={{ fontSize: '0.8em', color: '#666' }}>
-                            Published: {book.publishedDate}
-                          </p>
+                  <Card key={book.id} sx={{ height: 'fit-content' }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', gap: 2 }}>
+                        {book.thumbnail && (
+                          <Box
+                            component="img"
+                            src={book.thumbnail}
+                            alt={book.title}
+                            sx={{ width: 80, height: 'auto', flexShrink: 0 }}
+                          />
                         )}
-                        {book.categories && (
-                          <p style={{ fontSize: '0.8em', color: '#666' }}>
-                            {book.categories.slice(0, 2).join(', ')}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div style={{ marginTop: '1rem' }}>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="h6" gutterBottom>
+                            {book.title}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            {book.authors.join(', ')}
+                          </Typography>
+                          {book.publishedDate && (
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              Published: {book.publishedDate}
+                            </Typography>
+                          )}
+                          {book.categories && (
+                            <Box sx={{ mt: 1 }}>
+                              {book.categories.slice(0, 2).map((category, index) => (
+                                <Chip key={index} label={category} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
+                              ))}
+                            </Box>
+                          )}
+                        </Box>
+                      </Box>
+                      
                       {/* Show shelf info for admin */}
-                      <div style={{ marginBottom: '0.5rem' }}>
-                        <strong>Shelf:</strong>
-                        <select
-                          value={book.shelf_id || ''}
-                          onChange={(e) => updateBookShelf(book.id, parseInt(e.target.value))}
-                          style={{ 
-                            marginLeft: '0.5rem',
-                            padding: '0.25rem',
-                            border: '1px solid #ccc',
-                            borderRadius: '0.25rem'
-                          }}
-                        >
-                          <option value="">Select shelf...</option>
-                          {location.shelves.map((shelf: Shelf) => (
-                            <option key={shelf.id} value={shelf.id}>{shelf.name}</option>
-                          ))}
-                        </select>
-                      </div>
+                      <Box sx={{ mt: 2 }}>
+                        <FormControl size="small" sx={{ minWidth: 200 }}>
+                          <InputLabel>Shelf</InputLabel>
+                          <Select
+                            value={book.shelf_id || ''}
+                            label="Shelf"
+                            onChange={(e) => updateBookShelf(book.id, parseInt(String(e.target.value)))}
+                          >
+                            <MenuItem value="">Select shelf...</MenuItem>
+                            {location.shelves.map((shelf: Shelf) => (
+                              <MenuItem key={shelf.id} value={shelf.id}>{shelf.name}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Box>
                       
                       {book.tags && book.tags.length > 0 && (
-                        <div style={{ marginBottom: '0.5rem' }}>
-                          <strong>Tags:</strong> {book.tags.join(', ')}
-                        </div>
+                        <Box sx={{ mt: 1 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            <strong>Tags:</strong> {book.tags.join(', ')}
+                          </Typography>
+                        </Box>
                       )}
                       
-                      <div style={{ fontSize: '0.8em', color: '#666' }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
                         ISBN: {book.isbn}
-                      </div>
-                    </div>
+                      </Typography>
+                    </CardContent>
 
-                    <button
-                      onClick={() => deleteBook(book.id, book.title)}
-                      style={{
-                        marginTop: '0.5rem',
-                        background: '#dc3545',
-                        color: 'white',
-                        border: 'none',
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '0.25rem',
-                        fontSize: '0.8em',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Remove
-                    </button>
-                  </div>
+                    <CardActions>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="error"
+                        startIcon={<Delete />}
+                        onClick={() => deleteBook(book.id, book.title)}
+                      >
+                        Remove
+                      </Button>
+                    </CardActions>
+                  </Card>
                 ))}
-              </div>
+              </Box>
             </div>
           ))}
         </div>
       ) : (
         // Regular user view: Flat book list
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 2 }}>
           {filteredBooks.map(book => (
-            <div key={book.id} className="card" style={{ margin: 0 }}>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                {book.thumbnail && (
-                  <img 
-                    src={book.thumbnail} 
-                    alt={book.title}
-                    style={{ width: '80px', height: 'auto', flexShrink: 0 }}
-                  />
-                )}
-                <div style={{ flex: 1 }}>
-                  <h4 style={{ marginBottom: '0.5rem' }}>{book.title}</h4>
-                  <p style={{ fontSize: '0.9em', color: '#666' }}>
-                    {book.authors.join(', ')}
-                  </p>
-                  {book.publishedDate && (
-                    <p style={{ fontSize: '0.8em', color: '#666' }}>
-                      Published: {book.publishedDate}
-                    </p>
+            <Card key={book.id} sx={{ height: 'fit-content' }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  {book.thumbnail && (
+                    <Box
+                      component="img"
+                      src={book.thumbnail}
+                      alt={book.title}
+                      sx={{ width: 80, height: 'auto', flexShrink: 0 }}
+                    />
                   )}
-                  {book.categories && (
-                    <p style={{ fontSize: '0.8em', color: '#666' }}>
-                      {book.categories.slice(0, 2).join(', ')}
-                    </p>
-                  )}
-                </div>
-              </div>
-              
-              <div style={{ marginTop: '1rem' }}>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="h6" gutterBottom>
+                      {book.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      {book.authors.join(', ')}
+                    </Typography>
+                    {book.publishedDate && (
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Published: {book.publishedDate}
+                      </Typography>
+                    )}
+                    {book.categories && (
+                      <Box sx={{ mt: 1 }}>
+                        {book.categories.slice(0, 2).map((category, index) => (
+                          <Chip key={index} label={category} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
+                        ))}
+                      </Box>
+                    )}
+                  </Box>
+                </Box>
+                
                 {/* Only show shelf info if multiple shelves available */}
                 {shelves.length > 1 && (
-                  <div style={{ marginBottom: '0.5rem' }}>
-                    <strong>Shelf:</strong>
-                    <select
-                      value={book.shelf_id || ''}
-                      onChange={(e) => updateBookShelf(book.id, parseInt(e.target.value))}
-                      style={{ 
-                        marginLeft: '0.5rem',
-                        padding: '0.25rem',
-                        border: '1px solid #ccc',
-                        borderRadius: '0.25rem'
-                      }}
-                    >
-                      <option value="">Select shelf...</option>
-                      {shelves.map(shelf => (
-                        <option key={shelf.id} value={shelf.id}>{shelf.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <Box sx={{ mt: 2 }}>
+                    <FormControl size="small" sx={{ minWidth: 200 }}>
+                      <InputLabel>Shelf</InputLabel>
+                      <Select
+                        value={book.shelf_id || ''}
+                        label="Shelf"
+                        onChange={(e) => updateBookShelf(book.id, parseInt(String(e.target.value)))}
+                      >
+                        <MenuItem value="">Select shelf...</MenuItem>
+                        {shelves.map(shelf => (
+                          <MenuItem key={shelf.id} value={shelf.id}>{shelf.name}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
                 )}
                 
                 {book.tags && book.tags.length > 0 && (
-                  <div style={{ marginBottom: '0.5rem' }}>
-                    <strong>Tags:</strong> {book.tags.join(', ')}
-                  </div>
+                  <Box sx={{ mt: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Tags:</strong> {book.tags.join(', ')}
+                    </Typography>
+                  </Box>
                 )}
                 
-                <div style={{ fontSize: '0.8em', color: '#666' }}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
                   ISBN: {book.isbn}
-                </div>
-              </div>
+                </Typography>
+              </CardContent>
 
-              <button
-                onClick={() => {
-                  if (pendingRemovalRequests[book.id]) {
-                    cancelRemovalRequest(book.id, book.title)
-                  } else {
-                    requestBookRemoval(book.id, book.title)
-                  }
-                }}
-                style={{
-                  marginTop: '0.5rem',
-                  background: pendingRemovalRequests[book.id] ? '#6c757d' : '#fd7e14',
-                  color: 'white',
-                  border: 'none',
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: '0.25rem',
-                  fontSize: '0.8em',
-                  cursor: 'pointer'
-                }}
-              >
-                {pendingRemovalRequests[book.id] ? 'Cancel Removal Request' : 'Request Removal'}
-              </button>
-            </div>
+              <CardActions>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color={pendingRemovalRequests[book.id] ? 'inherit' : 'warning'}
+                  startIcon={pendingRemovalRequests[book.id] ? <Cancel /> : <ReportProblem />}
+                  onClick={() => {
+                    if (pendingRemovalRequests[book.id]) {
+                      cancelRemovalRequest(book.id, book.title)
+                    } else {
+                      requestBookRemoval(book.id, book.title)
+                    }
+                  }}
+                >
+                  {pendingRemovalRequests[book.id] ? 'Cancel Removal Request' : 'Request Removal'}
+                </Button>
+              </CardActions>
+            </Card>
           ))}
-        </div>
+        </Box>
       )}
       
       {/* Bootstrap Modal Components */}
