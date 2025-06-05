@@ -2,6 +2,26 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import {
+  Container,
+  Paper,
+  Typography,
+  Button,
+  Box,
+  Chip,
+  Card,
+  CardContent,
+  Tabs,
+  Tab,
+  CircularProgress,
+} from '@mui/material'
+import {
+  Refresh,
+  CheckCircle,
+  Cancel,
+  Schedule,
+  Inbox,
+} from '@mui/icons-material'
 import ConfirmationModal from './ConfirmationModal'
 import AlertModal from './AlertModal'
 import { useModal } from '@/hooks/useModal'
@@ -240,24 +260,22 @@ export default function RemovalRequestManager() {
     return request.status === filter
   })
 
-  const getStatusBadge = (status: string) => {
-    const styles = {
-      pending: { background: '#fff3cd', color: '#856404', border: '1px solid #ffeaa7' },
-      approved: { background: '#d1edff', color: '#0c5460', border: '1px solid #b3e5fc' },
-      denied: { background: '#f8d7da', color: '#721c24', border: '1px solid #f5c6cb' }
+  const getStatusChip = (status: string) => {
+    const statusConfig = {
+      pending: { color: 'warning' as const, label: 'Pending' },
+      approved: { color: 'success' as const, label: 'Approved' },
+      denied: { color: 'error' as const, label: 'Denied' }
     }
     
+    const config = statusConfig[status as keyof typeof statusConfig] || { color: 'default' as const, label: status }
+    
     return (
-      <span style={{
-        ...styles[status as keyof typeof styles],
-        padding: '0.25rem 0.5rem',
-        borderRadius: '0.25rem',
-        fontSize: '0.8em',
-        fontWeight: 'bold',
-        textTransform: 'uppercase'
-      }}>
-        {status}
-      </span>
+      <Chip 
+        label={config.label}
+        color={config.color}
+        size="small"
+        variant="filled"
+      />
     )
   }
 
@@ -283,208 +301,246 @@ export default function RemovalRequestManager() {
 
   if (loading) {
     return (
-      <div className="card">
-        <h2>📋 Book Removal Requests</h2>
-        <p style={{ textAlign: 'center', color: '#666', padding: '2rem' }}>
-          Loading removal requests...
-        </p>
-      </div>
+      <Container maxWidth="xl" sx={{ py: 2 }}>
+        <Paper sx={{ p: 3 }}>
+          <Typography variant="h4" component="h2" gutterBottom>
+            📋 Book Removal Requests
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
+            <CircularProgress sx={{ mr: 2 }} />
+            <Typography color="text.secondary">
+              Loading removal requests...
+            </Typography>
+          </Box>
+        </Paper>
+      </Container>
     )
   }
 
   return (
-    <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2>📋 Book Removal Requests ({filteredRequests.length})</h2>
-        <button 
-          onClick={loadRequests}
-          className="btn"
-          style={{ fontSize: '0.9em' }}
-        >
-          🔄 Refresh
-        </button>
-      </div>
+    <Container maxWidth="xl" sx={{ py: 2 }}>
+      <Paper sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4" component="h2">
+            📋 Book Removal Requests ({filteredRequests.length})
+          </Typography>
+          <Button 
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={loadRequests}
+            size="small"
+          >
+            Refresh
+          </Button>
+        </Box>
 
-      {/* Filter tabs */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid #ddd' }}>
-          {[
-            { key: 'pending', label: 'Pending', count: requests.filter(r => r.status === 'pending').length },
-            { key: 'all', label: 'All', count: requests.length },
-            { key: 'approved', label: 'Approved', count: requests.filter(r => r.status === 'approved').length },
-            { key: 'denied', label: 'Denied', count: requests.filter(r => r.status === 'denied').length }
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setFilter(tab.key as any)}
-              style={{
-                padding: '0.5rem 1rem',
-                border: 'none',
-                background: filter === tab.key ? '#007bff' : 'transparent',
-                color: filter === tab.key ? 'white' : '#007bff',
-                borderBottom: filter === tab.key ? '2px solid #007bff' : '2px solid transparent',
-                cursor: 'pointer',
-                fontSize: '0.9em'
-              }}
-            >
-              {tab.label} ({tab.count})
-            </button>
-          ))}
-        </div>
-      </div>
+        {/* Filter tabs */}
+        <Box sx={{ mb: 3 }}>
+          <Tabs 
+            value={filter} 
+            onChange={(_, value) => setFilter(value)}
+            variant="scrollable"
+            scrollButtons="auto"
+          >
+            <Tab 
+              value="pending" 
+              label={`Pending (${requests.filter(r => r.status === 'pending').length})`}
+              icon={<Schedule />}
+              iconPosition="start"
+            />
+            <Tab 
+              value="all" 
+              label={`All (${requests.length})`}
+              icon={<Inbox />}
+              iconPosition="start"
+            />
+            <Tab 
+              value="approved" 
+              label={`Approved (${requests.filter(r => r.status === 'approved').length})`}
+              icon={<CheckCircle />}
+              iconPosition="start"
+            />
+            <Tab 
+              value="denied" 
+              label={`Denied (${requests.filter(r => r.status === 'denied').length})`}
+              icon={<Cancel />}
+              iconPosition="start"
+            />
+          </Tabs>
+        </Box>
 
-      {filteredRequests.length === 0 ? (
-        <div style={{ 
-          textAlign: 'center', 
-          color: '#666', 
-          padding: '2rem',
-          background: '#f8f9fa',
-          borderRadius: '0.375rem',
-          border: '1px solid #e9ecef'
-        }}>
-          <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📭</div>
-          <h3 style={{ margin: '0 0 0.5rem 0', color: '#495057' }}>
-            {filter === 'pending' ? 'No Pending Requests' : `No ${filter === 'all' ? '' : filter.charAt(0).toUpperCase() + filter.slice(1)} Requests`}
-          </h3>
-          <p style={{ margin: 0 }}>
-            {filter === 'pending' 
-              ? 'All removal requests have been processed.'
-              : filter === 'all'
-              ? 'No removal requests have been submitted yet.'
-              : `No ${filter} removal requests found.`
-            }
-          </p>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {filteredRequests.map(request => (
-            <div 
-              key={request.id} 
-              className="card" 
-              style={{ 
-                margin: 0,
-                border: request.status === 'pending' ? '2px solid #ffc107' : '1px solid #ddd'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <h4 style={{ margin: 0 }}>{request.book_title}</h4>
-                    {getStatusBadge(request.status)}
-                  </div>
-                  <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.9em', color: '#666' }}>
-                    by {request.book_authors.join(', ')} • ISBN: {request.book_isbn}
-                  </p>
-                  <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.9em', color: '#666' }}>
-                    📍 Location: {request.location_name}
-                  </p>
-                </div>
-                
-                {request.status === 'pending' && (
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button
-                      onClick={() => approveRequest(request.id, request.book_title)}
-                      style={{
-                        background: '#28a745',
-                        color: 'white',
-                        border: 'none',
-                        padding: '0.5rem 1rem',
-                        borderRadius: '0.25rem',
-                        fontSize: '0.85em',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      ✓ Approve
-                    </button>
-                    <button
-                      onClick={() => denyRequest(request.id, request.book_title)}
-                      style={{
-                        background: '#ffc107',
-                        color: '#212529',
-                        border: 'none',
-                        padding: '0.5rem 1rem',
-                        borderRadius: '0.25rem',
-                        fontSize: '0.85em',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      ✗ Deny
-                    </button>
-                  </div>
-                )}
-              </div>
+        {filteredRequests.length === 0 ? (
+          <Paper 
+            variant="outlined" 
+            sx={{ 
+              textAlign: 'center', 
+              py: 4,
+              backgroundColor: 'grey.50'
+            }}
+          >
+            <Typography sx={{ fontSize: '2rem', mb: 1 }}>📭</Typography>
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              {filter === 'pending' ? 'No Pending Requests' : `No ${filter === 'all' ? '' : filter.charAt(0).toUpperCase() + filter.slice(1)} Requests`}
+            </Typography>
+            <Typography color="text.secondary">
+              {filter === 'pending' 
+                ? 'All removal requests have been processed.'
+                : filter === 'all'
+                ? 'No removal requests have been submitted yet.'
+                : `No ${filter} removal requests found.`
+              }
+            </Typography>
+          </Paper>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {filteredRequests.map(request => (
+              <Card 
+                key={request.id} 
+                variant="outlined"
+                sx={{ 
+                  border: request.status === 'pending' ? '2px solid' : '1px solid',
+                  borderColor: request.status === 'pending' ? 'warning.main' : 'divider'
+                }}
+              >
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                    <Box sx={{ flex: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <Typography variant="h6" component="h3">
+                          {request.book_title}
+                        </Typography>
+                        {getStatusChip(request.status)}
+                      </Box>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        by {request.book_authors.join(', ')} • ISBN: {request.book_isbn}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        📍 Location: {request.location_name}
+                      </Typography>
+                    </Box>
+                    
+                    {request.status === 'pending' && (
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          variant="contained"
+                          color="success"
+                          size="small"
+                          startIcon={<CheckCircle />}
+                          onClick={() => approveRequest(request.id, request.book_title)}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="warning"
+                          size="small"
+                          startIcon={<Cancel />}
+                          onClick={() => denyRequest(request.id, request.book_title)}
+                        >
+                          Deny
+                        </Button>
+                      </Box>
+                    )}
+                  </Box>
 
-              <div style={{ 
-                padding: '1rem', 
-                background: '#f8f9fa', 
-                borderRadius: '0.375rem',
-                fontSize: '0.9em'
-              }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                  <div>
-                    <strong>Requested by:</strong><br />
-                    {request.requester_name} ({request.requester_email})
-                  </div>
-                  <div>
-                    <strong>Reason:</strong><br />
-                    {getReasonLabel(request.reason)}
-                  </div>
-                  <div>
-                    <strong>Submitted:</strong><br />
-                    {formatDate(request.created_at)}
-                  </div>
-                  {request.reviewed_at && (
-                    <div>
-                      <strong>Reviewed:</strong><br />
-                      {formatDate(request.reviewed_at)} by {request.reviewer_name}
-                    </div>
-                  )}
-                </div>
-                
-                {request.reason_details && (
-                  <div style={{ marginTop: '0.75rem' }}>
-                    <strong>Details:</strong><br />
-                    <em>"{request.reason_details}"</em>
-                  </div>
-                )}
-                
-                {request.review_comment && (
-                  <div style={{ marginTop: '0.75rem' }}>
-                    <strong>Admin Comment:</strong><br />
-                    <em>"{request.review_comment}"</em>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+                  <Paper 
+                    variant="outlined" 
+                    sx={{ 
+                      p: 2, 
+                      backgroundColor: 'grey.50'
+                    }}
+                  >
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          <strong>Requested by:</strong>
+                        </Typography>
+                        <Typography variant="body2">
+                          {request.requester_name} ({request.requester_email})
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          <strong>Reason:</strong>
+                        </Typography>
+                        <Typography variant="body2">
+                          {getReasonLabel(request.reason)}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          <strong>Submitted:</strong>
+                        </Typography>
+                        <Typography variant="body2">
+                          {formatDate(request.created_at)}
+                        </Typography>
+                      </Box>
+                      {request.reviewed_at && (
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">
+                            <strong>Reviewed:</strong>
+                          </Typography>
+                          <Typography variant="body2">
+                            {formatDate(request.reviewed_at)} by {request.reviewer_name}
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                    
+                    {request.reason_details && (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          <strong>Details:</strong>
+                        </Typography>
+                        <Typography variant="body2" fontStyle="italic">
+                          "{request.reason_details}"
+                        </Typography>
+                      </Box>
+                    )}
+                    
+                    {request.review_comment && (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          <strong>Admin Comment:</strong>
+                        </Typography>
+                        <Typography variant="body2" fontStyle="italic">
+                          "{request.review_comment}"
+                        </Typography>
+                      </Box>
+                    )}
+                  </Paper>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        )}
       
-      {/* Modal Components */}
-      {modalState.type === 'confirm' && (
-        <ConfirmationModal
-          isOpen={modalState.isOpen}
-          onClose={closeModal}
-          onConfirm={modalState.onConfirm!}
-          title={modalState.options.title}
-          message={modalState.options.message}
-          confirmText={modalState.options.confirmText}
-          cancelText={modalState.options.cancelText}
-          variant={modalState.options.variant}
-          loading={modalState.loading}
-        />
-      )}
-      
-      {modalState.type === 'alert' && (
-        <AlertModal
-          isOpen={modalState.isOpen}
-          onClose={closeModal}
-          title={modalState.options.title}
-          message={modalState.options.message}
-          variant={modalState.options.variant}
-          buttonText={modalState.options.buttonText}
-        />
-      )}
-    </div>
+        {/* Modal Components */}
+        {modalState.type === 'confirm' && (
+          <ConfirmationModal
+            isOpen={modalState.isOpen}
+            onClose={closeModal}
+            onConfirm={modalState.onConfirm!}
+            title={modalState.options.title}
+            message={modalState.options.message}
+            confirmText={modalState.options.confirmText}
+            cancelText={modalState.options.cancelText}
+            variant={modalState.options.variant}
+            loading={modalState.loading}
+          />
+        )}
+        
+        {modalState.type === 'alert' && (
+          <AlertModal
+            isOpen={modalState.isOpen}
+            onClose={closeModal}
+            title={modalState.options.title}
+            message={modalState.options.message}
+            variant={modalState.options.variant}
+            buttonText={modalState.options.buttonText}
+          />
+        )}
+      </Paper>
+    </Container>
   )
 }
