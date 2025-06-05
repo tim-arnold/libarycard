@@ -33,9 +33,10 @@ import {
   MenuBook,
   Add,
   Info,
+  CheckCircle,
 } from '@mui/icons-material'
 import { fetchEnhancedBookData, fetchEnhancedBookFromSearch, type EnhancedBook } from '@/lib/bookApi'
-import { saveBook as saveBookAPI } from '@/lib/api'
+import { saveBook as saveBookAPI, getBooks } from '@/lib/api'
 import { BrowserMultiFormatReader } from '@zxing/library'
 import ConfirmationModal from './ConfirmationModal'
 import AlertModal from './AlertModal'
@@ -224,6 +225,10 @@ export default function AddBooks() {
   const [searchResults, setSearchResults] = useState<GoogleBookItem[]>([])
   const [isSearching, setIsSearching] = useState(false)
   
+  // Refs for auto-focus
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const isbnInputRef = useRef<HTMLInputElement>(null)
+  
   // Common state
   const [selectedBook, setSelectedBook] = useState<EnhancedBook | null>(null)
   const [showMoreDetailsModal, setShowMoreDetailsModal] = useState(false)
@@ -233,6 +238,7 @@ export default function AddBooks() {
   const [customTags, setCustomTags] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(true)
+  const [existingBooks, setExistingBooks] = useState<EnhancedBook[]>([])
 
   useEffect(() => {
     // Initialize ZXing scanner
@@ -289,8 +295,22 @@ export default function AddBooks() {
         // Smart UI: Auto-select shelf if only one available
         if (allShelvesData.length === 1) {
           setSelectedShelfId(allShelvesData[0].id)
+        } else {
+          // For multi-shelf users, restore the last selected shelf if it still exists
+          const lastSelectedShelfId = localStorage.getItem('lastSelectedShelfId')
+          if (lastSelectedShelfId) {
+            const shelfId = parseInt(lastSelectedShelfId)
+            const shelfExists = allShelvesData.some(shelf => shelf.id === shelfId)
+            if (shelfExists) {
+              setSelectedShelfId(shelfId)
+            }
+          }
         }
       }
+      
+      // Load existing books for duplicate detection
+      const savedBooks = await getBooks()
+      setExistingBooks(savedBooks)
     } catch (error) {
       // Handle error silently
     } finally {
@@ -560,9 +580,9 @@ export default function AddBooks() {
       setSelectedBook(null)
       setCustomTags('')
       
-      // For single-shelf users, keep the shelf selected for next book
-      if (allShelves.length !== 1) {
-        setSelectedShelfId(null)
+      // Persist the selected shelf for future use, but don't clear it
+      if (selectedShelfId) {
+        localStorage.setItem('lastSelectedShelfId', selectedShelfId.toString())
       }
       
       await alert({
@@ -621,6 +641,63 @@ export default function AddBooks() {
       setSearchResults([])
       setSearchQuery('')
     }
+    
+    // Auto-focus the appropriate input field
+    setTimeout(() => {
+      if (newValue === 'search') {
+        searchInputRef.current?.focus()
+      } else if (newValue === 'scan') {
+        isbnInputRef.current?.focus()
+      }
+    }, 100) // Small delay to ensure the tab content is rendered
+  }
+
+  // Duplicate detection helper functions
+  const isBookDuplicate = (googleBookItem: GoogleBookItem): boolean => {
+    const isbn = googleBookItem.volumeInfo.industryIdentifiers?.find(
+      id => id.type === 'ISBN_13' || id.type === 'ISBN_10'
+    )?.identifier
+
+    const title = googleBookItem.volumeInfo.title
+    const authors = googleBookItem.volumeInfo.authors || []
+
+    return existingBooks.some(existingBook => {
+      // Check by ISBN if available
+      if (isbn && existingBook.isbn === isbn) {
+        return true
+      }
+      
+      // Check by title and author combination
+      const titleMatch = existingBook.title.toLowerCase() === title.toLowerCase()
+      const authorMatch = authors.some(author => 
+        existingBook.authors.some(existingAuthor => 
+          existingAuthor.toLowerCase() === author.toLowerCase()
+        )
+      )
+      
+      return titleMatch && authorMatch
+    })
+  }
+
+  const isSelectedBookDuplicate = (): boolean => {
+    if (!selectedBook) return false
+    
+    return existingBooks.some(existingBook => {
+      // Check by ISBN
+      if (existingBook.isbn === selectedBook.isbn) {
+        return true
+      }
+      
+      // Check by title and author combination
+      const titleMatch = existingBook.title.toLowerCase() === selectedBook.title.toLowerCase()
+      const authorMatch = selectedBook.authors.some(author => 
+        existingBook.authors.some(existingAuthor => 
+          existingAuthor.toLowerCase() === author.toLowerCase()
+        )
+      )
+      
+      return titleMatch && authorMatch
+    })
   }
 
   return (
@@ -706,13 +783,14 @@ export default function AddBooks() {
                     name="isbn"
                     placeholder="Or enter ISBN manually"
                     variant="outlined"
-                    size="small"
                     sx={{ flexGrow: 1 }}
+                    inputRef={isbnInputRef}
                   />
                   <Button 
                     type="submit" 
                     variant="outlined"
                     startIcon={<Search />}
+                    sx={{ minWidth: 120 }}
                   >
                     Look Up Book
                   </Button>
@@ -773,6 +851,7 @@ export default function AddBooks() {
                   placeholder="Search by title, author, or keywords..."
                   variant="outlined"
                   disabled={isSearching}
+                  inputRef={searchInputRef}
                 />
                 <Button 
                   type="submit" 
@@ -817,15 +896,35 @@ export default function AddBooks() {
                         )}
                       </CardContent>
                       <CardActions>
-                        <Button 
-                          size="small" 
-                          variant="contained"
-                          startIcon={<Add />}
-                          onClick={() => selectBookFromSearch(item)}
-                          fullWidth
-                        >
-                          Add This Book
-                        </Button>
+                        {isBookDuplicate(item) ? (
+                          <Button 
+                            variant="outlined"
+                            size="small"
+                            startIcon={<CheckCircle />}
+                            disabled
+                            fullWidth
+                            sx={{ 
+                              color: 'text.secondary',
+                              borderColor: 'grey.400',
+                              '&.Mui-disabled': {
+                                color: 'text.secondary',
+                                borderColor: 'grey.400'
+                              }
+                            }}
+                          >
+                            Already in Your Library
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="contained"
+                            size="small"
+                            startIcon={<Add />}
+                            onClick={() => selectBookFromSearch(item)}
+                            fullWidth
+                          >
+                            Add This Book
+                          </Button>
+                        )}
                       </CardActions>
                     </Card>
                   ))}
@@ -958,7 +1057,14 @@ export default function AddBooks() {
                   <Select 
                     value={selectedShelfId || ''} 
                     label="Shelf"
-                    onChange={(e) => setSelectedShelfId(e.target.value ? parseInt(String(e.target.value)) : null)}
+                    onChange={(e) => {
+                      const newShelfId = e.target.value ? parseInt(String(e.target.value)) : null
+                      setSelectedShelfId(newShelfId)
+                      // Persist the shelf selection for future use
+                      if (newShelfId) {
+                        localStorage.setItem('lastSelectedShelfId', newShelfId.toString())
+                      }
+                    }}
                   >
                     <MenuItem value="">Select shelf...</MenuItem>
                     {locations.length === 1 ? (
