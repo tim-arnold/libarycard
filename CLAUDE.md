@@ -110,7 +110,7 @@ This file contains development todos, notes, and context for AI assistants worki
   - [ ] Add export functionality for book collections (CSV, PDF formats)
   - [ ] If an admin moves a book from a shelf in Location A to a shelf in Location B, that book should no longer be visible to users in Location A.
   - [ ] Add support for multiple locations for regular users
-  - [ ] Remove "Export Library" button
+  - [x] ~~Remove "Export Library" button~~ ✅ COMPLETED
 
 ## Technical Architecture
 
@@ -283,6 +283,17 @@ This file contains development todos, notes, and context for AI assistants worki
 - **OPTIMIZED**: User name display to show only first names for privacy (e.g., "TimTwo" vs "TimTwo Arnold")
 - **INTEGRATED**: Checkout system seamlessly with existing book management and permission system
 - **VALIDATED**: Complete checkout workflow functioning in production environment
+
+### Session June 2025 - Interface Cleanup & Shelf Navigation Improvements
+- **FIXED**: Critical SQL syntax error in `getLocationShelves` function (removed stray '/' character)
+- **RESOLVED**: 500 errors on admin locations management screen and regular users not seeing shelves
+- **REMOVED**: Export Library button from BookLibrary component header to reduce interface clutter
+- **ELIMINATED**: Redundant shelf select dropdown under page heading in favor of tile navigation
+- **ADDED**: "All Shelves" tile to shelf navigation showing total book count across all shelves
+- **ENHANCED**: Tile-based shelf filtering as the primary navigation method for multi-shelf locations
+- **STREAMLINED**: User interface to use single, delightful tile navigation system exclusively
+- **IMPROVED**: "All Shelves" tile highlights when no filter is active and clears filters when clicked
+- **OPTIMIZED**: Clean, modern interface with reduced redundancy and improved user experience
 
 ### Session December 2024 - Permission System Implementation
 - **COMPLETED**: Added user_role column to database schema with migration
