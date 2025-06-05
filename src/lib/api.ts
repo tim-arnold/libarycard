@@ -27,17 +27,7 @@ export async function getBooks(): Promise<EnhancedBook[]> {
   try {
     const response = await fetch('/api/books')
     if (response.ok) {
-      const books = await response.json()
-      // Debug: check what enhanced data we're getting
-      console.log('Enhanced book data received:', books.map((book: any) => ({
-        title: book.title,
-        enhancedGenres: book.enhancedGenres,
-        subjects: book.subjects,
-        pageCount: book.pageCount,
-        extendedDescription: book.extendedDescription,
-        publisherInfo: book.publisherInfo
-      })))
-      return books
+      return await response.json()
     }
   } catch (error) {
     console.error('Failed to fetch books:', error)

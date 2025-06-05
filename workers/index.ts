@@ -811,7 +811,12 @@ async function deleteShelf(request: Request, userId: string, env: Env, corsHeade
 // Book functions
 async function getUserBooks(userId: string, env: Env, corsHeaders: Record<string, string>) {
   const stmt = env.DB.prepare(`
-    SELECT b.*, s.name as shelf_name, l.name as location_name,
+    SELECT b.id, b.isbn, b.title, b.authors, b.description, b.thumbnail, b.published_date,
+           b.categories, b.shelf_id, b.tags, b.added_by, b.created_at, b.status,
+           b.checked_out_by, b.checked_out_date, b.due_date,
+           b.extended_description, b.subjects, b.page_count, b.average_rating, b.ratings_count,
+           b.publisher_info, b.open_library_key, b.enhanced_genres, b.series, b.series_number,
+           s.name as shelf_name, l.name as location_name,
            CASE 
              WHEN b.checked_out_by IS NOT NULL THEN 
                (SELECT first_name FROM users WHERE id = b.checked_out_by)
@@ -874,16 +879,16 @@ async function createBook(request: Request, userId: string, env: Env, corsHeader
     book.shelf_id || null,
     typeof book.tags === 'string' ? book.tags : JSON.stringify(book.tags || []),
     userId,
-    book.extended_description || null,
+    book.extendedDescription || book.extended_description || null,
     typeof book.subjects === 'string' ? book.subjects : (book.subjects ? JSON.stringify(book.subjects) : null),
-    book.page_count || null,
-    book.average_rating || null,
-    book.ratings_count || null,
-    book.publisher_info || null,
-    book.open_library_key || null,
-    typeof book.enhanced_genres === 'string' ? book.enhanced_genres : (book.enhanced_genres ? JSON.stringify(book.enhanced_genres) : null),
+    book.pageCount || book.page_count || null,
+    book.averageRating || book.average_rating || null,
+    book.ratingsCount || book.ratings_count || null,
+    book.publisherInfo || book.publisher_info || null,
+    book.openLibraryKey || book.open_library_key || null,
+    typeof book.enhancedGenres === 'string' ? book.enhancedGenres : (book.enhancedGenres ? JSON.stringify(book.enhancedGenres) : null),
     book.series || null,
-    book.series_number || null
+    book.seriesNumber || book.series_number || null
   ).run();
 
   return new Response(JSON.stringify({ success: true }), {
