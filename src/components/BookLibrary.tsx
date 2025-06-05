@@ -1145,7 +1145,7 @@ export default function BookLibrary() {
                 )}
               </CardContent>
 
-              <CardActions>
+              <CardActions sx={{ justifyContent: 'space-between' }}>
                 {/* Checkout/Return buttons */}
                 {book.status === 'checked_out' ? (
                   <Button
@@ -1173,7 +1173,6 @@ export default function BookLibrary() {
                   size="small"
                   variant="contained"
                   color={pendingRemovalRequests[book.id] ? 'inherit' : 'warning'}
-                  startIcon={pendingRemovalRequests[book.id] ? <Cancel /> : <ReportProblem />}
                   onClick={() => {
                     if (pendingRemovalRequests[book.id]) {
                       cancelRemovalRequest(book.id, book.title)
@@ -1181,8 +1180,9 @@ export default function BookLibrary() {
                       requestBookRemoval(book.id, book.title)
                     }
                   }}
+                  sx={{ minWidth: 'auto', px: 1 }}
                 >
-                  {pendingRemovalRequests[book.id] ? 'Cancel Removal Request' : 'Request Removal'}
+                  {pendingRemovalRequests[book.id] ? <Cancel /> : <ReportProblem />}
                 </Button>
               </CardActions>
             </Card>
