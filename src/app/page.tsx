@@ -142,11 +142,6 @@ export default function Home() {
       </AppBar>
       
       <Container maxWidth="xl" sx={{ py: 2 }}>
-        <Paper sx={{ mb: 2, p: 2, textAlign: 'center' }}>
-          <Typography variant="body1" color="text.secondary">
-            Add books by scanning barcodes or searching titles, and manage your personal collection
-          </Typography>
-        </Paper>
 
         <Paper sx={{ mb: 2 }}>
           <Tabs 
