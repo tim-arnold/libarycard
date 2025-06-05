@@ -49,6 +49,11 @@ export interface Book {
   tags?: string[]
   location_name?: string
   shelf_name?: string
+  status?: string // 'available', 'checked_out'
+  checked_out_by?: string
+  checked_out_by_name?: string
+  checked_out_date?: string
+  due_date?: string
 }
 
 interface Location {

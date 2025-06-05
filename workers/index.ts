@@ -49,6 +49,10 @@ interface Book {
   shelf_id?: number;
   tags?: string;
   added_by: string;
+  status?: string; // 'available', 'checked_out'
+  checked_out_by?: string;
+  checked_out_date?: string;
+  due_date?: string;
 }
 
 interface LocationInvitation {
@@ -262,6 +266,21 @@ export default {
         return await deleteBookRemovalRequest(requestId, userId, env, corsHeaders);
       }
 
+      // Book checkout endpoints
+      if (path.match(/^\/api\/books\/\d+\/checkout$/) && request.method === 'POST') {
+        const bookId = parseInt(path.split('/')[3]);
+        return await checkoutBook(request, bookId, userId, env, corsHeaders);
+      }
+
+      if (path.match(/^\/api\/books\/\d+\/checkin$/) && request.method === 'POST') {
+        const bookId = parseInt(path.split('/')[3]);
+        return await checkinBook(bookId, userId, env, corsHeaders);
+      }
+
+      if (path === '/api/books/checkout-history' && request.method === 'GET') {
+        return await getCheckoutHistory(userId, env, corsHeaders);
+      }
+
       // Profile endpoints
       if (path === '/api/profile' && request.method === 'GET') {
         return await getUserProfile(userId, env, corsHeaders);
@@ -456,7 +475,7 @@ async function getLocationShelves(locationId: number, userId: string, env: Env, 
   }
 
   const stmt = env.DB.prepare(`
-    SELECT * FROM shelves 
+    SELECT * FROM shelves /
     WHERE location_id = ? 
     ORDER BY name
   `);
@@ -780,7 +799,12 @@ async function deleteShelf(request: Request, userId: string, env: Env, corsHeade
 // Book functions
 async function getUserBooks(userId: string, env: Env, corsHeaders: Record<string, string>) {
   const stmt = env.DB.prepare(`
-    SELECT b.*, s.name as shelf_name, l.name as location_name
+    SELECT b.*, s.name as shelf_name, l.name as location_name,
+           CASE 
+             WHEN b.checked_out_by IS NOT NULL THEN 
+               (SELECT first_name FROM users WHERE id = b.checked_out_by)
+             ELSE NULL 
+           END as checked_out_by_name
     FROM books b
     LEFT JOIN shelves s ON b.shelf_id = s.id
     LEFT JOIN locations l ON s.location_id = l.id
@@ -796,6 +820,7 @@ async function getUserBooks(userId: string, env: Env, corsHeaders: Record<string
     authors: book.authors ? JSON.parse(book.authors) : [],
     categories: book.categories ? JSON.parse(book.categories) : [],
     tags: book.tags ? JSON.parse(book.tags) : [],
+    status: book.status || 'available', // Default to available if not set
   }));
 
   return new Response(JSON.stringify(books), {
@@ -2202,6 +2227,218 @@ async function deleteBookRemovalRequest(requestId: number, userId: string, env: 
   } catch (error) {
     console.error('Error cancelling book removal request:', error);
     return new Response(JSON.stringify({ error: 'Failed to cancel removal request' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+// Book checkout functions
+async function checkoutBook(request: Request, bookId: number, userId: string, env: Env, corsHeaders: Record<string, string>) {
+  const { due_date, notes }: { due_date?: string; notes?: string } = await request.json();
+
+  try {
+    // Check if user has access to this book and that it's available
+    const bookStmt = env.DB.prepare(`
+      SELECT b.*, s.location_id, l.name as location_name
+      FROM books b
+      LEFT JOIN shelves s ON b.shelf_id = s.id
+      LEFT JOIN locations l ON s.location_id = l.id
+      LEFT JOIN location_members lm ON l.id = lm.location_id
+      WHERE b.id = ? AND (b.added_by = ? OR l.owner_id = ? OR lm.user_id = ?)
+    `);
+
+    const book = await bookStmt.bind(bookId, userId, userId, userId).first();
+    
+    if (!book) {
+      return new Response(JSON.stringify({ error: 'Book not found or access denied' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Check if book is already checked out
+    if ((book as any).status === 'checked_out') {
+      return new Response(JSON.stringify({ error: 'Book is already checked out' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Calculate due date (default to 2 weeks from now if not provided)
+    const dueDate = due_date || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+
+    // Update book status
+    const updateBookStmt = env.DB.prepare(`
+      UPDATE books 
+      SET status = 'checked_out', 
+          checked_out_by = ?, 
+          checked_out_date = datetime('now'), 
+          due_date = ?
+      WHERE id = ?
+    `);
+
+    await updateBookStmt.bind(userId, dueDate, bookId).run();
+
+    // Add checkout history entry
+    const historyStmt = env.DB.prepare(`
+      INSERT INTO book_checkout_history (book_id, user_id, action, action_date, due_date, notes, created_at)
+      VALUES (?, ?, 'checkout', datetime('now'), ?, ?, datetime('now'))
+    `);
+
+    await historyStmt.bind(bookId, userId, dueDate, notes || null).run();
+
+    return new Response(JSON.stringify({ 
+      message: 'Book checked out successfully',
+      book_title: (book as any).title,
+      due_date: dueDate,
+      book_id: bookId
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error checking out book:', error);
+    return new Response(JSON.stringify({ error: 'Failed to checkout book' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+async function checkinBook(bookId: number, userId: string, env: Env, corsHeaders: Record<string, string>) {
+  try {
+    // Check if user has access to this book and that it's checked out by them
+    const bookStmt = env.DB.prepare(`
+      SELECT b.*, s.location_id, l.name as location_name
+      FROM books b
+      LEFT JOIN shelves s ON b.shelf_id = s.id
+      LEFT JOIN locations l ON s.location_id = l.id
+      LEFT JOIN location_members lm ON l.id = lm.location_id
+      WHERE b.id = ? AND (b.added_by = ? OR l.owner_id = ? OR lm.user_id = ?)
+    `);
+
+    const book = await bookStmt.bind(bookId, userId, userId, userId).first();
+    
+    if (!book) {
+      return new Response(JSON.stringify({ error: 'Book not found or access denied' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Check if book is checked out
+    if ((book as any).status !== 'checked_out') {
+      return new Response(JSON.stringify({ error: 'Book is not currently checked out' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Check if book is checked out by this user or if user is admin
+    const isAdmin = await isUserAdmin(userId, env);
+    if (!isAdmin && (book as any).checked_out_by !== userId) {
+      return new Response(JSON.stringify({ error: 'You can only check in books that you have checked out' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Update book status
+    const updateBookStmt = env.DB.prepare(`
+      UPDATE books 
+      SET status = 'available', 
+          checked_out_by = NULL, 
+          checked_out_date = NULL, 
+          due_date = NULL
+      WHERE id = ?
+    `);
+
+    await updateBookStmt.bind(bookId).run();
+
+    // Add checkin history entry
+    const historyStmt = env.DB.prepare(`
+      INSERT INTO book_checkout_history (book_id, user_id, action, action_date, created_at)
+      VALUES (?, ?, 'return', datetime('now'), datetime('now'))
+    `);
+
+    await historyStmt.bind(bookId, userId).run();
+
+    return new Response(JSON.stringify({ 
+      message: 'Book checked in successfully',
+      book_title: (book as any).title,
+      book_id: bookId
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error checking in book:', error);
+    return new Response(JSON.stringify({ error: 'Failed to checkin book' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+async function getCheckoutHistory(userId: string, env: Env, corsHeaders: Record<string, string>) {
+  try {
+    // Check if user is admin to determine what data they can see
+    const isAdmin = await isUserAdmin(userId, env);
+    
+    let historyStmt;
+    let bindings: any[];
+
+    if (isAdmin) {
+      // Admins can see all checkout history
+      historyStmt = env.DB.prepare(`
+        SELECT ch.*, 
+               b.title as book_title, 
+               b.authors as book_authors,
+               b.isbn as book_isbn,
+               l.name as location_name,
+               u.first_name as user_name,
+               u.email as user_email
+        FROM book_checkout_history ch
+        LEFT JOIN books b ON ch.book_id = b.id
+        LEFT JOIN shelves s ON b.shelf_id = s.id
+        LEFT JOIN locations l ON s.location_id = l.id
+        LEFT JOIN users u ON ch.user_id = u.id
+        ORDER BY ch.action_date DESC
+      `);
+      bindings = [];
+    } else {
+      // Regular users can only see their own checkout history
+      historyStmt = env.DB.prepare(`
+        SELECT ch.*, 
+               b.title as book_title, 
+               b.authors as book_authors,
+               b.isbn as book_isbn,
+               l.name as location_name
+        FROM book_checkout_history ch
+        LEFT JOIN books b ON ch.book_id = b.id
+        LEFT JOIN shelves s ON b.shelf_id = s.id
+        LEFT JOIN locations l ON s.location_id = l.id
+        WHERE ch.user_id = ?
+        ORDER BY ch.action_date DESC
+      `);
+      bindings = [userId];
+    }
+
+    const result = await historyStmt.bind(...bindings).all();
+    
+    const history = result.results.map((entry: any) => ({
+      ...entry,
+      book_authors: entry.book_authors ? JSON.parse(entry.book_authors) : []
+    }));
+
+    return new Response(JSON.stringify(history), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error fetching checkout history:', error);
+    return new Response(JSON.stringify({ error: 'Failed to fetch checkout history' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

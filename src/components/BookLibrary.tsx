@@ -25,6 +25,8 @@ import {
   Delete,
   ReportProblem,
   Cancel,
+  CheckCircle,
+  Undo,
 } from '@mui/icons-material'
 import type { Book } from './ISBNScanner'
 import { getBooks, updateBook, deleteBook as deleteBookAPI } from '@/lib/api'
@@ -520,6 +522,152 @@ export default function BookLibrary() {
     }
   }
 
+  const checkoutBook = async (bookId: string, bookTitle: string) => {
+    if (!session?.user?.email) return
+
+    const confirmed = await confirmAsync(
+      {
+        title: 'Check Out Book',
+        message: `Check out "${bookTitle}"? You'll be marked as the current reader.`,
+        confirmText: 'Check Out',
+        variant: 'primary'
+      },
+      async () => {
+        try {
+          const response = await fetch(`${API_BASE}/api/books/${bookId}/checkout`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.user.email}`,
+              'Content-Type': 'application/json',
+            },
+          })
+
+          if (!response.ok) {
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`
+            try {
+              const errorData = await response.json()
+              errorMessage = errorData.error || errorMessage
+            } catch {
+              try {
+                const errorText = await response.text()
+                errorMessage = errorText || errorMessage
+              } catch {
+                errorMessage = `Request failed with status ${response.status}`
+              }
+            }
+            throw new Error(errorMessage)
+          }
+
+          const result = await response.json()
+          
+          // Update local state
+          const updatedBooks = books.map(book => 
+            book.id === bookId 
+              ? { 
+                  ...book, 
+                  status: 'checked_out',
+                  checked_out_by: result.checked_out_by,
+                  checked_out_by_name: result.checked_out_by_name,
+                  checked_out_date: result.checked_out_date
+                }
+              : book
+          )
+          setBooks(updatedBooks)
+          
+          await alert({
+            title: 'Book Checked Out',
+            message: `"${bookTitle}" has been checked out to you.`,
+            variant: 'success'
+          })
+        } catch (error) {
+          console.error('Error checking out book:', error)
+          await alert({
+            title: 'Checkout Failed',
+            message: error instanceof Error ? error.message : 'Failed to check out book. Please try again.',
+            variant: 'error'
+          })
+        }
+      }
+    )
+
+    if (!confirmed) {
+      return
+    }
+  }
+
+  const checkinBook = async (bookId: string, bookTitle: string) => {
+    if (!session?.user?.email) return
+
+    const confirmed = await confirmAsync(
+      {
+        title: 'Return Book',
+        message: `Return "${bookTitle}"? This will mark the book as available.`,
+        confirmText: 'Return Book',
+        variant: 'primary'
+      },
+      async () => {
+        try {
+          const response = await fetch(`${API_BASE}/api/books/${bookId}/checkin`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.user.email}`,
+              'Content-Type': 'application/json',
+            },
+          })
+
+          if (!response.ok) {
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`
+            try {
+              const errorData = await response.json()
+              errorMessage = errorData.error || errorMessage
+            } catch {
+              try {
+                const errorText = await response.text()
+                errorMessage = errorText || errorMessage
+              } catch {
+                errorMessage = `Request failed with status ${response.status}`
+              }
+            }
+            throw new Error(errorMessage)
+          }
+
+          const result = await response.json()
+          
+          // Update local state
+          const updatedBooks = books.map(book => 
+            book.id === bookId 
+              ? { 
+                  ...book, 
+                  status: 'available',
+                  checked_out_by: undefined,
+                  checked_out_by_name: undefined,
+                  checked_out_date: undefined
+                }
+              : book
+          )
+          setBooks(updatedBooks)
+          
+          await alert({
+            title: 'Book Returned',
+            message: `"${bookTitle}" has been returned and is now available.`,
+            variant: 'success'
+          })
+        } catch (error) {
+          console.error('Error returning book:', error)
+          await alert({
+            title: 'Return Failed',
+            message: error instanceof Error ? error.message : 'Failed to return book. Please try again.',
+            variant: 'error'
+          })
+        }
+      }
+    )
+
+    if (!confirmed) {
+      return
+    }
+  }
+
   const exportLibrary = () => {
     const dataStr = JSON.stringify(books, null, 2)
     const dataBlob = new Blob([dataStr], { type: 'application/json' })
@@ -875,9 +1023,46 @@ export default function BookLibrary() {
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
                         ISBN: {book.isbn}
                       </Typography>
+                      
+                      {/* Checkout status display */}
+                      {book.status === 'checked_out' && (
+                        <Box sx={{ mt: 2, p: 1, backgroundColor: 'warning.light', borderRadius: 1 }}>
+                          <Typography variant="body2" color="text.primary">
+                            📖 <strong>Checked out</strong> by {book.checked_out_by_name || 'Unknown'}
+                          </Typography>
+                          {book.checked_out_date && (
+                            <Typography variant="caption" color="text.secondary">
+                              Since: {new Date(book.checked_out_date).toLocaleDateString()}
+                            </Typography>
+                          )}
+                        </Box>
+                      )}
                     </CardContent>
 
                     <CardActions>
+                      {/* Checkout/Return buttons for admin */}
+                      {book.status === 'checked_out' ? (
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="success"
+                          startIcon={<Undo />}
+                          onClick={() => checkinBook(book.id, book.title)}
+                        >
+                          Return Book
+                        </Button>
+                      ) : (
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="primary"
+                          startIcon={<CheckCircle />}
+                          onClick={() => checkoutBook(book.id, book.title)}
+                        >
+                          Check Out
+                        </Button>
+                      )}
+                      
                       <Button
                         size="small"
                         variant="contained"
@@ -961,9 +1146,46 @@ export default function BookLibrary() {
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
                   ISBN: {book.isbn}
                 </Typography>
+                
+                {/* Checkout status display */}
+                {book.status === 'checked_out' && (
+                  <Box sx={{ mt: 2, p: 1, backgroundColor: 'warning.light', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.primary">
+                      📖 <strong>Checked out</strong> by {book.checked_out_by_name || 'Unknown'}
+                    </Typography>
+                    {book.checked_out_date && (
+                      <Typography variant="caption" color="text.secondary">
+                        Since: {new Date(book.checked_out_date).toLocaleDateString()}
+                      </Typography>
+                    )}
+                  </Box>
+                )}
               </CardContent>
 
               <CardActions>
+                {/* Checkout/Return buttons */}
+                {book.status === 'checked_out' ? (
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="success"
+                    startIcon={<Undo />}
+                    onClick={() => checkinBook(book.id, book.title)}
+                  >
+                    Return Book
+                  </Button>
+                ) : (
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="primary"
+                    startIcon={<CheckCircle />}
+                    onClick={() => checkoutBook(book.id, book.title)}
+                  >
+                    Check Out
+                  </Button>
+                )}
+                
                 <Button
                   size="small"
                   variant="contained"
