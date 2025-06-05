@@ -476,7 +476,7 @@ async function getLocationShelves(locationId: number, userId: string, env: Env, 
   }
 
   const stmt = env.DB.prepare(`
-    SELECT * FROM shelves /
+    SELECT * FROM shelves
     WHERE location_id = ? 
     ORDER BY name
   `);
