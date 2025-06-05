@@ -695,11 +695,11 @@ export default function LocationManager() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
                 {shelves.map(shelf => (
-                  <div key={shelf.id} style={{ 
-                    padding: '0.75rem', 
-                    background: '#f5f5f5', 
-                    borderRadius: '0.25rem',
-                    position: 'relative'
+                  <Paper key={shelf.id} sx={{ 
+                    p: 1.5,
+                    borderRadius: 1,
+                    position: 'relative',
+                    backgroundColor: '#2e2e2e' // Same as book cards for consistency
                   }}>
                     <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
                       <strong>{shelf.name}</strong>
@@ -711,8 +711,8 @@ export default function LocationManager() {
                           onClick={() => startEditShelf(shelf)}
                           sx={{ 
                             p: 0.5,
-                            backgroundColor: 'grey.200',
-                            '&:hover': { backgroundColor: 'grey.300' }
+                            backgroundColor: 'action.hover',
+                            '&:hover': { backgroundColor: 'action.selected' }
                           }}
                         >
                           <Edit fontSize="small" />
@@ -731,7 +731,7 @@ export default function LocationManager() {
                         </IconButton>
                       </Box>
                     )}
-                  </div>
+                  </Paper>
                 ))}
               </div>
 
@@ -757,13 +757,12 @@ export default function LocationManager() {
                   ) : (
                     <div style={{ display: 'grid', gap: '0.5rem' }}>
                       {invitations.map(invitation => (
-                        <div key={invitation.id} style={{ 
+                        <Paper key={invitation.id} sx={{ 
                           display: 'flex', 
                           justifyContent: 'space-between', 
                           alignItems: 'center',
-                          padding: '0.75rem', 
-                          background: '#f8f9fa', 
-                          borderRadius: '0.25rem',
+                          p: 1.5,
+                          borderRadius: 1,
                           borderLeft: `4px solid ${invitation.used_at ? '#28a745' : '#ffc107'}`
                         }}>
                           <div>
@@ -800,7 +799,7 @@ export default function LocationManager() {
                               </Button>
                             )}
                           </div>
-                        </div>
+                        </Paper>
                       ))}
                     </div>
                   )}

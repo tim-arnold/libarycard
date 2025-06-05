@@ -36,6 +36,7 @@ This file contains development todos, notes, and context for AI assistants worki
 - ✅ **Complete book checkout system with status tracking and history**
 - ✅ **Enhanced ISBN scanner with camera controls and Google Books API search integration**
 - ✅ **AddBooks component with persistent shelf selection and duplicate detection**
+- ✅ **Dark mode toggle with persistent user preference and accessible color palette**
 
 ## Development Todos
 
@@ -110,7 +111,7 @@ This file contains development todos, notes, and context for AI assistants worki
   - [x] ~~Add book details modal/page with full information, cover image, and editing options~~ ✅ COMPLETED
   - [x] ~~Improve ISBN scanner interface with better camera controls and feedback~~ ✅ COMPLETED
   - [ ] Add profile picture upload functionality with image resizing and storage
-  - [ ] Implement dark mode toggle with persistent user preference
+  - [x] ~~Implement dark mode toggle with persistent user preference~~ ✅ COMPLETED
   - [x] ~~Add export functionality for book collections (CSV, PDF formats)~~ ✅ COMPLETED (Export Library button removed)
   - [ ] If an admin moves a book from a shelf in Location A to a shelf in Location B, that book should no longer be visible to users in Location A.
   - [ ] Add support for multiple locations for regular users
@@ -336,7 +337,7 @@ This file contains development todos, notes, and context for AI assistants worki
 - **ADDED**: CheckCircle icon import and usage for clear duplicate book indication
 - **ENHANCED**: User experience with intelligent shelf restoration and duplicate prevention workflow
 
-### Session December 2024 - Permission System Implementation
+### Session June 2025 - Permission System Implementation
 - **COMPLETED**: Added user_role column to database schema with migration
 - **DEPLOYED**: Database migration to production (tim.arnold@gmail.com set as admin)
 - **IMPLEMENTED**: Admin-only restrictions for location/shelf create, update, delete operations
@@ -345,10 +346,23 @@ This file contains development todos, notes, and context for AI assistants worki
 - **TESTED**: Permission system working correctly in production
 - **REMOVED**: Redundant Next.js API routes (now using Workers API directly)
 
+### Session June 2025 - Dark Mode Implementation
+- **CREATED**: Dual theme system in `src/lib/theme.ts` with light and dark theme variants
+- **IMPLEMENTED**: ThemeContext provider in `src/lib/ThemeContext.tsx` for global theme state management
+- **ADDED**: localStorage persistence for user theme preference with automatic theme restoration
+- **UPDATED**: Dark theme primary color from #9c27b0 to #bb86fc for better accessibility and contrast
+- **ENHANCED**: Book cards with consistent #2e2e2e background color in dark mode for improved visual hierarchy
+- **OPTIMIZED**: Shelf tiles in LocationManager to match book card styling for interface consistency
+- **CONVERTED**: Location headers in BookLibrary from inline styles to Material UI components with proper theming
+- **IMPLEMENTED**: Dark mode toggle button in header with sun/moon icons and intuitive user experience
+- **ACHIEVED**: WCAG-compliant color contrast ratios for all text elements in both light and dark modes
+- **PREVENTED**: Flash of unstyled content (FOUC) with proper theme loading states and isLoaded flag
+- **ENHANCED**: Material UI component overrides for dark mode including MuiCard, MuiLink, MuiButton, and MuiChip
+- **VALIDATED**: Complete dark mode functionality across all components with proper accessibility standards
+
 ### Next Priority: Feature Enhancements
 - Add admin notification system for user requests and activities  
 - Create comprehensive admin dashboard with analytics and bulk actions
-- Implement dark mode toggle with persistent user preference
 - Add book rating system and enhanced book detail views
 - Add checkout notifications and due date reminders
 

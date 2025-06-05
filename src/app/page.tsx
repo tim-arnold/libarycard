@@ -25,15 +25,19 @@ import {
   AccountCircle,
   ExitToApp,
   Build,
+  DarkMode,
+  LightMode,
 } from '@mui/icons-material'
 import AddBooks from '@/components/AddBooks'
 import BookLibrary from '@/components/BookLibrary'
 import LocationManager from '@/components/LocationManager'
 import RemovalRequestManager from '@/components/RemovalRequestManager'
+import { useTheme } from '@/lib/ThemeContext'
 
 export default function Home() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const { isDarkMode, toggleTheme } = useTheme()
   const [activeTab, setActiveTab] = useState<'scan' | 'library' | 'locations' | 'requests'>('library')
   const [userRole, setUserRole] = useState<string | null>(null)
   const [userFirstName, setUserFirstName] = useState<string | null>(null)
@@ -107,6 +111,16 @@ export default function Home() {
             Hello, {userFirstName || session.user?.name?.split(' ')[0] || 'User'}!
             {userRole === 'admin' && <Build sx={{ ml: 0.5, fontSize: '1rem' }} />}
           </Typography>
+          
+          <IconButton
+            color="inherit"
+            onClick={toggleTheme}
+            size="small"
+            sx={{ mr: 1 }}
+            title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {isDarkMode ? <LightMode /> : <DarkMode />}
+          </IconButton>
           
           <IconButton
             color="inherit"

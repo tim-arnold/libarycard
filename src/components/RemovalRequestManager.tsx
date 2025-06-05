@@ -374,8 +374,7 @@ export default function RemovalRequestManager() {
             variant="outlined" 
             sx={{ 
               textAlign: 'center', 
-              py: 4,
-              backgroundColor: 'grey.50'
+              py: 4
             }}
           >
             <Typography sx={{ fontSize: '2rem', mb: 1 }}>📭</Typography>
@@ -446,8 +445,7 @@ export default function RemovalRequestManager() {
                   <Paper 
                     variant="outlined" 
                     sx={{ 
-                      p: 2, 
-                      backgroundColor: 'grey.50'
+                      p: 2
                     }}
                   >
                     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>

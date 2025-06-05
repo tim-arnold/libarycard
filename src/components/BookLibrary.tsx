@@ -1075,30 +1075,41 @@ export default function BookLibrary() {
         </Box>
 
       {filteredBooks.length === 0 ? (
-        <p style={{ textAlign: 'center', color: '#666', padding: '2rem' }}>
+        <Typography 
+          variant="body1" 
+          color="text.secondary" 
+          sx={{ textAlign: 'center', p: 4 }}
+        >
           {books.length === 0 ? 'No books in your library yet. Start scanning!' : 'No books match your filters.'}
-        </p>
+        </Typography>
       ) : userRole === 'admin' ? (
-        // Admin view: Group books by location
+        // Admin view: Group books by location (but hide location headers when filtering to a single location)
         <div>
           {booksByLocation && booksByLocation.map(location => (
             <div key={location.id} style={{ marginBottom: '2rem' }}>
-              <div style={{ 
-                background: '#f8f9fa', 
-                padding: '0.75rem 1rem', 
-                borderRadius: '0.375rem', 
-                marginBottom: '1rem',
-                border: '1px solid #dee2e6'
-              }}>
-                <h3 style={{ margin: 0, color: '#495057', fontSize: '1.1rem' }}>
-                  📍 {location.name} ({location.books.length} book{location.books.length !== 1 ? 's' : ''})
-                </h3>
-                {location.description && (
-                  <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: '#6c757d' }}>
-                    {location.description}
-                  </p>
-                )}
-              </div>
+              {/* Only show location header when viewing all locations (no location filter active) */}
+              {!locationFilter && (
+                <Box sx={{ 
+                  bgcolor: 'action.hover',
+                  p: '0.75rem 1rem', 
+                  borderRadius: 1, 
+                  mb: 2,
+                  border: 1,
+                  borderColor: 'divider',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <Typography variant="h6" sx={{ m: 0, fontSize: '1.1rem' }}>
+                    📍 {location.name} ({location.books.length} book{location.books.length !== 1 ? 's' : ''})
+                  </Typography>
+                  {location.description && (
+                    <Typography variant="body2" color="text.secondary" sx={{ m: 0, fontStyle: 'italic' }}>
+                      {location.description}
+                    </Typography>
+                  )}
+                </Box>
+              )}
               
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 2 }}>
                 {location.books.map((book: EnhancedBook) => (
