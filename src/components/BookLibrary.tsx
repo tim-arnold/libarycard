@@ -18,6 +18,14 @@ import {
   Card,
   CardContent,
   CardActions,
+  ToggleButton,
+  ToggleButtonGroup,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemAvatar,
+  Avatar,
+  Divider,
 } from '@mui/material'
 import { 
   Search,
@@ -27,6 +35,8 @@ import {
   CheckCircle,
   Undo,
   Info,
+  GridView,
+  ViewList,
 } from '@mui/icons-material'
 import type { EnhancedBook } from '@/lib/bookApi'
 import { getBooks, updateBook, deleteBook as deleteBookAPI } from '@/lib/api'
@@ -200,12 +210,26 @@ export default function BookLibrary() {
   const [pendingRemovalRequests, setPendingRemovalRequests] = useState<Record<string, number>>({})
   const [showMoreDetailsModal, setShowMoreDetailsModal] = useState(false)
   const [selectedBookForDetails, setSelectedBookForDetails] = useState<EnhancedBook | null>(null)
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
 
   useEffect(() => {
     if (session?.user) {
       loadUserData()
     }
   }, [session])
+
+  // Load saved view mode from localStorage
+  useEffect(() => {
+    const savedViewMode = localStorage.getItem('library-view-mode') as 'card' | 'list'
+    if (savedViewMode && (savedViewMode === 'card' || savedViewMode === 'list')) {
+      setViewMode(savedViewMode)
+    }
+  }, [])
+
+  const handleViewModeChange = (newViewMode: 'card' | 'list') => {
+    setViewMode(newViewMode)
+    localStorage.setItem('library-view-mode', newViewMode)
+  }
 
   const loadUserData = async () => {
     if (!session?.user?.email) return
@@ -618,7 +642,7 @@ export default function BookLibrary() {
       const reasonLabels: Record<string, string> = {
         lost: 'Book is lost',
         damaged: 'Book is damaged beyond repair',
-        missing: 'Book is missing from its location',
+        missing: 'Book tasted delicious',
         other: 'Other reason'
       }
 
@@ -821,6 +845,258 @@ export default function BookLibrary() {
       return
     }
   }
+
+  // Render book in list format
+  const renderBookListItem = (book: EnhancedBook) => (
+    <ListItem
+      key={book.id}
+      sx={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        border: 1,
+        borderColor: 'divider',
+        borderRadius: 1,
+        mb: 1,
+        p: 2,
+        backgroundColor: 'background.paper'
+      }}
+    >
+      <ListItemAvatar sx={{ mr: 2 }}>
+        {book.thumbnail ? (
+          <Avatar
+            src={book.thumbnail}
+            alt={book.title}
+            variant="rectangular"
+            sx={{ width: 60, height: 90, borderRadius: 1 }}
+          />
+        ) : (
+          <Avatar
+            variant="rectangular"
+            sx={{ width: 60, height: 90, borderRadius: 1, bgcolor: 'grey.300' }}
+          >
+            📖
+          </Avatar>
+        )}
+      </ListItemAvatar>
+      
+      <ListItemText
+        primary={
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+            <Typography variant="h6" component="h3" sx={{ fontWeight: 600, mr: 2 }}>
+              {book.title}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+              {/* Checkout/Return buttons */}
+              {book.status === 'checked_out' ? (
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="success"
+                  startIcon={<Undo />}
+                  onClick={() => checkinBook(book.id, book.title)}
+                >
+                  Return
+                </Button>
+              ) : (
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="primary"
+                  startIcon={<CheckCircle />}
+                  onClick={() => checkoutBook(book.id, book.title)}
+                >
+                  Check Out
+                </Button>
+              )}
+              
+              {/* Remove/Request Removal button */}
+              {userRole === 'admin' ? (
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="error"
+                  startIcon={<Delete />}
+                  onClick={() => deleteBook(book.id, book.title)}
+                >
+                  Remove
+                </Button>
+              ) : (
+                <Button
+                  size="small"
+                  variant="contained"
+                  color={pendingRemovalRequests[book.id] ? 'inherit' : 'warning'}
+                  onClick={() => {
+                    if (pendingRemovalRequests[book.id]) {
+                      cancelRemovalRequest(book.id, book.title)
+                    } else {
+                      requestBookRemoval(book.id, book.title)
+                    }
+                  }}
+                  sx={{ minWidth: 'auto', px: 1 }}
+                >
+                  {pendingRemovalRequests[book.id] ? <Cancel /> : <ReportProblem />}
+                </Button>
+              )}
+            </Box>
+          </Box>
+        }
+        secondary={
+          <Box>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              <strong>Author:</strong> {book.authors.map((author, index) => (
+                <span key={index}>
+                  <Typography 
+                    component="span" 
+                    sx={{ 
+                      color: 'primary.main', 
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      '&:hover': { textDecoration: 'none' }
+                    }}
+                    onClick={() => handleAuthorClick(author)}
+                  >
+                    {author}
+                  </Typography>
+                  {index < book.authors.length - 1 && ', '}
+                </span>
+              ))}
+            </Typography>
+            
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 1 }}>
+              {book.publishedDate && (
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Published:</strong> {new Date(book.publishedDate).getFullYear()}
+                </Typography>
+              )}
+              
+              {book.series && (
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Series:</strong> 
+                  <Typography 
+                    component="span" 
+                    sx={{ 
+                      color: 'primary.main', 
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      ml: 0.5,
+                      '&:hover': { textDecoration: 'none' }
+                    }}
+                    onClick={() => handleSeriesClick(book.series!)}
+                  >
+                    {book.series}
+                  </Typography>
+                  {book.seriesNumber && ` (#${book.seriesNumber})`}
+                </Typography>
+              )}
+
+              {userRole === 'admin' && shelves.length > 1 && (
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Shelf:</strong> {book.shelf_name}
+                </Typography>
+              )}
+            </Box>
+
+            {/* Show only first genre */}
+            {(book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
+              <Box sx={{ mb: 1 }}>
+                <Chip 
+                  label={book.enhancedGenres?.[0] || book.categories?.[0]} 
+                  size="small" 
+                  color={book.enhancedGenres ? 'primary' : 'default'}
+                  sx={{ mr: 0.5 }} 
+                />
+              </Box>
+            )}
+
+            {book.description && (
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                {book.description.substring(0, 150)}...
+              </Typography>
+            )}
+
+            {/* Checkout status display */}
+            {book.status === 'checked_out' && (
+              <Box sx={{ mt: 1, p: 1, backgroundColor: 'warning.light', borderRadius: 1 }}>
+                <Typography variant="body2" color="text.primary">
+                  📖 <strong>Checked out</strong> by {book.checked_out_by_name || 'Unknown'}
+                </Typography>
+                {book.checked_out_date && (
+                  <Typography variant="caption" color="text.secondary">
+                    Since: {new Date(book.checked_out_date).toLocaleDateString()}
+                  </Typography>
+                )}
+              </Box>
+            )}
+
+            {/* More Details button */}
+            {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
+              <Box sx={{ mt: 1 }}>
+                <Button
+                  size="small"
+                  startIcon={<Info />}
+                  onClick={() => handleMoreDetailsClick(book)}
+                  sx={{ textTransform: 'none' }}
+                >
+                  More Details
+                </Button>
+              </Box>
+            )}
+
+            {/* Shelf selector for admin in list view */}
+            {userRole === 'admin' && (
+              <Box sx={{ mt: 2 }}>
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel>Shelf</InputLabel>
+                  <Select
+                    value={book.shelf_id || ''}
+                    label="Shelf"
+                    onChange={(e) => updateBookShelf(book.id, parseInt(String(e.target.value)))}
+                  >
+                    <MenuItem value="">Select shelf...</MenuItem>
+                    {booksByLocation ? (
+                      // Admin with grouped locations
+                      (() => {
+                        const bookLocation = booksByLocation.find(loc => 
+                          loc.shelves.some((shelf: Shelf) => shelf.id === book.shelf_id)
+                        )
+                        return bookLocation ? bookLocation.shelves.map((shelf: Shelf) => (
+                          <MenuItem key={shelf.id} value={shelf.id}>{shelf.name}</MenuItem>
+                        )) : []
+                      })()
+                    ) : (
+                      // Regular admin or filtered view
+                      shelves.map(shelf => (
+                        <MenuItem key={shelf.id} value={shelf.id}>{shelf.name}</MenuItem>
+                      ))
+                    )}
+                  </Select>
+                </FormControl>
+              </Box>
+            )}
+
+            {/* Shelf selector for regular users in list view (only if multiple shelves) */}
+            {userRole !== 'admin' && shelves.length > 1 && (
+              <Box sx={{ mt: 2 }}>
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel>Shelf</InputLabel>
+                  <Select
+                    value={book.shelf_id || ''}
+                    label="Shelf"
+                    onChange={(e) => updateBookShelf(book.id, parseInt(String(e.target.value)))}
+                  >
+                    <MenuItem value="">Select shelf...</MenuItem>
+                    {shelves.map(shelf => (
+                      <MenuItem key={shelf.id} value={shelf.id}>{shelf.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            )}
+          </Box>
+        }
+      />
+    </ListItem>
+  )
 
 
   const allCategories = Array.from(
@@ -1074,6 +1350,32 @@ export default function BookLibrary() {
           </Box>
         </Box>
 
+        {/* View Mode Toggle - Only show if there are books to display */}
+        {filteredBooks.length > 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              onChange={(_, newViewMode) => {
+                if (newViewMode !== null) {
+                  handleViewModeChange(newViewMode)
+                }
+              }}
+              size="small"
+              aria-label="view mode"
+            >
+              <ToggleButton value="card" aria-label="card view">
+                <GridView sx={{ mr: 1 }} />
+                Cards
+              </ToggleButton>
+              <ToggleButton value="list" aria-label="list view">
+                <ViewList sx={{ mr: 1 }} />
+                List
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+        )}
+
       {filteredBooks.length === 0 ? (
         <Typography 
           variant="body1" 
@@ -1082,133 +1384,360 @@ export default function BookLibrary() {
         >
           {books.length === 0 ? 'No books in your library yet. Start scanning!' : 'No books match your filters.'}
         </Typography>
-      ) : userRole === 'admin' ? (
-        // Admin view: Group books by location (but hide location headers when filtering to a single location)
-        <div>
-          {booksByLocation && booksByLocation.map(location => (
-            <div key={location.id} style={{ marginBottom: '2rem' }}>
-              {/* Only show location header when viewing all locations (no location filter active) */}
-              {!locationFilter && (
-                <Box sx={{ 
-                  bgcolor: 'action.hover',
-                  p: '0.75rem 1rem', 
-                  borderRadius: 1, 
-                  mb: 2,
-                  border: 1,
-                  borderColor: 'divider',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <Typography variant="h6" sx={{ m: 0, fontSize: '1.1rem' }}>
-                    📍 {location.name} ({location.books.length} book{location.books.length !== 1 ? 's' : ''})
-                  </Typography>
-                  {location.description && (
-                    <Typography variant="body2" color="text.secondary" sx={{ m: 0, fontStyle: 'italic' }}>
-                      {location.description}
-                    </Typography>
+      ) : (
+        // Conditional rendering based on view mode
+        viewMode === 'list' ? (
+          // List view
+          userRole === 'admin' ? (
+            // Admin list view with location grouping
+            <div>
+              {booksByLocation && booksByLocation.map(location => (
+                <div key={location.id} style={{ marginBottom: '2rem' }}>
+                  {/* Only show location header when viewing all locations (no location filter active) */}
+                  {!locationFilter && (
+                    <Box sx={{ 
+                      bgcolor: 'action.hover',
+                      p: '0.75rem 1rem', 
+                      borderRadius: 1, 
+                      mb: 2,
+                      border: 1,
+                      borderColor: 'divider',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <Typography variant="h6" sx={{ m: 0, fontSize: '1.1rem' }}>
+                        📍 {location.name} ({location.books.length} book{location.books.length !== 1 ? 's' : ''})
+                      </Typography>
+                      {location.description && (
+                        <Typography variant="body2" color="text.secondary" sx={{ m: 0, fontStyle: 'italic' }}>
+                          {location.description}
+                        </Typography>
+                      )}
+                    </Box>
                   )}
-                </Box>
-              )}
-              
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 2 }}>
-                {location.books.map((book: EnhancedBook) => (
-                  <Card key={book.id} sx={{ height: 'fit-content' }}>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', gap: 2 }}>
-                        {book.thumbnail && (
-                          <Box
-                            component="img"
-                            src={book.thumbnail}
-                            alt={book.title}
-                            sx={{ 
-                              width: 80, 
-                              height: 120, 
-                              objectFit: 'cover', 
-                              flexShrink: 0,
-                              borderRadius: 1
-                            }}
-                          />
-                        )}
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="h6" gutterBottom>
-                            {book.title}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" gutterBottom>
-                            <strong>Author:</strong> {book.authors.map((author, index) => (
-                              <span key={index}>
-                                <Typography 
-                                  component="span" 
-                                  sx={{ 
-                                    color: 'primary.main', 
-                                    cursor: 'pointer',
-                                    textDecoration: 'underline',
-                                    '&:hover': { textDecoration: 'none' }
-                                  }}
-                                  onClick={() => handleAuthorClick(author)}
-                                >
-                                  {author}
+                  
+                  <List sx={{ width: '100%' }}>
+                    {location.books.map((book: EnhancedBook) => renderBookListItem(book))}
+                  </List>
+                </div>
+              ))}
+            </div>
+          ) : (
+            // Regular user list view
+            <List sx={{ width: '100%' }}>
+              {filteredBooks.map(book => renderBookListItem(book))}
+            </List>
+          )
+        ) : (
+          // Card view (default)
+          userRole === 'admin' ? (
+            // Admin card view with location grouping
+            <div>
+              {booksByLocation && booksByLocation.map(location => (
+                <div key={location.id} style={{ marginBottom: '2rem' }}>
+                  {/* Only show location header when viewing all locations (no location filter active) */}
+                  {!locationFilter && (
+                    <Box sx={{ 
+                      bgcolor: 'action.hover',
+                      p: '0.75rem 1rem', 
+                      borderRadius: 1, 
+                      mb: 2,
+                      border: 1,
+                      borderColor: 'divider',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <Typography variant="h6" sx={{ m: 0, fontSize: '1.1rem' }}>
+                        📍 {location.name} ({location.books.length} book{location.books.length !== 1 ? 's' : ''})
+                      </Typography>
+                      {location.description && (
+                        <Typography variant="body2" color="text.secondary" sx={{ m: 0, fontStyle: 'italic' }}>
+                          {location.description}
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                  
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 2 }}>
+                    {location.books.map((book: EnhancedBook) => (
+                      <Card key={book.id} sx={{ height: 'fit-content', backgroundColor: 'background.paper !important' }}>
+                        <CardContent>
+                          <Box sx={{ display: 'flex', gap: 2 }}>
+                            {book.thumbnail && (
+                              <Box
+                                component="img"
+                                src={book.thumbnail}
+                                alt={book.title}
+                                sx={{ 
+                                  width: 80, 
+                                  height: 120, 
+                                  objectFit: 'cover', 
+                                  flexShrink: 0,
+                                  borderRadius: 1
+                                }}
+                              />
+                            )}
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="h6" gutterBottom>
+                                {book.title}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" gutterBottom>
+                                <strong>Author:</strong> {book.authors.map((author, index) => (
+                                  <span key={index}>
+                                    <Typography 
+                                      component="span" 
+                                      sx={{ 
+                                        color: 'primary.main', 
+                                        cursor: 'pointer',
+                                        textDecoration: 'underline',
+                                        '&:hover': { textDecoration: 'none' }
+                                      }}
+                                      onClick={() => handleAuthorClick(author)}
+                                    >
+                                      {author}
+                                    </Typography>
+                                    {index < book.authors.length - 1 && ', '}
+                                  </span>
+                                ))}
+                              </Typography>
+                              {book.publishedDate && (
+                                <Typography variant="body2" color="text.secondary" gutterBottom>
+                                  <strong>Published:</strong> {new Date(book.publishedDate).getFullYear()}
                                 </Typography>
-                                {index < book.authors.length - 1 && ', '}
-                              </span>
-                            ))}
-                          </Typography>
-                          {book.publishedDate && (
-                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                              <strong>Published:</strong> {new Date(book.publishedDate).getFullYear()}
-                            </Typography>
+                              )}
+                              {book.series && (
+                                <Typography variant="body2" color="text.secondary" gutterBottom>
+                                  <strong>Series:</strong> 
+                                  <Typography 
+                                    component="span" 
+                                    sx={{ 
+                                      color: 'primary.main', 
+                                      cursor: 'pointer',
+                                      textDecoration: 'underline',
+                                      ml: 0.5,
+                                      '&:hover': { textDecoration: 'none' }
+                                    }}
+                                    onClick={() => handleSeriesClick(book.series!)}
+                                  >
+                                    {book.series}
+                                  </Typography>
+                                  {book.seriesNumber && ` (#${book.seriesNumber})`}
+                                </Typography>
+                              )}
+                              {/* Show only first genre */}
+                              {(book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
+                                <Box sx={{ mt: 1, mb: 1 }}>
+                                  <Chip 
+                                    label={book.enhancedGenres?.[0] || book.categories?.[0]}
+                                    size="small" 
+                                    color={book.enhancedGenres ? 'primary' : 'default'}
+                                    sx={{ mr: 0.5, mb: 0.5 }} 
+                                  />
+                                </Box>
+                              )}
+                              {book.description && (
+                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                  {book.description.substring(0, 200)}...
+                                </Typography>
+                              )}
+                              {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
+                                <Box sx={{ mt: 1 }}>
+                                  <Button
+                                    size="small"
+                                    startIcon={<Info />}
+                                    onClick={() => handleMoreDetailsClick(book)}
+                                    sx={{ textTransform: 'none' }}
+                                  >
+                                    More Details
+                                  </Button>
+                                </Box>
+                              )}
+                            </Box>
+                          </Box>
+                          
+                          {/* Show shelf info for admin */}
+                          <Box sx={{ mt: 2 }}>
+                            <FormControl size="small" sx={{ minWidth: 200 }}>
+                              <InputLabel>Shelf</InputLabel>
+                              <Select
+                                value={book.shelf_id || ''}
+                                label="Shelf"
+                                onChange={(e) => updateBookShelf(book.id, parseInt(String(e.target.value)))}
+                              >
+                                <MenuItem value="">Select shelf...</MenuItem>
+                                {location.shelves.map((shelf: Shelf) => (
+                                  <MenuItem key={shelf.id} value={shelf.id}>{shelf.name}</MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          </Box>
+                          
+                          {book.tags && book.tags.length > 0 && (
+                            <Box sx={{ mt: 1 }}>
+                              <Typography variant="body2" color="text.secondary">
+                                <strong>Tags:</strong> {book.tags.join(', ')}
+                              </Typography>
+                            </Box>
                           )}
-                          {book.series && (
-                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                              <strong>Series:</strong> 
+                          
+                          {/* Checkout status display */}
+                          {book.status === 'checked_out' && (
+                            <Box sx={{ mt: 2, p: 1, backgroundColor: 'warning.light', borderRadius: 1 }}>
+                              <Typography variant="body2" color="text.primary">
+                                📖 <strong>Checked out</strong> by {book.checked_out_by_name || 'Unknown'}
+                              </Typography>
+                              {book.checked_out_date && (
+                                <Typography variant="caption" color="text.secondary">
+                                  Since: {new Date(book.checked_out_date).toLocaleDateString()}
+                                </Typography>
+                              )}
+                            </Box>
+                          )}
+                        </CardContent>
+
+                        <CardActions>
+                          {/* Checkout/Return buttons for admin */}
+                          {book.status === 'checked_out' ? (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="success"
+                              startIcon={<Undo />}
+                              onClick={() => checkinBook(book.id, book.title)}
+                            >
+                              Return Book
+                            </Button>
+                          ) : (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="primary"
+                              startIcon={<CheckCircle />}
+                              onClick={() => checkoutBook(book.id, book.title)}
+                            >
+                              Check Out
+                            </Button>
+                          )}
+                          
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="error"
+                            startIcon={<Delete />}
+                            onClick={() => deleteBook(book.id, book.title)}
+                          >
+                            Remove
+                          </Button>
+                        </CardActions>
+                      </Card>
+                    ))}
+                  </Box>
+                </div>
+              ))}
+            </div>
+          ) : (
+            // Regular user card view
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 2 }}>
+              {filteredBooks.map(book => (
+                <Card key={book.id} sx={{ height: 'fit-content' }}>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                      {book.thumbnail && (
+                        <Box
+                          component="img"
+                          src={book.thumbnail}
+                          alt={book.title}
+                          sx={{ 
+                            width: 80, 
+                            height: 120, 
+                            objectFit: 'cover', 
+                            flexShrink: 0,
+                            borderRadius: 1
+                          }}
+                        />
+                      )}
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h6" gutterBottom>
+                          {book.title}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          <strong>Author:</strong> {book.authors.map((author, index) => (
+                            <span key={index}>
                               <Typography 
                                 component="span" 
                                 sx={{ 
                                   color: 'primary.main', 
                                   cursor: 'pointer',
                                   textDecoration: 'underline',
-                                  ml: 0.5,
                                   '&:hover': { textDecoration: 'none' }
                                 }}
-                                onClick={() => handleSeriesClick(book.series!)}
+                                onClick={() => handleAuthorClick(author)}
                               >
-                                {book.series}
+                                {author}
                               </Typography>
-                              {book.seriesNumber && ` (#${book.seriesNumber})`}
+                              {index < book.authors.length - 1 && ', '}
+                            </span>
+                          ))}
+                        </Typography>
+                        {book.publishedDate && (
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            <strong>Published:</strong> {new Date(book.publishedDate).getFullYear()}
+                          </Typography>
+                        )}
+                        {book.series && (
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            <strong>Series:</strong> 
+                            <Typography 
+                              component="span" 
+                              sx={{ 
+                                color: 'primary.main', 
+                                cursor: 'pointer',
+                                textDecoration: 'underline',
+                                ml: 0.5,
+                                '&:hover': { textDecoration: 'none' }
+                              }}
+                              onClick={() => handleSeriesClick(book.series!)}
+                            >
+                              {book.series}
                             </Typography>
-                          )}
-                          {/* Show only first genre */}
-                          {(book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
-                            <Box sx={{ mt: 1, mb: 1 }}>
-                              <Chip 
-                                label={book.enhancedGenres?.[0] || book.categories?.[0]}
-                                size="small" 
-                                color={book.enhancedGenres ? 'primary' : 'default'}
-                                sx={{ mr: 0.5, mb: 0.5 }} 
-                              />
-                            </Box>
-                          )}
-                          {book.description && (
-                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                              {book.description.substring(0, 200)}...
-                            </Typography>
-                          )}
-                          {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
-                            <Box sx={{ mt: 1 }}>
-                              <Button
-                                size="small"
-                                startIcon={<Info />}
-                                onClick={() => handleMoreDetailsClick(book)}
-                                sx={{ textTransform: 'none' }}
-                              >
-                                More Details
-                              </Button>
-                            </Box>
-                          )}
-                        </Box>
+                            {book.seriesNumber && ` (#${book.seriesNumber})`}
+                          </Typography>
+                        )}
+                        {/* Show only first genre */}
+                        {(book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
+                          <Box sx={{ mt: 1, mb: 1 }}>
+                            <Chip 
+                              label={book.enhancedGenres?.[0] || book.categories?.[0]} 
+                              size="small" 
+                              color={book.enhancedGenres ? 'primary' : 'default'}
+                              sx={{ mr: 0.5, mb: 0.5 }} 
+                            />
+                          </Box>
+                        )}
+                        {book.description && (
+                          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                            {book.description.substring(0, 200)}...
+                          </Typography>
+                        )}
+                        {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
+                          <Box sx={{ mt: 1 }}>
+                            <Button
+                              size="small"
+                              startIcon={<Info />}
+                              onClick={() => handleMoreDetailsClick(book)}
+                              sx={{ textTransform: 'none' }}
+                            >
+                              More Details
+                            </Button>
+                          </Box>
+                        )}
                       </Box>
-                      
-                      {/* Show shelf info for admin */}
+                    </Box>
+                    
+                    {/* Only show shelf info if multiple shelves available */}
+                    {shelves.length > 1 && (
                       <Box sx={{ mt: 2 }}>
                         <FormControl size="small" sx={{ minWidth: 200 }}>
                           <InputLabel>Shelf</InputLabel>
@@ -1218,260 +1747,82 @@ export default function BookLibrary() {
                             onChange={(e) => updateBookShelf(book.id, parseInt(String(e.target.value)))}
                           >
                             <MenuItem value="">Select shelf...</MenuItem>
-                            {location.shelves.map((shelf: Shelf) => (
+                            {shelves.map(shelf => (
                               <MenuItem key={shelf.id} value={shelf.id}>{shelf.name}</MenuItem>
                             ))}
                           </Select>
                         </FormControl>
                       </Box>
-                      
-                      {book.tags && book.tags.length > 0 && (
-                        <Box sx={{ mt: 1 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            <strong>Tags:</strong> {book.tags.join(', ')}
+                    )}
+                    
+                    {book.tags && book.tags.length > 0 && (
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          <strong>Tags:</strong> {book.tags.join(', ')}
+                        </Typography>
+                      </Box>
+                    )}
+                    
+                    {/* Checkout status display */}
+                    {book.status === 'checked_out' && (
+                      <Box sx={{ mt: 2, p: 1, backgroundColor: 'warning.light', borderRadius: 1 }}>
+                        <Typography variant="body2" color="text.primary">
+                          📖 <strong>Checked out</strong> by {book.checked_out_by_name || 'Unknown'}
+                        </Typography>
+                        {book.checked_out_date && (
+                          <Typography variant="caption" color="text.secondary">
+                            Since: {new Date(book.checked_out_date).toLocaleDateString()}
                           </Typography>
-                        </Box>
-                      )}
-                      
-                      {/* Checkout status display */}
-                      {book.status === 'checked_out' && (
-                        <Box sx={{ mt: 2, p: 1, backgroundColor: 'warning.light', borderRadius: 1 }}>
-                          <Typography variant="body2" color="text.primary">
-                            📖 <strong>Checked out</strong> by {book.checked_out_by_name || 'Unknown'}
-                          </Typography>
-                          {book.checked_out_date && (
-                            <Typography variant="caption" color="text.secondary">
-                              Since: {new Date(book.checked_out_date).toLocaleDateString()}
-                            </Typography>
-                          )}
-                        </Box>
-                      )}
-                    </CardContent>
+                        )}
+                      </Box>
+                    )}
+                  </CardContent>
 
-                    <CardActions>
-                      {/* Checkout/Return buttons for admin */}
-                      {book.status === 'checked_out' ? (
-                        <Button
-                          size="small"
-                          variant="contained"
-                          color="success"
-                          startIcon={<Undo />}
-                          onClick={() => checkinBook(book.id, book.title)}
-                        >
-                          Return Book
-                        </Button>
-                      ) : (
-                        <Button
-                          size="small"
-                          variant="contained"
-                          color="primary"
-                          startIcon={<CheckCircle />}
-                          onClick={() => checkoutBook(book.id, book.title)}
-                        >
-                          Check Out
-                        </Button>
-                      )}
-                      
+                  <CardActions sx={{ justifyContent: 'space-between' }}>
+                    {/* Checkout/Return buttons */}
+                    {book.status === 'checked_out' ? (
                       <Button
                         size="small"
                         variant="contained"
-                        color="error"
-                        startIcon={<Delete />}
-                        onClick={() => deleteBook(book.id, book.title)}
+                        color="success"
+                        startIcon={<Undo />}
+                        onClick={() => checkinBook(book.id, book.title)}
                       >
-                        Remove
+                        Return Book
                       </Button>
-                    </CardActions>
-                  </Card>
-                ))}
-              </Box>
-            </div>
-          ))}
-        </div>
-      ) : (
-        // Regular user view: Flat book list
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 2 }}>
-          {filteredBooks.map(book => (
-            <Card key={book.id} sx={{ height: 'fit-content' }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                  {book.thumbnail && (
-                    <Box
-                      component="img"
-                      src={book.thumbnail}
-                      alt={book.title}
-                      sx={{ 
-                        width: 80, 
-                        height: 120, 
-                        objectFit: 'cover', 
-                        flexShrink: 0,
-                        borderRadius: 1
-                      }}
-                    />
-                  )}
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="h6" gutterBottom>
-                      {book.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      <strong>Author:</strong> {book.authors.map((author, index) => (
-                        <span key={index}>
-                          <Typography 
-                            component="span" 
-                            sx={{ 
-                              color: 'primary.main', 
-                              cursor: 'pointer',
-                              textDecoration: 'underline',
-                              '&:hover': { textDecoration: 'none' }
-                            }}
-                            onClick={() => handleAuthorClick(author)}
-                          >
-                            {author}
-                          </Typography>
-                          {index < book.authors.length - 1 && ', '}
-                        </span>
-                      ))}
-                    </Typography>
-                    {book.publishedDate && (
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        <strong>Published:</strong> {new Date(book.publishedDate).getFullYear()}
-                      </Typography>
-                    )}
-                    {book.series && (
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        <strong>Series:</strong> 
-                        <Typography 
-                          component="span" 
-                          sx={{ 
-                            color: 'primary.main', 
-                            cursor: 'pointer',
-                            textDecoration: 'underline',
-                            ml: 0.5,
-                            '&:hover': { textDecoration: 'none' }
-                          }}
-                          onClick={() => handleSeriesClick(book.series!)}
-                        >
-                          {book.series}
-                        </Typography>
-                        {book.seriesNumber && ` (#${book.seriesNumber})`}
-                      </Typography>
-                    )}
-                    {/* Show only first genre */}
-                    {(book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
-                      <Box sx={{ mt: 1, mb: 1 }}>
-                        <Chip 
-                          label={book.enhancedGenres?.[0] || book.categories?.[0]} 
-                          size="small" 
-                          color={book.enhancedGenres ? 'primary' : 'default'}
-                          sx={{ mr: 0.5, mb: 0.5 }} 
-                        />
-                      </Box>
-                    )}
-                    {book.description && (
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        {book.description.substring(0, 200)}...
-                      </Typography>
-                    )}
-                    {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
-                      <Box sx={{ mt: 1 }}>
-                        <Button
-                          size="small"
-                          startIcon={<Info />}
-                          onClick={() => handleMoreDetailsClick(book)}
-                          sx={{ textTransform: 'none' }}
-                        >
-                          More Details
-                        </Button>
-                      </Box>
-                    )}
-                  </Box>
-                </Box>
-                
-                {/* Only show shelf info if multiple shelves available */}
-                {shelves.length > 1 && (
-                  <Box sx={{ mt: 2 }}>
-                    <FormControl size="small" sx={{ minWidth: 200 }}>
-                      <InputLabel>Shelf</InputLabel>
-                      <Select
-                        value={book.shelf_id || ''}
-                        label="Shelf"
-                        onChange={(e) => updateBookShelf(book.id, parseInt(String(e.target.value)))}
+                    ) : (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="primary"
+                        startIcon={<CheckCircle />}
+                        onClick={() => checkoutBook(book.id, book.title)}
                       >
-                        <MenuItem value="">Select shelf...</MenuItem>
-                        {shelves.map(shelf => (
-                          <MenuItem key={shelf.id} value={shelf.id}>{shelf.name}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Box>
-                )}
-                
-                {book.tags && book.tags.length > 0 && (
-                  <Box sx={{ mt: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      <strong>Tags:</strong> {book.tags.join(', ')}
-                    </Typography>
-                  </Box>
-                )}
-                
-                {/* Checkout status display */}
-                {book.status === 'checked_out' && (
-                  <Box sx={{ mt: 2, p: 1, backgroundColor: 'warning.light', borderRadius: 1 }}>
-                    <Typography variant="body2" color="text.primary">
-                      📖 <strong>Checked out</strong> by {book.checked_out_by_name || 'Unknown'}
-                    </Typography>
-                    {book.checked_out_date && (
-                      <Typography variant="caption" color="text.secondary">
-                        Since: {new Date(book.checked_out_date).toLocaleDateString()}
-                      </Typography>
+                        Check Out
+                      </Button>
                     )}
-                  </Box>
-                )}
-              </CardContent>
-
-              <CardActions sx={{ justifyContent: 'space-between' }}>
-                {/* Checkout/Return buttons */}
-                {book.status === 'checked_out' ? (
-                  <Button
-                    size="small"
-                    variant="contained"
-                    color="success"
-                    startIcon={<Undo />}
-                    onClick={() => checkinBook(book.id, book.title)}
-                  >
-                    Return Book
-                  </Button>
-                ) : (
-                  <Button
-                    size="small"
-                    variant="contained"
-                    color="primary"
-                    startIcon={<CheckCircle />}
-                    onClick={() => checkoutBook(book.id, book.title)}
-                  >
-                    Check Out
-                  </Button>
-                )}
-                
-                <Button
-                  size="small"
-                  variant="contained"
-                  color={pendingRemovalRequests[book.id] ? 'inherit' : 'warning'}
-                  onClick={() => {
-                    if (pendingRemovalRequests[book.id]) {
-                      cancelRemovalRequest(book.id, book.title)
-                    } else {
-                      requestBookRemoval(book.id, book.title)
-                    }
-                  }}
-                  sx={{ minWidth: 'auto', px: 1 }}
-                >
-                  {pendingRemovalRequests[book.id] ? <Cancel /> : <ReportProblem />}
-                </Button>
-              </CardActions>
-            </Card>
-          ))}
-        </Box>
+                    
+                    <Button
+                      size="small"
+                      variant="contained"
+                      color={pendingRemovalRequests[book.id] ? 'inherit' : 'warning'}
+                      onClick={() => {
+                        if (pendingRemovalRequests[book.id]) {
+                          cancelRemovalRequest(book.id, book.title)
+                        } else {
+                          requestBookRemoval(book.id, book.title)
+                        }
+                      }}
+                      sx={{ minWidth: 'auto', px: 1 }}
+                    >
+                      {pendingRemovalRequests[book.id] ? <Cancel /> : <ReportProblem />}
+                    </Button>
+                  </CardActions>
+                </Card>
+              ))}
+            </Box>
+          )
+        )
       )}
       
       {/* Bootstrap Modal Components */}
