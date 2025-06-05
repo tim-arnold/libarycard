@@ -785,7 +785,12 @@ export default function AddBooks() {
                     variant="outlined"
                     sx={{ flexGrow: 1 }}
                     inputRef={isbnInputRef}
-                    inputMode="numeric"
+                    type="number"
+                    slotProps={{
+                      input: {
+                        inputMode: 'numeric'
+                      }
+                    }}
                   />
                   <Button 
                     type="submit" 
