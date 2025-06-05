@@ -29,8 +29,7 @@ import ConfirmationModal from '@/components/ConfirmationModal'
 import AlertModal from '@/components/AlertModal'
 import { useModal } from '@/hooks/useModal'
 
-// Temporarily force direct Workers domain to resolve 404 issues
-const API_BASE = 'https://libarycard-api.tim-arnold.workers.dev'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
 
 interface ProfileData {
   id: string
