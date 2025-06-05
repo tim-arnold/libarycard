@@ -534,10 +534,9 @@ export default function BookLibrary() {
       },
       async () => {
         try {
-          const response = await fetch(`${API_BASE}/api/books/${bookId}/checkout`, {
+          const response = await fetch(`/api/books/${bookId}?action=checkout`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${session.user.email}`,
               'Content-Type': 'application/json',
             },
           })
@@ -607,10 +606,9 @@ export default function BookLibrary() {
       },
       async () => {
         try {
-          const response = await fetch(`${API_BASE}/api/books/${bookId}/checkin`, {
+          const response = await fetch(`/api/books/${bookId}?action=checkin`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${session.user.email}`,
               'Content-Type': 'application/json',
             },
           })

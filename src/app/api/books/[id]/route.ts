@@ -37,6 +37,57 @@ export async function PUT(
   }
 }
 
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const session = await getServerSession()
+  
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const url = new URL(request.url)
+    const action = url.searchParams.get('action')
+    
+    let endpoint = ''
+    if (action === 'checkout') {
+      endpoint = `${API_BASE}/api/books/${params.id}/checkout`
+    } else if (action === 'checkin') {
+      endpoint = `${API_BASE}/api/books/${params.id}/checkin`
+    } else {
+      return NextResponse.json({ error: 'Invalid action. Must be checkout or checkin' }, { status: 400 })
+    }
+    
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.user.email}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Worker API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+        endpoint,
+        action
+      })
+      throw new Error(`Worker responded with ${response.status}: ${errorText}`)
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error('Failed to perform checkout/checkin:', error)
+    return NextResponse.json({ error: 'Failed to perform action' }, { status: 500 })
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }

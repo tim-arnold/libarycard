@@ -206,6 +206,21 @@ export default {
         return await createBook(request, userId, env, corsHeaders);
       }
 
+      // Book checkout endpoints (must come before general /api/books/* routes)
+      if (path.match(/^\/api\/books\/\d+\/checkout$/) && request.method === 'POST') {
+        const bookId = parseInt(path.split('/')[3]);
+        return await checkoutBook(request, bookId, userId, env, corsHeaders);
+      }
+
+      if (path.match(/^\/api\/books\/\d+\/checkin$/) && request.method === 'POST') {
+        const bookId = parseInt(path.split('/')[3]);
+        return await checkinBook(bookId, userId, env, corsHeaders);
+      }
+
+      if (path === '/api/books/checkout-history' && request.method === 'GET') {
+        return await getCheckoutHistory(userId, env, corsHeaders);
+      }
+
       if (path.startsWith('/api/books/') && request.method === 'PUT') {
         const id = parseInt(path.split('/')[3]);
         return await updateBook(request, userId, env, corsHeaders, id);
