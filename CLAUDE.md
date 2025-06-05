@@ -88,7 +88,7 @@ This file contains development todos, notes, and context for AI assistants worki
   - [ ] Add book status field (available, checked_out, checked_out_by, checked_out_date)
   - [ ] Allow users to mark books as "currently reading" (checkout)
   - [ ] Show book availability status in book listings
-  - [ ] Add checkout history and return functionaLe'ts lity
+  - [ ] Add checkout history and return functionality
   - [ ] Implement checkout notifications and due date reminders
 
 ### Low Priority - Future Enhancements
