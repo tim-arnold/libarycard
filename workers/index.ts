@@ -1520,7 +1520,7 @@ async function sendInvitationEmail(env: Env, email: string, locationName: string
     SELECT first_name, last_name FROM users WHERE id = ?
   `);
   const inviter = await inviterStmt.bind(invitedBy).first();
-  const inviterName = inviter ? `${(inviter as any).first_name} ${(inviter as any).last_name || ''}`.trim() : 'Someone';
+  const inviterName = inviter ? `${(inviter as any).first_name || ''}`.trim() || 'Someone' : 'Someone';
   
   // Use Resend for production email sending
   if (env.RESEND_API_KEY) {
@@ -2303,11 +2303,19 @@ async function checkoutBook(request: Request, bookId: number, userId: string, en
 
     await historyStmt.bind(bookId, userId, dueDate, notes || null).run();
 
+    // Get user name for response
+    const userStmt = env.DB.prepare(`SELECT first_name, last_name FROM users WHERE id = ?`);
+    const user = await userStmt.bind(userId).first();
+    const userName = user ? `${(user as any).first_name || ''}`.trim() || 'Unknown' : 'Unknown';
+
     return new Response(JSON.stringify({ 
       message: 'Book checked out successfully',
       book_title: (book as any).title,
       due_date: dueDate,
-      book_id: bookId
+      book_id: bookId,
+      checked_out_by: userId,
+      checked_out_by_name: userName,
+      checked_out_date: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
