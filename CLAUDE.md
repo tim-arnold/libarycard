@@ -104,6 +104,7 @@ This file contains development todos, notes, and context for AI assistants worki
   - [ ] Implement admin analytics (books per location, user activity, etc.)
 
 - [ ] **Other Enhancements**
+  - [ ] When entering ISBN manually on a phone, device should use the numeric keyboard rather than QUERTY
   - [ ] Add star rating system, just display average rating for each book from scoped to the location
   - [x] ~~Add book details modal/page with full information, cover image, and editing options~~ ✅ COMPLETED
   - [x] ~~Improve ISBN scanner interface with better camera controls and feedback~~ ✅ COMPLETED
