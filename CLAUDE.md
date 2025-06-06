@@ -128,8 +128,6 @@ This file contains development todos, notes, and context for AI assistants worki
   - [ ] Add profile picture upload functionality with image resizing and storage
   - [x] ~~Implement dark mode toggle with persistent user preference~~ ✅ COMPLETED
   - [x] ~~Add export functionality for book collections (CSV, PDF formats)~~ ✅ COMPLETED (Export Library button removed)
-  - [ ] If an admin moves a book from a shelf in Location A to a shelf in Location B, that book should no longer be visible to users in Location A.
-  - [ ] Add support for multiple locations for regular users
   - [x] ~~Remove "Export Library" button~~ ✅ COMPLETED
 
 ## Technical Architecture
