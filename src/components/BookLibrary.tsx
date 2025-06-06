@@ -22,8 +22,6 @@ import {
   ToggleButtonGroup,
   List,
   ListItem,
-  ListItemAvatar,
-  Avatar,
 } from '@mui/material'
 import { 
   Search,
@@ -850,142 +848,253 @@ export default function BookLibrary() {
       key={book.id}
       sx={{
         display: 'flex',
-        alignItems: 'flex-start',
+        flexDirection: { xs: 'column', sm: 'row' },
+        alignItems: { xs: 'stretch', sm: 'flex-start' },
         border: 1,
         borderColor: 'divider',
         borderRadius: 1,
-        mb: 1,
-        p: 2,
-        backgroundColor: 'background.paper'
+        mb: 2,
+        p: { xs: 1.5, sm: 2, md: 3 },
+        backgroundColor: 'background.paper',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        '&:hover': {
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          borderColor: 'primary.main'
+        },
+        transition: 'all 0.2s ease-in-out'
       }}
     >
-      {/* Book Image */}
-      <ListItemAvatar sx={{ mr: 2 }}>
+      {/* Book Content Container - Image + Info */}
+      <Box sx={{ 
+        display: 'flex',
+        alignItems: { xs: 'center', sm: 'flex-start' },
+        gap: { xs: 2, sm: 3 },
+        flex: 1,
+        mb: { xs: 2, sm: 0 },
+        width: { xs: '100%', sm: 'auto' }
+      }}>
+        {/* Book Image */}
         {book.thumbnail ? (
-          <Avatar
+          <Box
+            component="img"
             src={book.thumbnail}
             alt={book.title}
-            variant="rounded"
-            sx={{ width: 60, height: 90, borderRadius: 1 }}
+            sx={{ 
+              width: { xs: 60, sm: 70 }, 
+              height: { xs: 90, sm: 105 }, 
+              objectFit: 'cover',
+              borderRadius: 1,
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              flexShrink: 0
+            }}
           />
         ) : (
-          <Avatar
-            variant="rounded"
-            sx={{ width: 60, height: 90, borderRadius: 1, bgcolor: 'grey.300' }}
-          >
+          <Box sx={{ 
+            width: { xs: 60, sm: 70 }, 
+            height: { xs: 90, sm: 105 }, 
+            borderRadius: 1, 
+            bgcolor: 'grey.300',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            fontSize: '1.5rem'
+          }}>
             📖
-          </Avatar>
-        )}
-      </ListItemAvatar>
-      
-      {/* Book Information Container */}
-      <Box sx={{ flex: 1, mr: 2 }}>
-        {/* Book Title */}
-        <Typography variant="h6" component="h3" sx={{ fontWeight: 600, mb: 1 }}>
-          {book.title}
-        </Typography>
-        
-        {/* Author */}
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          <strong>Author:</strong> {book.authors.map((author, index) => (
-            <span key={index}>
-              <Typography 
-                component="span" 
-                sx={{ 
-                  color: 'primary.main', 
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                  '&:hover': { textDecoration: 'none' }
-                }}
-                onClick={() => handleAuthorClick(author)}
-              >
-                {author}
-              </Typography>
-              {index < book.authors.length - 1 && ', '}
-            </span>
-          ))}
-        </Typography>
-        
-        {/* Publication info and Series */}
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 1 }}>
-          {book.publishedDate && (
-            <Typography variant="body2" color="text.secondary">
-              <strong>Published:</strong> {new Date(book.publishedDate).getFullYear()}
-            </Typography>
-          )}
-          
-          {book.series && (
-            <Typography variant="body2" color="text.secondary">
-              <strong>Series:</strong> 
-              <Typography 
-                component="span" 
-                sx={{ 
-                  color: 'primary.main', 
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                  ml: 0.5,
-                  '&:hover': { textDecoration: 'none' }
-                }}
-                onClick={() => handleSeriesClick(book.series!)}
-              >
-                {book.series}
-              </Typography>
-              {book.seriesNumber && ` (#${book.seriesNumber})`}
-            </Typography>
-          )}
-
-          {userRole === 'admin' && shelves.length > 1 && (
-            <Typography variant="body2" color="text.secondary">
-              <strong>Shelf:</strong> {book.shelf_name}
-            </Typography>
-          )}
-        </Box>
-
-        {/* Genre */}
-        {(book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
-          <Box sx={{ mb: 1 }}>
-            <Chip 
-              label={book.enhancedGenres?.[0] || book.categories?.[0]} 
-              size="small" 
-              color={book.enhancedGenres ? 'primary' : 'default'}
-              sx={{ mr: 0.5 }} 
-            />
           </Box>
         )}
-
-        {/* Checkout status display */}
-        {book.status === 'checked_out' && (
-          <Box sx={{ mt: 1, p: 1, backgroundColor: 'warning.light', borderRadius: 1 }}>
-            <Typography variant="body2" color="text.primary">
-              📖 <strong>Checked out</strong> by {book.checked_out_by_name || 'Unknown'}
+        
+        {/* Book Information Container */}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          {/* Book Title */}
+          <Typography 
+            variant="h6" 
+            component="h3" 
+            sx={{ 
+              fontWeight: 600, 
+              mb: 1.5, 
+              fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' },
+              lineHeight: 1.3,
+              wordBreak: 'break-word'
+            }}
+          >
+            {book.title}
+          </Typography>
+          
+          {/* Author */}
+          <Typography 
+            variant="body2" 
+            color="text.secondary" 
+            gutterBottom 
+            sx={{ mb: 1.5, fontSize: { xs: '0.8rem', sm: '0.875rem', md: '0.9rem' } }}
+          >
+            <Typography component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>
+              By: 
             </Typography>
-            {book.checked_out_date && (
-              <Typography variant="caption" color="text.secondary">
-                Since: {new Date(book.checked_out_date).toLocaleDateString()}
+            {book.authors.map((author, index) => (
+              <span key={index}>
+                <Typography 
+                  component="span" 
+                  sx={{ 
+                    color: 'primary.main', 
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    '&:hover': { textDecoration: 'none', color: 'primary.dark' },
+                    fontWeight: 500,
+                    ml: 0.5
+                  }}
+                  onClick={() => handleAuthorClick(author)}
+                >
+                  {author}
+                </Typography>
+                {index < book.authors.length - 1 && ', '}
+              </span>
+            ))}
+          </Typography>
+          
+          {/* Publication info and Series */}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1, sm: 1.5, md: 2 }, mb: 1.5 }}>
+            {book.publishedDate && (
+              <Typography 
+                variant="body2" 
+                color="text.secondary"
+                sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem', md: '0.875rem' } }}
+              >
+                <Typography component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                  Published: 
+                </Typography>
+                {new Date(book.publishedDate).getFullYear()}
+              </Typography>
+            )}
+            
+            {book.series && (
+              <Typography 
+                variant="body2" 
+                color="text.secondary"
+                sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem', md: '0.875rem' } }}
+              >
+                <Typography component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                  Series: 
+                </Typography>
+                <Typography 
+                  component="span" 
+                  sx={{ 
+                    color: 'primary.main', 
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    ml: 0.5,
+                    '&:hover': { textDecoration: 'none', color: 'primary.dark' },
+                    fontWeight: 500
+                  }}
+                  onClick={() => handleSeriesClick(book.series!)}
+                >
+                  {book.series}
+                </Typography>
+                {book.seriesNumber && (
+                  <Typography component="span" sx={{ color: 'text.secondary', ml: 0.5 }}>
+                    #{book.seriesNumber}
+                  </Typography>
+                )}
+              </Typography>
+            )}
+
+            {userRole === 'admin' && shelves.length > 1 && (
+              <Typography 
+                variant="body2" 
+                color="text.secondary"
+                sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem', md: '0.875rem' } }}
+              >
+                <Typography component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                  Shelf: 
+                </Typography>
+                {book.shelf_name}
               </Typography>
             )}
           </Box>
-        )}
 
-        {/* More Details button */}
-        {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
-          <Box sx={{ mt: 1 }}>
-            <Button
-              size="small"
-              startIcon={<Info />}
-              onClick={() => handleMoreDetailsClick(book)}
-              sx={{ textTransform: 'none' }}
-            >
-              More Details
-            </Button>
-          </Box>
-        )}
+          {/* Genre */}
+          {(book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
+            <Box sx={{ mb: 1.5 }}>
+              <Chip 
+                label={book.enhancedGenres?.[0] || book.categories?.[0]} 
+                size="small" 
+                color={book.enhancedGenres ? 'primary' : 'default'}
+                sx={{ 
+                  mr: 0.5,
+                  fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8125rem' },
+                  height: { xs: 20, sm: 24, md: 28 }
+                }} 
+              />
+            </Box>
+          )}
+
+          {/* Checkout status display */}
+          {book.status === 'checked_out' && (
+            <Box sx={{ 
+              mt: 1.5, 
+              p: { xs: 1, sm: 1.5 }, 
+              backgroundColor: 'warning.light', 
+              borderRadius: 1,
+              border: '1px solid',
+              borderColor: 'warning.main'
+            }}>
+              <Typography 
+                variant="body2" 
+                color="text.primary"
+                sx={{ fontWeight: 500, mb: 0.5, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+              >
+                📖 Checked out by {book.checked_out_by_name || 'Unknown'}
+              </Typography>
+              {book.checked_out_date && (
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+                  Since: {new Date(book.checked_out_date).toLocaleDateString()}
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          {/* More Details button */}
+          {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
+            <Box sx={{ mt: 1.5 }}>
+              <Button
+                size="small"
+                startIcon={<Info />}
+                onClick={() => handleMoreDetailsClick(book)}
+                sx={{ 
+                  textTransform: 'none',
+                  fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                  color: 'primary.main',
+                  '&:hover': {
+                    backgroundColor: 'primary.50'
+                  }
+                }}
+              >
+                More Details
+              </Button>
+            </Box>
+          )}
+        </Box>
       </Box>
 
       {/* Action Controls Container */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'flex-end', flexShrink: 0 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        gap: 1.5, 
+        alignItems: 'stretch',
+        flexShrink: 0,
+        width: { xs: '100%', sm: 180, md: 200 },
+        maxWidth: { xs: '100%', sm: 200 }
+      }}>
         {/* Action buttons row */}
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          gap: 1, 
+          order: 1,
+          flexWrap: { xs: 'wrap', sm: 'nowrap' },
+          width: '100%'
+        }}>
           {/* Checkout/Return buttons */}
           {book.status === 'checked_out' ? (
             <Button
@@ -994,6 +1103,12 @@ export default function BookLibrary() {
               color="success"
               startIcon={<Undo />}
               onClick={() => checkinBook(book.id, book.title)}
+              sx={{ 
+                flex: 1,
+                minWidth: 0,
+                fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.875rem' },
+                px: { xs: 0.5, sm: 1, md: 2 }
+              }}
             >
               Return
             </Button>
@@ -1004,6 +1119,12 @@ export default function BookLibrary() {
               color="primary"
               startIcon={<CheckCircle />}
               onClick={() => checkoutBook(book.id, book.title)}
+              sx={{ 
+                flex: 1,
+                minWidth: 0,
+                fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.875rem' },
+                px: { xs: 0.5, sm: 1, md: 2 }
+              }}
             >
               Check Out
             </Button>
@@ -1017,6 +1138,12 @@ export default function BookLibrary() {
               color="error"
               startIcon={<Delete />}
               onClick={() => deleteBook(book.id, book.title)}
+              sx={{ 
+                flex: 1,
+                minWidth: 0,
+                fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.875rem' },
+                px: { xs: 0.5, sm: 1, md: 2 }
+              }}
             >
               Remove
             </Button>
@@ -1032,7 +1159,12 @@ export default function BookLibrary() {
                   requestBookRemoval(book.id, book.title)
                 }
               }}
-              sx={{ minWidth: 'auto', px: 1 }}
+              sx={{ 
+                minWidth: 'auto', 
+                px: { xs: 0.5, sm: 1 },
+                fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.875rem' }
+              }}
+              title={pendingRemovalRequests[book.id] ? 'Cancel removal request' : 'Request removal'}
             >
               {pendingRemovalRequests[book.id] ? <Cancel /> : <ReportProblem />}
             </Button>
@@ -1041,15 +1173,23 @@ export default function BookLibrary() {
         
         {/* Shelf selector */}
         {((userRole === 'admin') || (userRole !== 'admin' && shelves.length > 1)) && (
-          <Box>
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel>Shelf</InputLabel>
+          <Box sx={{ width: '100%', order: 2 }}>
+            <FormControl size="small" fullWidth>
+              <InputLabel sx={{ fontSize: { xs: '0.8rem', sm: '1rem' } }}>Shelf</InputLabel>
               <Select
                 value={book.shelf_id || ''}
                 label="Shelf"
                 onChange={(e) => updateBookShelf(book.id, parseInt(String(e.target.value)))}
+                sx={{ 
+                  fontSize: { xs: '0.8rem', sm: '0.875rem', md: '1rem' },
+                  '& .MuiSelect-select': {
+                    py: { xs: 1, sm: 1.5 }
+                  }
+                }}
               >
-                <MenuItem value="">Select shelf...</MenuItem>
+                <MenuItem value="" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem', md: '1rem' } }}>
+                  Select shelf...
+                </MenuItem>
                 {booksByLocation ? (
                   // Admin with grouped locations
                   (() => {
@@ -1057,13 +1197,25 @@ export default function BookLibrary() {
                       loc.shelves.some((shelf: Shelf) => shelf.id === book.shelf_id)
                     )
                     return bookLocation ? bookLocation.shelves.map((shelf: Shelf) => (
-                      <MenuItem key={shelf.id} value={shelf.id}>{shelf.name}</MenuItem>
+                      <MenuItem 
+                        key={shelf.id} 
+                        value={shelf.id}
+                        sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem', md: '1rem' } }}
+                      >
+                        {shelf.name}
+                      </MenuItem>
                     )) : []
                   })()
                 ) : (
                   // Regular admin or filtered view, or regular users
                   shelves.map(shelf => (
-                    <MenuItem key={shelf.id} value={shelf.id}>{shelf.name}</MenuItem>
+                    <MenuItem 
+                      key={shelf.id} 
+                      value={shelf.id}
+                      sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem', md: '1rem' } }}
+                    >
+                      {shelf.name}
+                    </MenuItem>
                   ))
                 )}
               </Select>
