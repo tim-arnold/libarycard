@@ -22,6 +22,7 @@ import {
   ToggleButtonGroup,
   List,
   ListItem,
+  Pagination,
 } from '@mui/material'
 import { 
   Search,
@@ -207,6 +208,8 @@ export default function BookLibrary() {
   const [showMoreDetailsModal, setShowMoreDetailsModal] = useState(false)
   const [selectedBookForDetails, setSelectedBookForDetails] = useState<EnhancedBook | null>(null)
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [booksPerPage] = useState(10)
 
   useEffect(() => {
     if (session?.user) {
@@ -225,6 +228,58 @@ export default function BookLibrary() {
   const handleViewModeChange = (newViewMode: 'card' | 'list') => {
     setViewMode(newViewMode)
     localStorage.setItem('library-view-mode', newViewMode)
+  }
+
+  // Pagination functions
+  const getPaginatedBooks = (books: EnhancedBook[]) => {
+    const startIndex = (currentPage - 1) * booksPerPage
+    const endIndex = startIndex + booksPerPage
+    return books.slice(startIndex, endIndex)
+  }
+
+  const getTotalPages = (books: EnhancedBook[]) => {
+    return Math.ceil(books.length / booksPerPage)
+  }
+
+  const handlePageChange = (event: React.ChangeEvent<unknown>, page: number) => {
+    setCurrentPage(page)
+    // Scroll to top when changing pages
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // Get paginated books for current view
+  const getPaginatedBooksForView = () => {
+    if (userRole === 'admin' && booksByLocation) {
+      // For admin view, we need to handle pagination across grouped locations
+      // We'll flatten all books, paginate them, then regroup
+      const allBooks = booksByLocation.flatMap(location => location.books)
+      const paginatedBooks = getPaginatedBooks(allBooks)
+      
+      // Regroup paginated books by location
+      const locationMap = new Map()
+      allLocations.forEach(location => {
+        locationMap.set(location.id, {
+          ...location,
+          shelves: shelves.filter(shelf => shelf.location_id === location.id),
+          books: []
+        })
+      })
+      
+      paginatedBooks.forEach(book => {
+        const shelf = shelves.find(s => s.id === book.shelf_id)
+        if (shelf) {
+          const locationData = locationMap.get(shelf.location_id)
+          if (locationData) {
+            locationData.books.push(book)
+          }
+        }
+      })
+      
+      return Array.from(locationMap.values()).filter(location => location.books.length > 0)
+    } else {
+      // For regular users, simple pagination
+      return getPaginatedBooks(filteredBooks)
+    }
   }
 
   const loadUserData = async () => {
@@ -437,6 +492,8 @@ export default function BookLibrary() {
     }
 
     setFilteredBooks(filtered)
+    // Reset to first page when filters change
+    setCurrentPage(1)
   }, [books, searchTerm, shelfFilter, categoryFilter, locationFilter, userRole, shelves, allLocations])
 
   const deleteBook = async (bookId: string, bookTitle: string) => {
@@ -1096,39 +1153,43 @@ export default function BookLibrary() {
           flexWrap: { xs: 'wrap', sm: 'nowrap' },
           width: '100%'
         }}>
-          {/* Checkout/Return buttons */}
-          {book.status === 'checked_out' ? (
-            <Button
-              size="small"
-              variant="contained"
-              color="success"
-              startIcon={<Undo />}
-              onClick={() => checkinBook(book.id, book.title)}
-              sx={{ 
-                flex: 1,
-                minWidth: 0,
-                fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.875rem' },
-                px: { xs: 0.5, sm: 1, md: 2 }
-              }}
-            >
-              Return
-            </Button>
-          ) : (
-            <Button
-              size="small"
-              variant="contained"
-              color="primary"
-              startIcon={<CheckCircle />}
-              onClick={() => checkoutBook(book.id, book.title)}
-              sx={{ 
-                flex: 1,
-                minWidth: 0,
-                fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.875rem' },
-                px: { xs: 0.5, sm: 1, md: 2 }
-              }}
-            >
-              Check Out
-            </Button>
+          {/* Checkout/Return buttons - only show for regular users */}
+          {userRole !== 'admin' && (
+            <>
+              {book.status === 'checked_out' ? (
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="success"
+                  startIcon={<Undo />}
+                  onClick={() => checkinBook(book.id, book.title)}
+                  sx={{ 
+                    flex: 1,
+                    minWidth: 0,
+                    fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.875rem' },
+                    px: { xs: 0.5, sm: 1, md: 2 }
+                  }}
+                >
+                  Return
+                </Button>
+              ) : (
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="primary"
+                  startIcon={<CheckCircle />}
+                  onClick={() => checkoutBook(book.id, book.title)}
+                  sx={{ 
+                    flex: 1,
+                    minWidth: 0,
+                    fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.875rem' },
+                    px: { xs: 0.5, sm: 1, md: 2 }
+                  }}
+                >
+                  Check Out
+                </Button>
+              )}
+            </>
           )}
           
           {/* Remove/Request Removal button */}
@@ -1514,262 +1575,240 @@ export default function BookLibrary() {
           {books.length === 0 ? 'No books in your library yet. Start scanning!' : 'No books match your filters.'}
         </Typography>
       ) : (
-        // Conditional rendering based on view mode
-        viewMode === 'list' ? (
-          // List view
-          userRole === 'admin' ? (
-            // Admin list view with location grouping
-            <div>
-              {booksByLocation && booksByLocation.map(location => (
-                <div key={location.id} style={{ marginBottom: '2rem' }}>
-                  {/* Only show location header when viewing all locations (no location filter active) */}
-                  {!locationFilter && (
-                    <Box sx={{ 
-                      bgcolor: 'action.hover',
-                      p: '0.75rem 1rem', 
-                      borderRadius: 1, 
-                      mb: 2,
-                      border: 1,
-                      borderColor: 'divider',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}>
-                      <Typography variant="h6" sx={{ m: 0, fontSize: '1.1rem' }}>
-                        📍 {location.name} ({location.books.length} book{location.books.length !== 1 ? 's' : ''})
-                      </Typography>
-                      {location.description && (
-                        <Typography variant="body2" color="text.secondary" sx={{ m: 0, fontStyle: 'italic' }}>
-                          {location.description}
+        <Box>
+          {/* Conditional rendering based on view mode */}
+          {viewMode === 'list' ? (
+            // List view
+            userRole === 'admin' ? (
+              // Admin list view with location grouping (paginated)
+              <div>
+                {getPaginatedBooksForView().map((location: any) => (
+                  <div key={location.id} style={{ marginBottom: '2rem' }}>
+                    {/* Only show location header when viewing all locations (no location filter active) */}
+                    {!locationFilter && (
+                      <Box sx={{ 
+                        bgcolor: 'action.hover',
+                        p: '0.75rem 1rem', 
+                        borderRadius: 1, 
+                        mb: 2,
+                        border: 1,
+                        borderColor: 'divider',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <Typography variant="h6" sx={{ m: 0, fontSize: '1.1rem' }}>
+                          📍 {location.name} ({location.books.length} book{location.books.length !== 1 ? 's' : ''})
                         </Typography>
-                      )}
-                    </Box>
-                  )}
-                  
-                  <List sx={{ width: '100%' }}>
-                    {location.books.map((book: EnhancedBook) => renderBookListItem(book))}
-                  </List>
-                </div>
-              ))}
-            </div>
+                        {location.description && (
+                          <Typography variant="body2" color="text.secondary" sx={{ m: 0, fontStyle: 'italic' }}>
+                            {location.description}
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                    
+                    <List sx={{ width: '100%' }}>
+                      {location.books.map((book: EnhancedBook) => renderBookListItem(book))}
+                    </List>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // Regular user list view (paginated)
+              <List sx={{ width: '100%' }}>
+                {getPaginatedBooks(filteredBooks).map(book => renderBookListItem(book))}
+              </List>
+            )
           ) : (
-            // Regular user list view
-            <List sx={{ width: '100%' }}>
-              {filteredBooks.map(book => renderBookListItem(book))}
-            </List>
-          )
-        ) : (
-          // Card view (default)
-          userRole === 'admin' ? (
-            // Admin card view with location grouping
-            <div>
-              {booksByLocation && booksByLocation.map(location => (
-                <div key={location.id} style={{ marginBottom: '2rem' }}>
-                  {/* Only show location header when viewing all locations (no location filter active) */}
-                  {!locationFilter && (
-                    <Box sx={{ 
-                      bgcolor: 'action.hover',
-                      p: '0.75rem 1rem', 
-                      borderRadius: 1, 
-                      mb: 2,
-                      border: 1,
-                      borderColor: 'divider',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}>
-                      <Typography variant="h6" sx={{ m: 0, fontSize: '1.1rem' }}>
-                        📍 {location.name} ({location.books.length} book{location.books.length !== 1 ? 's' : ''})
-                      </Typography>
-                      {location.description && (
-                        <Typography variant="body2" color="text.secondary" sx={{ m: 0, fontStyle: 'italic' }}>
-                          {location.description}
+            // Card view (default)
+            userRole === 'admin' ? (
+              // Admin card view with location grouping (paginated)
+              <div>
+                {getPaginatedBooksForView().map((location: any) => (
+                  <div key={location.id} style={{ marginBottom: '2rem' }}>
+                    {/* Only show location header when viewing all locations (no location filter active) */}
+                    {!locationFilter && (
+                      <Box sx={{ 
+                        bgcolor: 'action.hover',
+                        p: '0.75rem 1rem', 
+                        borderRadius: 1, 
+                        mb: 2,
+                        border: 1,
+                        borderColor: 'divider',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <Typography variant="h6" sx={{ m: 0, fontSize: '1.1rem' }}>
+                          📍 {location.name} ({location.books.length} book{location.books.length !== 1 ? 's' : ''})
                         </Typography>
-                      )}
-                    </Box>
-                  )}
-                  
-                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 2 }}>
-                    {location.books.map((book: EnhancedBook) => (
-                      <Card key={book.id} sx={{ height: 'fit-content', backgroundColor: 'background.paper !important' }}>
-                        <CardContent>
-                          <Box sx={{ display: 'flex', gap: 2 }}>
-                            {book.thumbnail && (
-                              <Box
-                                component="img"
-                                src={book.thumbnail}
-                                alt={book.title}
-                                sx={{ 
-                                  width: 80, 
-                                  height: 120, 
-                                  objectFit: 'cover', 
-                                  flexShrink: 0,
-                                  borderRadius: 1
-                                }}
-                              />
-                            )}
-                            <Box sx={{ flex: 1 }}>
-                              <Typography variant="h6" gutterBottom>
-                                {book.title}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary" gutterBottom>
-                                <strong>Author:</strong> {book.authors.map((author, index) => (
-                                  <span key={index}>
+                        {location.description && (
+                          <Typography variant="body2" color="text.secondary" sx={{ m: 0, fontStyle: 'italic' }}>
+                            {location.description}
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                    
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 2 }}>
+                      {location.books.map((book: EnhancedBook) => (
+                        <Card key={book.id} sx={{ height: 'fit-content', backgroundColor: 'background.paper !important' }}>
+                          <CardContent>
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                              {book.thumbnail && (
+                                <Box
+                                  component="img"
+                                  src={book.thumbnail}
+                                  alt={book.title}
+                                  sx={{ 
+                                    width: 80, 
+                                    height: 120, 
+                                    objectFit: 'cover', 
+                                    flexShrink: 0,
+                                    borderRadius: 1
+                                  }}
+                                />
+                              )}
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="h6" gutterBottom>
+                                  {book.title}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" gutterBottom>
+                                  <strong>Author:</strong> {book.authors.map((author, index) => (
+                                    <span key={index}>
+                                      <Typography 
+                                        component="span" 
+                                        sx={{ 
+                                          color: 'primary.main', 
+                                          cursor: 'pointer',
+                                          textDecoration: 'underline',
+                                          '&:hover': { textDecoration: 'none' }
+                                        }}
+                                        onClick={() => handleAuthorClick(author)}
+                                      >
+                                        {author}
+                                      </Typography>
+                                      {index < book.authors.length - 1 && ', '}
+                                    </span>
+                                  ))}
+                                </Typography>
+                                {book.publishedDate && (
+                                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                                    <strong>Published:</strong> {new Date(book.publishedDate).getFullYear()}
+                                  </Typography>
+                                )}
+                                {book.series && (
+                                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                                    <strong>Series:</strong> 
                                     <Typography 
                                       component="span" 
                                       sx={{ 
                                         color: 'primary.main', 
                                         cursor: 'pointer',
                                         textDecoration: 'underline',
+                                        ml: 0.5,
                                         '&:hover': { textDecoration: 'none' }
                                       }}
-                                      onClick={() => handleAuthorClick(author)}
+                                      onClick={() => handleSeriesClick(book.series!)}
                                     >
-                                      {author}
+                                      {book.series}
                                     </Typography>
-                                    {index < book.authors.length - 1 && ', '}
-                                  </span>
-                                ))}
-                              </Typography>
-                              {book.publishedDate && (
-                                <Typography variant="body2" color="text.secondary" gutterBottom>
-                                  <strong>Published:</strong> {new Date(book.publishedDate).getFullYear()}
-                                </Typography>
-                              )}
-                              {book.series && (
-                                <Typography variant="body2" color="text.secondary" gutterBottom>
-                                  <strong>Series:</strong> 
-                                  <Typography 
-                                    component="span" 
-                                    sx={{ 
-                                      color: 'primary.main', 
-                                      cursor: 'pointer',
-                                      textDecoration: 'underline',
-                                      ml: 0.5,
-                                      '&:hover': { textDecoration: 'none' }
-                                    }}
-                                    onClick={() => handleSeriesClick(book.series!)}
-                                  >
-                                    {book.series}
+                                    {book.seriesNumber && ` (#${book.seriesNumber})`}
                                   </Typography>
-                                  {book.seriesNumber && ` (#${book.seriesNumber})`}
-                                </Typography>
-                              )}
-                              {/* Show only first genre */}
-                              {(book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
-                                <Box sx={{ mt: 1, mb: 1 }}>
-                                  <Chip 
-                                    label={book.enhancedGenres?.[0] || book.categories?.[0]}
-                                    size="small" 
-                                    color={book.enhancedGenres ? 'primary' : 'default'}
-                                    sx={{ mr: 0.5, mb: 0.5 }} 
-                                  />
-                                </Box>
-                              )}
-                              {book.description && (
-                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                                  {book.description.substring(0, 200)}...
-                                </Typography>
-                              )}
-                              {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
-                                <Box sx={{ mt: 1 }}>
-                                  <Button
-                                    size="small"
-                                    startIcon={<Info />}
-                                    onClick={() => handleMoreDetailsClick(book)}
-                                    sx={{ textTransform: 'none' }}
-                                  >
-                                    More Details
-                                  </Button>
-                                </Box>
-                              )}
+                                )}
+                                {/* Show only first genre */}
+                                {(book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
+                                  <Box sx={{ mt: 1, mb: 1 }}>
+                                    <Chip 
+                                      label={book.enhancedGenres?.[0] || book.categories?.[0]}
+                                      size="small" 
+                                      color={book.enhancedGenres ? 'primary' : 'default'}
+                                      sx={{ mr: 0.5, mb: 0.5 }} 
+                                    />
+                                  </Box>
+                                )}
+                                {book.description && (
+                                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                    {book.description.substring(0, 200)}...
+                                  </Typography>
+                                )}
+                                {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
+                                  <Box sx={{ mt: 1 }}>
+                                    <Button
+                                      size="small"
+                                      startIcon={<Info />}
+                                      onClick={() => handleMoreDetailsClick(book)}
+                                      sx={{ textTransform: 'none' }}
+                                    >
+                                      More Details
+                                    </Button>
+                                  </Box>
+                                )}
+                              </Box>
                             </Box>
-                          </Box>
-                          
-                          {/* Show shelf info for admin */}
-                          <Box sx={{ mt: 2 }}>
-                            <FormControl size="small" sx={{ minWidth: 200 }}>
-                              <InputLabel>Shelf</InputLabel>
-                              <Select
-                                value={book.shelf_id || ''}
-                                label="Shelf"
-                                onChange={(e) => updateBookShelf(book.id, parseInt(String(e.target.value)))}
-                              >
-                                <MenuItem value="">Select shelf...</MenuItem>
-                                {location.shelves.map((shelf: Shelf) => (
-                                  <MenuItem key={shelf.id} value={shelf.id}>{shelf.name}</MenuItem>
-                                ))}
-                              </Select>
-                            </FormControl>
-                          </Box>
-                          
-                          {book.tags && book.tags.length > 0 && (
-                            <Box sx={{ mt: 1 }}>
-                              <Typography variant="body2" color="text.secondary">
-                                <strong>Tags:</strong> {book.tags.join(', ')}
-                              </Typography>
+                            
+                            {/* Show shelf info for admin */}
+                            <Box sx={{ mt: 2 }}>
+                              <FormControl size="small" sx={{ minWidth: 200 }}>
+                                <InputLabel>Shelf</InputLabel>
+                                <Select
+                                  value={book.shelf_id || ''}
+                                  label="Shelf"
+                                  onChange={(e) => updateBookShelf(book.id, parseInt(String(e.target.value)))}
+                                >
+                                  <MenuItem value="">Select shelf...</MenuItem>
+                                  {location.shelves.map((shelf: Shelf) => (
+                                    <MenuItem key={shelf.id} value={shelf.id}>{shelf.name}</MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
                             </Box>
-                          )}
-                          
-                          {/* Checkout status display */}
-                          {book.status === 'checked_out' && (
-                            <Box sx={{ mt: 2, p: 1, backgroundColor: 'warning.light', borderRadius: 1 }}>
-                              <Typography variant="body2" color="text.primary">
-                                📖 <strong>Checked out</strong> by {book.checked_out_by_name || 'Unknown'}
-                              </Typography>
-                              {book.checked_out_date && (
-                                <Typography variant="caption" color="text.secondary">
-                                  Since: {new Date(book.checked_out_date).toLocaleDateString()}
+                            
+                            {book.tags && book.tags.length > 0 && (
+                              <Box sx={{ mt: 1 }}>
+                                <Typography variant="body2" color="text.secondary">
+                                  <strong>Tags:</strong> {book.tags.join(', ')}
                                 </Typography>
-                              )}
-                            </Box>
-                          )}
-                        </CardContent>
+                              </Box>
+                            )}
+                            
+                            {/* Checkout status display */}
+                            {book.status === 'checked_out' && (
+                              <Box sx={{ mt: 2, p: 1, backgroundColor: 'warning.light', borderRadius: 1 }}>
+                                <Typography variant="body2" color="text.primary">
+                                  📖 <strong>Checked out</strong> by {book.checked_out_by_name || 'Unknown'}
+                                </Typography>
+                                {book.checked_out_date && (
+                                  <Typography variant="caption" color="text.secondary">
+                                    Since: {new Date(book.checked_out_date).toLocaleDateString()}
+                                  </Typography>
+                                )}
+                              </Box>
+                            )}
+                          </CardContent>
 
-                        <CardActions>
-                          {/* Checkout/Return buttons for admin */}
-                          {book.status === 'checked_out' ? (
+                          <CardActions>
                             <Button
                               size="small"
                               variant="contained"
-                              color="success"
-                              startIcon={<Undo />}
-                              onClick={() => checkinBook(book.id, book.title)}
+                              color="error"
+                              startIcon={<Delete />}
+                              onClick={() => deleteBook(book.id, book.title)}
                             >
-                              Return Book
+                              Remove
                             </Button>
-                          ) : (
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="primary"
-                              startIcon={<CheckCircle />}
-                              onClick={() => checkoutBook(book.id, book.title)}
-                            >
-                              Check Out
-                            </Button>
-                          )}
-                          
-                          <Button
-                            size="small"
-                            variant="contained"
-                            color="error"
-                            startIcon={<Delete />}
-                            onClick={() => deleteBook(book.id, book.title)}
-                          >
-                            Remove
-                          </Button>
-                        </CardActions>
-                      </Card>
-                    ))}
-                  </Box>
-                </div>
-              ))}
-            </div>
-          ) : (
-            // Regular user card view
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 2 }}>
-              {filteredBooks.map(book => (
+                          </CardActions>
+                        </Card>
+                      ))}
+                    </Box>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // Regular user card view (paginated)
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 2 }}>
+                {getPaginatedBooks(filteredBooks).map(book => (
                 <Card key={book.id} sx={{ height: 'fit-content' }}>
                   <CardContent>
                     <Box sx={{ display: 'flex', gap: 2 }}>
@@ -1908,27 +1947,31 @@ export default function BookLibrary() {
                   </CardContent>
 
                   <CardActions sx={{ justifyContent: 'space-between' }}>
-                    {/* Checkout/Return buttons */}
-                    {book.status === 'checked_out' ? (
-                      <Button
-                        size="small"
-                        variant="contained"
-                        color="success"
-                        startIcon={<Undo />}
-                        onClick={() => checkinBook(book.id, book.title)}
-                      >
-                        Return Book
-                      </Button>
-                    ) : (
-                      <Button
-                        size="small"
-                        variant="contained"
-                        color="primary"
-                        startIcon={<CheckCircle />}
-                        onClick={() => checkoutBook(book.id, book.title)}
-                      >
-                        Check Out
-                      </Button>
+                    {/* Checkout/Return buttons - only show for regular users */}
+                    {userRole !== 'admin' && (
+                      <>
+                        {book.status === 'checked_out' ? (
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="success"
+                            startIcon={<Undo />}
+                            onClick={() => checkinBook(book.id, book.title)}
+                          >
+                            Return Book
+                          </Button>
+                        ) : (
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="primary"
+                            startIcon={<CheckCircle />}
+                            onClick={() => checkoutBook(book.id, book.title)}
+                          >
+                            Check Out
+                          </Button>
+                        )}
+                      </>
                     )}
                     
                     <Button
@@ -1949,9 +1992,25 @@ export default function BookLibrary() {
                   </CardActions>
                 </Card>
               ))}
+              </Box>
+            )
+          )}
+          
+          {/* Pagination Controls */}
+          {filteredBooks.length > booksPerPage && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+              <Pagination 
+                count={getTotalPages(filteredBooks)}
+                page={currentPage}
+                onChange={handlePageChange}
+                color="primary"
+                size="large"
+                showFirstButton
+                showLastButton
+              />
             </Box>
-          )
-        )
+          )}
+        </Box>
       )}
       
       {/* Bootstrap Modal Components */}
@@ -1969,28 +2028,28 @@ export default function BookLibrary() {
         />
       )}
       
-        {modalState.type === 'alert' && (
-          <AlertModal
-            isOpen={modalState.isOpen}
-            onClose={closeModal}
-            title={modalState.options.title}
-            message={modalState.options.message}
-            variant={modalState.options.variant}
-            buttonText={modalState.options.buttonText}
-          />
-        )}
+      {modalState.type === 'alert' && (
+        <AlertModal
+          isOpen={modalState.isOpen}
+          onClose={closeModal}
+          title={modalState.options.title}
+          message={modalState.options.message}
+          variant={modalState.options.variant}
+          buttonText={modalState.options.buttonText}
+        />
+      )}
 
-        {/* More Details Modal */}
-        {showMoreDetailsModal && selectedBookForDetails && (
-          <MoreDetailsModal
-            book={selectedBookForDetails}
-            isOpen={showMoreDetailsModal}
-            onClose={() => {
-              setShowMoreDetailsModal(false)
-              setSelectedBookForDetails(null)
-            }}
-          />
-        )}
+      {/* More Details Modal */}
+      {showMoreDetailsModal && selectedBookForDetails && (
+        <MoreDetailsModal
+          book={selectedBookForDetails}
+          isOpen={showMoreDetailsModal}
+          onClose={() => {
+            setShowMoreDetailsModal(false)
+            setSelectedBookForDetails(null)
+          }}
+        />
+      )}
       </Paper>
     </Container>
   )

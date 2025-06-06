@@ -50,12 +50,8 @@ export default function Home() {
         .then(data => {
           if (data.user_role) {
             setUserRole(data.user_role)
-            // Set default tab based on user role
-            if (data.user_role === 'admin') {
-              setActiveTab('locations')
-            } else {
-              setActiveTab('library')
-            }
+            // Set default tab to library for all users (first tab)
+            setActiveTab('library')
           }
           // Store the user's first name from profile data
           if (data.first_name) {
@@ -164,6 +160,18 @@ export default function Home() {
             variant="scrollable"
             scrollButtons="auto"
           >
+            <Tab 
+              value="library" 
+              label={userRole === 'admin' ? "Manage Libraries" : "My Libary"} 
+              icon={<LibraryBooks />}
+              iconPosition="start"
+            />
+            <Tab 
+              value="scan" 
+              label="Add Books" 
+              icon={<QrCodeScanner />}
+              iconPosition="start"
+            />
             {userRole === 'admin' && (
               <Tab 
                 value="locations" 
@@ -180,18 +188,6 @@ export default function Home() {
                 iconPosition="start"
               />
             )}
-            <Tab 
-              value="library" 
-              label="My Libary" 
-              icon={<LibraryBooks />}
-              iconPosition="start"
-            />
-            <Tab 
-              value="scan" 
-              label="Add Books" 
-              icon={<QrCodeScanner />}
-              iconPosition="start"
-            />
           </Tabs>
         </Paper>
 
