@@ -866,12 +866,12 @@ export default function BookLibrary() {
           <Avatar
             src={book.thumbnail}
             alt={book.title}
-            variant="rectangular"
+            variant="rounded"
             sx={{ width: 60, height: 90, borderRadius: 1 }}
           />
         ) : (
           <Avatar
-            variant="rectangular"
+            variant="rounded"
             sx={{ width: 60, height: 90, borderRadius: 1, bgcolor: 'grey.300' }}
           >
             📖
