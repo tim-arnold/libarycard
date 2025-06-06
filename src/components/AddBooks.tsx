@@ -35,7 +35,8 @@ import {
   Info,
   CheckCircle,
 } from '@mui/icons-material'
-import { fetchEnhancedBookData, fetchEnhancedBookFromSearch, type EnhancedBook } from '@/lib/bookApi'
+import { fetchEnhancedBookData, fetchEnhancedBookFromSearch } from '@/lib/bookApi'
+import type { EnhancedBook } from '@/lib/types'
 import { saveBook as saveBookAPI, getBooks } from '@/lib/api'
 import { BrowserMultiFormatReader } from '@zxing/library'
 import ConfirmationModal from './ConfirmationModal'
@@ -148,25 +149,6 @@ function MoreDetailsModal({ book, isOpen, onClose }: MoreDetailsModalProps) {
   )
 }
 
-export interface Book {
-  id: string
-  isbn: string
-  title: string
-  authors: string[]
-  description?: string
-  thumbnail?: string
-  publishedDate?: string
-  categories?: string[]
-  shelf_id?: number
-  tags?: string[]
-  location_name?: string
-  shelf_name?: string
-  status?: string // 'available', 'checked_out'
-  checked_out_by?: string
-  checked_out_by_name?: string
-  checked_out_date?: string
-  due_date?: string
-}
 
 interface Location {
   id: number
@@ -239,6 +221,7 @@ export default function AddBooks() {
   const [isLoading, setIsLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(true)
   const [existingBooks, setExistingBooks] = useState<EnhancedBook[]>([])
+  const [justAddedBooks, setJustAddedBooks] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     // Initialize ZXing scanner
@@ -260,6 +243,19 @@ export default function AddBooks() {
       loadLocationsAndShelves()
     }
   }, [session])
+
+  useEffect(() => {
+    // Auto-focus the appropriate input field when component mounts or activeTab changes initially
+    const timer = setTimeout(() => {
+      if (activeTab === 'search') {
+        searchInputRef.current?.focus()
+      } else if (activeTab === 'scan') {
+        isbnInputRef.current?.focus()
+      }
+    }, 100) // Small delay to ensure the content is rendered
+
+    return () => clearTimeout(timer)
+  }, []) // Only run on mount since activeTab changes are handled by handleTabChange
 
   const loadLocationsAndShelves = async () => {
     if (!session?.user?.email) return
@@ -523,8 +519,7 @@ export default function AddBooks() {
       const enhancedBook = await fetchEnhancedBookFromSearch(item)
       if (enhancedBook) {
         setSelectedBook(enhancedBook)
-        setSearchResults([])
-        setSearchQuery('')
+        // Keep search results populated - don't clear them
       } else {
         await alert({
           title: 'Book Enhancement Failed',
@@ -549,8 +544,7 @@ export default function AddBooks() {
         }
 
         setSelectedBook(book)
-        setSearchResults([])
-        setSearchQuery('')
+        // Keep search results populated - don't clear them
       }
     } catch (error) {
       await alert({
@@ -585,11 +579,33 @@ export default function AddBooks() {
         localStorage.setItem('lastSelectedShelfId', selectedShelfId.toString())
       }
       
+      // Update existing books list to include the newly added book for accurate duplicate detection
+      try {
+        const updatedBooks = await getBooks()
+        setExistingBooks(updatedBooks)
+        
+        // Mark this book as just added for display purposes
+        const bookKey = selectedBook.isbn || selectedBook.title
+        setJustAddedBooks(prev => new Set(prev).add(bookKey))
+      } catch (error) {
+        // If we can't refresh the books list, continue anyway
+        console.error('Failed to refresh books list:', error)
+      }
+      
       await alert({
         title: 'Book Added!',
         message: `"${bookTitle}" has been successfully added to your library!`,
         variant: 'success'
       })
+      
+      // Auto-focus the appropriate input field after successful save
+      setTimeout(() => {
+        if (activeTab === 'search') {
+          searchInputRef.current?.focus()
+        } else if (activeTab === 'scan') {
+          isbnInputRef.current?.focus()
+        }
+      }, 100) // Small delay to ensure the alert modal has closed
     } else {
       await alert({
         title: 'Save Failed',
@@ -677,6 +693,14 @@ export default function AddBooks() {
       
       return titleMatch && authorMatch
     })
+  }
+
+  const wasBookJustAdded = (googleBookItem: GoogleBookItem): boolean => {
+    const isbn = googleBookItem.volumeInfo.industryIdentifiers?.find(
+      id => id.type === 'ISBN_13' || id.type === 'ISBN_10'
+    )?.identifier
+    const bookKey = isbn || googleBookItem.volumeInfo.title
+    return justAddedBooks.has(bookKey)
   }
 
   const isSelectedBookDuplicate = (): boolean => {
@@ -871,9 +895,9 @@ export default function AddBooks() {
               </Box>
             </Box>
 
-            {/* Search Results */}
-            {searchResults.length > 0 && (
-              <Box>
+            {/* Search Results - hide when a book is selected from search */}
+            {searchResults.length > 0 && !selectedBook && (
+              <Box data-testid="search-results-section">
                 <Typography variant="h6" gutterBottom>
                   Search Results ({searchResults.length})
                 </Typography>
@@ -902,7 +926,25 @@ export default function AddBooks() {
                         )}
                       </CardContent>
                       <CardActions>
-                        {isBookDuplicate(item) ? (
+                        {wasBookJustAdded(item) ? (
+                          <Button 
+                            variant="outlined"
+                            size="small"
+                            startIcon={<CheckCircle />}
+                            disabled
+                            fullWidth
+                            sx={{ 
+                              color: 'success.main',
+                              borderColor: 'success.main',
+                              '&.Mui-disabled': {
+                                color: 'success.main',
+                                borderColor: 'success.main'
+                              }
+                            }}
+                          >
+                            Book Added!
+                          </Button>
+                        ) : isBookDuplicate(item) ? (
                           <Button 
                             variant="outlined"
                             size="small"
@@ -942,7 +984,7 @@ export default function AddBooks() {
 
         {/* Selected Book Display (shared between tabs) */}
         {selectedBook && (
-          <Box sx={{ mt: 3 }}>
+          <Box sx={{ mt: 3 }} data-testid="book-selected-section">
             <Typography variant="h5" gutterBottom color="success.main">
               Book Selected!
             </Typography>

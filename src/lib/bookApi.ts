@@ -1,19 +1,6 @@
-import type { Book } from '@/components/ISBNScanner'
+import type { Book, EnhancedBook } from '@/lib/types'
 
 const GOOGLE_BOOKS_API = 'https://www.googleapis.com/books/v1/volumes'
-
-export interface EnhancedBook extends Book {
-  enhancedGenres?: string[]
-  series?: string
-  seriesNumber?: string
-  openLibraryKey?: string
-  extendedDescription?: string
-  subjects?: string[]
-  publisherInfo?: string
-  pageCount?: number
-  averageRating?: number
-  ratingsCount?: number
-}
 
 export async function fetchBookData(isbn: string): Promise<Book | null> {
   try {

@@ -28,6 +28,7 @@ import {
   Stop,
 } from '@mui/icons-material'
 import { fetchBookData } from '@/lib/bookApi'
+import type { Book } from '@/lib/types'
 import { saveBook as saveBookAPI } from '@/lib/api'
 import { BrowserMultiFormatReader } from '@zxing/library'
 import ConfirmationModal from './ConfirmationModal'
@@ -35,26 +36,6 @@ import AlertModal from './AlertModal'
 import { useModal } from '@/hooks/useModal'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
-
-export interface Book {
-  id: string
-  isbn: string
-  title: string
-  authors: string[]
-  description?: string
-  thumbnail?: string
-  publishedDate?: string
-  categories?: string[]
-  shelf_id?: number
-  tags?: string[]
-  location_name?: string
-  shelf_name?: string
-  status?: string // 'available', 'checked_out'
-  checked_out_by?: string
-  checked_out_by_name?: string
-  checked_out_date?: string
-  due_date?: string
-}
 
 interface Location {
   id: number

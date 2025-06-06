@@ -345,6 +345,11 @@ This file contains development todos, notes, and context for AI assistants worki
 - **STREAMLINED**: Field sizing consistency between ISBN manual entry and search input fields
 - **ADDED**: CheckCircle icon import and usage for clear duplicate book indication
 - **ENHANCED**: User experience with intelligent shelf restoration and duplicate prevention workflow
+- **IMPLEMENTED**: Session-based tracking for recently added books with enhanced user feedback system
+- **CREATED**: Three-state button display for search results: "Add This Book" (blue), "Already in Your Library" (gray), and "Book Added!" (green)
+- **ADDED**: `justAddedBooks` state using React Set to track books added in the current session
+- **ENHANCED**: Post-addition feedback to show "Book Added!" immediately after adding a book from search results
+- **OPTIMIZED**: Book tracking using ISBN (preferred) or title as fallback for accurate session-based identification
 
 ### Session June 2025 - Permission System Implementation
 - **COMPLETED**: Added user_role column to database schema with migration
@@ -384,6 +389,18 @@ This file contains development todos, notes, and context for AI assistants worki
 - **IMPLEMENTED**: Conditional rendering logic supporting both admin location-grouped and regular user flat list views
 - **ENHANCED**: User experience with seamless switching between traditional card grid and compact list layouts
 - **VALIDATED**: Complete view switcher functionality working across all user roles and library configurations
+
+### Session June 2025 - Post-Action Book Status Enhancement
+- **IMPLEMENTED**: Smart book status tracking to differentiate between previously existing books and newly added books in search results
+- **ADDED**: Session-based tracking using `justAddedBooks` state to remember books added during the current session
+- **ENHANCED**: Search result button states with three distinct statuses:
+  - "Add This Book" (active blue button) for books not in library
+  - "Already in Your Library" (disabled gray button) for books previously in library
+  - "Book Added!" (disabled green button) for books just added in current session
+- **CREATED**: `wasBookJustAdded()` helper function to check if a book was recently added using ISBN or title matching
+- **IMPROVED**: User feedback workflow where search results remain populated after adding a book, showing immediate visual confirmation
+- **OPTIMIZED**: Book identification using ISBN (preferred) or title fallback for accurate status tracking across different book sources
+- **ENHANCED**: User experience with clear, immediate feedback distinguishing between existing and newly added books in search interface
 
 ### Next Priority: Feature Enhancements
 - Add admin notification system for user requests and activities  

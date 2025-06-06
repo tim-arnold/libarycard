@@ -34,7 +34,7 @@ import {
   GridView,
   ViewList,
 } from '@mui/icons-material'
-import type { EnhancedBook } from '@/lib/bookApi'
+import type { EnhancedBook } from '@/lib/types'
 import { getBooks, updateBook, deleteBook as deleteBookAPI } from '@/lib/api'
 import ConfirmationModal from './ConfirmationModal'
 import AlertModal from './AlertModal'
