@@ -97,6 +97,15 @@ This file contains development todos, notes, and context for AI assistants worki
   - [ ] Add admin notification system for user requests (removal requests, etc.)
   - [ ] Implement checkout notifications and due date reminders
 
+### Medium Priority - Data Quality & User Experience
+
+- [ ] **Genre Classification Improvements**
+  - [ ] Research and implement better genre classification system to replace unwieldy Google Books genres
+  - [ ] Current issue: Google Books provides verbose, nested genres like "Fiction, science fiction, action & adventure" and "Fiction, science fiction, general"
+  - [ ] Evaluate options: custom genre mapping, alternative APIs (Goodreads, Open Library), or manual curation system
+  - [ ] Create simplified, user-friendly genre categories (e.g., "Science Fiction", "Fantasy", "Mystery", etc.)
+  - [ ] Implement genre normalization and cleanup for existing books in database
+
 ### Low Priority - Future Enhancements
 
 - [ ] **Admin Dashboard & Analytics**
