@@ -22,10 +22,8 @@ import {
   ToggleButtonGroup,
   List,
   ListItem,
-  ListItemText,
   ListItemAvatar,
   Avatar,
-  Divider,
 } from '@mui/material'
 import { 
   Search,
@@ -861,6 +859,7 @@ export default function BookLibrary() {
         backgroundColor: 'background.paper'
       }}
     >
+      {/* Book Image */}
       <ListItemAvatar sx={{ mr: 2 }}>
         {book.thumbnail ? (
           <Avatar
@@ -879,222 +878,199 @@ export default function BookLibrary() {
         )}
       </ListItemAvatar>
       
-      <ListItemText
-        primary={
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-            <Typography variant="h6" component="h3" sx={{ fontWeight: 600, mr: 2 }}>
-              {book.title}
+      {/* Book Information Container */}
+      <Box sx={{ flex: 1, mr: 2 }}>
+        {/* Book Title */}
+        <Typography variant="h6" component="h3" sx={{ fontWeight: 600, mb: 1 }}>
+          {book.title}
+        </Typography>
+        
+        {/* Author */}
+        <Typography variant="body2" color="text.secondary" gutterBottom>
+          <strong>Author:</strong> {book.authors.map((author, index) => (
+            <span key={index}>
+              <Typography 
+                component="span" 
+                sx={{ 
+                  color: 'primary.main', 
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  '&:hover': { textDecoration: 'none' }
+                }}
+                onClick={() => handleAuthorClick(author)}
+              >
+                {author}
+              </Typography>
+              {index < book.authors.length - 1 && ', '}
+            </span>
+          ))}
+        </Typography>
+        
+        {/* Publication info and Series */}
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 1 }}>
+          {book.publishedDate && (
+            <Typography variant="body2" color="text.secondary">
+              <strong>Published:</strong> {new Date(book.publishedDate).getFullYear()}
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
-              {/* Checkout/Return buttons */}
-              {book.status === 'checked_out' ? (
-                <Button
-                  size="small"
-                  variant="contained"
-                  color="success"
-                  startIcon={<Undo />}
-                  onClick={() => checkinBook(book.id, book.title)}
-                >
-                  Return
-                </Button>
-              ) : (
-                <Button
-                  size="small"
-                  variant="contained"
-                  color="primary"
-                  startIcon={<CheckCircle />}
-                  onClick={() => checkoutBook(book.id, book.title)}
-                >
-                  Check Out
-                </Button>
-              )}
-              
-              {/* Remove/Request Removal button */}
-              {userRole === 'admin' ? (
-                <Button
-                  size="small"
-                  variant="contained"
-                  color="error"
-                  startIcon={<Delete />}
-                  onClick={() => deleteBook(book.id, book.title)}
-                >
-                  Remove
-                </Button>
-              ) : (
-                <Button
-                  size="small"
-                  variant="contained"
-                  color={pendingRemovalRequests[book.id] ? 'inherit' : 'warning'}
-                  onClick={() => {
-                    if (pendingRemovalRequests[book.id]) {
-                      cancelRemovalRequest(book.id, book.title)
-                    } else {
-                      requestBookRemoval(book.id, book.title)
-                    }
-                  }}
-                  sx={{ minWidth: 'auto', px: 1 }}
-                >
-                  {pendingRemovalRequests[book.id] ? <Cancel /> : <ReportProblem />}
-                </Button>
-              )}
-            </Box>
+          )}
+          
+          {book.series && (
+            <Typography variant="body2" color="text.secondary">
+              <strong>Series:</strong> 
+              <Typography 
+                component="span" 
+                sx={{ 
+                  color: 'primary.main', 
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  ml: 0.5,
+                  '&:hover': { textDecoration: 'none' }
+                }}
+                onClick={() => handleSeriesClick(book.series!)}
+              >
+                {book.series}
+              </Typography>
+              {book.seriesNumber && ` (#${book.seriesNumber})`}
+            </Typography>
+          )}
+
+          {userRole === 'admin' && shelves.length > 1 && (
+            <Typography variant="body2" color="text.secondary">
+              <strong>Shelf:</strong> {book.shelf_name}
+            </Typography>
+          )}
+        </Box>
+
+        {/* Genre */}
+        {(book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
+          <Box sx={{ mb: 1 }}>
+            <Chip 
+              label={book.enhancedGenres?.[0] || book.categories?.[0]} 
+              size="small" 
+              color={book.enhancedGenres ? 'primary' : 'default'}
+              sx={{ mr: 0.5 }} 
+            />
           </Box>
-        }
-        secondary={
-          <Box>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              <strong>Author:</strong> {book.authors.map((author, index) => (
-                <span key={index}>
-                  <Typography 
-                    component="span" 
-                    sx={{ 
-                      color: 'primary.main', 
-                      cursor: 'pointer',
-                      textDecoration: 'underline',
-                      '&:hover': { textDecoration: 'none' }
-                    }}
-                    onClick={() => handleAuthorClick(author)}
-                  >
-                    {author}
-                  </Typography>
-                  {index < book.authors.length - 1 && ', '}
-                </span>
-              ))}
+        )}
+
+        {/* Checkout status display */}
+        {book.status === 'checked_out' && (
+          <Box sx={{ mt: 1, p: 1, backgroundColor: 'warning.light', borderRadius: 1 }}>
+            <Typography variant="body2" color="text.primary">
+              📖 <strong>Checked out</strong> by {book.checked_out_by_name || 'Unknown'}
             </Typography>
-            
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 1 }}>
-              {book.publishedDate && (
-                <Typography variant="body2" color="text.secondary">
-                  <strong>Published:</strong> {new Date(book.publishedDate).getFullYear()}
-                </Typography>
-              )}
-              
-              {book.series && (
-                <Typography variant="body2" color="text.secondary">
-                  <strong>Series:</strong> 
-                  <Typography 
-                    component="span" 
-                    sx={{ 
-                      color: 'primary.main', 
-                      cursor: 'pointer',
-                      textDecoration: 'underline',
-                      ml: 0.5,
-                      '&:hover': { textDecoration: 'none' }
-                    }}
-                    onClick={() => handleSeriesClick(book.series!)}
-                  >
-                    {book.series}
-                  </Typography>
-                  {book.seriesNumber && ` (#${book.seriesNumber})`}
-                </Typography>
-              )}
-
-              {userRole === 'admin' && shelves.length > 1 && (
-                <Typography variant="body2" color="text.secondary">
-                  <strong>Shelf:</strong> {book.shelf_name}
-                </Typography>
-              )}
-            </Box>
-
-            {/* Show only first genre */}
-            {(book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
-              <Box sx={{ mb: 1 }}>
-                <Chip 
-                  label={book.enhancedGenres?.[0] || book.categories?.[0]} 
-                  size="small" 
-                  color={book.enhancedGenres ? 'primary' : 'default'}
-                  sx={{ mr: 0.5 }} 
-                />
-              </Box>
-            )}
-
-            {book.description && (
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {book.description.substring(0, 150)}...
+            {book.checked_out_date && (
+              <Typography variant="caption" color="text.secondary">
+                Since: {new Date(book.checked_out_date).toLocaleDateString()}
               </Typography>
             )}
-
-            {/* Checkout status display */}
-            {book.status === 'checked_out' && (
-              <Box sx={{ mt: 1, p: 1, backgroundColor: 'warning.light', borderRadius: 1 }}>
-                <Typography variant="body2" color="text.primary">
-                  📖 <strong>Checked out</strong> by {book.checked_out_by_name || 'Unknown'}
-                </Typography>
-                {book.checked_out_date && (
-                  <Typography variant="caption" color="text.secondary">
-                    Since: {new Date(book.checked_out_date).toLocaleDateString()}
-                  </Typography>
-                )}
-              </Box>
-            )}
-
-            {/* More Details button */}
-            {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
-              <Box sx={{ mt: 1 }}>
-                <Button
-                  size="small"
-                  startIcon={<Info />}
-                  onClick={() => handleMoreDetailsClick(book)}
-                  sx={{ textTransform: 'none' }}
-                >
-                  More Details
-                </Button>
-              </Box>
-            )}
-
-            {/* Shelf selector for admin in list view */}
-            {userRole === 'admin' && (
-              <Box sx={{ mt: 2 }}>
-                <FormControl size="small" sx={{ minWidth: 200 }}>
-                  <InputLabel>Shelf</InputLabel>
-                  <Select
-                    value={book.shelf_id || ''}
-                    label="Shelf"
-                    onChange={(e) => updateBookShelf(book.id, parseInt(String(e.target.value)))}
-                  >
-                    <MenuItem value="">Select shelf...</MenuItem>
-                    {booksByLocation ? (
-                      // Admin with grouped locations
-                      (() => {
-                        const bookLocation = booksByLocation.find(loc => 
-                          loc.shelves.some((shelf: Shelf) => shelf.id === book.shelf_id)
-                        )
-                        return bookLocation ? bookLocation.shelves.map((shelf: Shelf) => (
-                          <MenuItem key={shelf.id} value={shelf.id}>{shelf.name}</MenuItem>
-                        )) : []
-                      })()
-                    ) : (
-                      // Regular admin or filtered view
-                      shelves.map(shelf => (
-                        <MenuItem key={shelf.id} value={shelf.id}>{shelf.name}</MenuItem>
-                      ))
-                    )}
-                  </Select>
-                </FormControl>
-              </Box>
-            )}
-
-            {/* Shelf selector for regular users in list view (only if multiple shelves) */}
-            {userRole !== 'admin' && shelves.length > 1 && (
-              <Box sx={{ mt: 2 }}>
-                <FormControl size="small" sx={{ minWidth: 200 }}>
-                  <InputLabel>Shelf</InputLabel>
-                  <Select
-                    value={book.shelf_id || ''}
-                    label="Shelf"
-                    onChange={(e) => updateBookShelf(book.id, parseInt(String(e.target.value)))}
-                  >
-                    <MenuItem value="">Select shelf...</MenuItem>
-                    {shelves.map(shelf => (
-                      <MenuItem key={shelf.id} value={shelf.id}>{shelf.name}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Box>
-            )}
           </Box>
-        }
-      />
+        )}
+
+        {/* More Details button */}
+        {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
+          <Box sx={{ mt: 1 }}>
+            <Button
+              size="small"
+              startIcon={<Info />}
+              onClick={() => handleMoreDetailsClick(book)}
+              sx={{ textTransform: 'none' }}
+            >
+              More Details
+            </Button>
+          </Box>
+        )}
+      </Box>
+
+      {/* Action Controls Container */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'flex-end', flexShrink: 0 }}>
+        {/* Action buttons row */}
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {/* Checkout/Return buttons */}
+          {book.status === 'checked_out' ? (
+            <Button
+              size="small"
+              variant="contained"
+              color="success"
+              startIcon={<Undo />}
+              onClick={() => checkinBook(book.id, book.title)}
+            >
+              Return
+            </Button>
+          ) : (
+            <Button
+              size="small"
+              variant="contained"
+              color="primary"
+              startIcon={<CheckCircle />}
+              onClick={() => checkoutBook(book.id, book.title)}
+            >
+              Check Out
+            </Button>
+          )}
+          
+          {/* Remove/Request Removal button */}
+          {userRole === 'admin' ? (
+            <Button
+              size="small"
+              variant="contained"
+              color="error"
+              startIcon={<Delete />}
+              onClick={() => deleteBook(book.id, book.title)}
+            >
+              Remove
+            </Button>
+          ) : (
+            <Button
+              size="small"
+              variant="contained"
+              color={pendingRemovalRequests[book.id] ? 'inherit' : 'warning'}
+              onClick={() => {
+                if (pendingRemovalRequests[book.id]) {
+                  cancelRemovalRequest(book.id, book.title)
+                } else {
+                  requestBookRemoval(book.id, book.title)
+                }
+              }}
+              sx={{ minWidth: 'auto', px: 1 }}
+            >
+              {pendingRemovalRequests[book.id] ? <Cancel /> : <ReportProblem />}
+            </Button>
+          )}
+        </Box>
+        
+        {/* Shelf selector */}
+        {((userRole === 'admin') || (userRole !== 'admin' && shelves.length > 1)) && (
+          <Box>
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel>Shelf</InputLabel>
+              <Select
+                value={book.shelf_id || ''}
+                label="Shelf"
+                onChange={(e) => updateBookShelf(book.id, parseInt(String(e.target.value)))}
+              >
+                <MenuItem value="">Select shelf...</MenuItem>
+                {booksByLocation ? (
+                  // Admin with grouped locations
+                  (() => {
+                    const bookLocation = booksByLocation.find(loc => 
+                      loc.shelves.some((shelf: Shelf) => shelf.id === book.shelf_id)
+                    )
+                    return bookLocation ? bookLocation.shelves.map((shelf: Shelf) => (
+                      <MenuItem key={shelf.id} value={shelf.id}>{shelf.name}</MenuItem>
+                    )) : []
+                  })()
+                ) : (
+                  // Regular admin or filtered view, or regular users
+                  shelves.map(shelf => (
+                    <MenuItem key={shelf.id} value={shelf.id}>{shelf.name}</MenuItem>
+                  ))
+                )}
+              </Select>
+            </FormControl>
+          </Box>
+        )}
+      </Box>
     </ListItem>
   )
 
