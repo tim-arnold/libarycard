@@ -40,6 +40,7 @@ import { getBooks, updateBook, deleteBook as deleteBookAPI } from '@/lib/api'
 import ConfirmationModal from './ConfirmationModal'
 import AlertModal from './AlertModal'
 import { useModal } from '@/hooks/useModal'
+import { CURATED_GENRES } from '@/lib/genreClassifier'
 import {
   Dialog,
   DialogTitle,
@@ -458,6 +459,65 @@ export default function BookLibrary() {
     }
   }
 
+  // Helper function to check if a book matches a curated genre filter
+  const bookMatchesGenreFilter = (book: EnhancedBook, curatedGenre: string): boolean => {
+    // Check enhanced genres first (these are already curated) - use case-insensitive matching
+    if (book.enhancedGenres) {
+      const curatedLower = curatedGenre.toLowerCase()
+      const hasMatch = book.enhancedGenres.some(genre => genre.toLowerCase() === curatedLower)
+      if (hasMatch) {
+        return true
+      }
+    }
+    
+    // For raw categories, use flexible matching for compound genres
+    const rawGenres = book.categories || []
+    return rawGenres.some(rawGenre => {
+      const rawLower = rawGenre.toLowerCase()
+      const curatedLower = curatedGenre.toLowerCase()
+      
+      // Handle special compound genres FIRST to prevent incorrect matches
+      if (curatedGenre === 'Historical Fiction') {
+        // Only match explicit historical fiction references, never horror/fantasy/sci-fi
+        if (rawLower.includes('horror') || rawLower.includes('fantasy') || rawLower.includes('science fiction')) {
+          return false
+        }
+        return rawLower.includes('historical fiction') || 
+               (rawLower.includes('fiction') && rawLower.includes('historical'))
+      }
+      
+      if (curatedGenre === 'Literary Fiction') {
+        // Only match explicit literary fiction references, never horror/fantasy/sci-fi
+        if (rawLower.includes('horror') || rawLower.includes('fantasy') || rawLower.includes('science fiction')) {
+          return false
+        }
+        return rawLower.includes('literary fiction') ||
+               (rawLower.includes('fiction') && rawLower.includes('literary'))
+      }
+      
+      if (curatedGenre === 'Young Adult') {
+        return rawLower.includes('young adult') || rawLower.includes('juvenile') || 
+               (rawLower.includes('young') && rawLower.includes('adult'))
+      }
+      
+      // Direct substring matching for single-word genres
+      if (rawLower.includes(curatedLower) || curatedLower.includes(rawLower)) {
+        return true
+      }
+      
+      // Word-based matching for partial matches (e.g., "Horror" matches "American horror tales")
+      const rawWords = rawLower.split(/\s+|[,&-]+/).filter(word => word.length > 0)
+      const curatedWords = curatedLower.split(/\s+/).filter(word => word.length > 0)
+      
+      // Check if all words from the curated genre appear in the raw genre
+      const allWordsMatch = curatedWords.every(curatedWord => 
+        rawWords.some(rawWord => rawWord.includes(curatedWord) || curatedWord.includes(rawWord))
+      )
+      
+      return allWordsMatch
+    })
+  }
+
   useEffect(() => {
     let filtered = books
 
@@ -476,12 +536,7 @@ export default function BookLibrary() {
     }
 
     if (categoryFilter) {
-      filtered = filtered.filter(book => {
-        const genres = book.enhancedGenres || book.categories || []
-        return genres.some(genre =>
-          genre.toLowerCase().includes(categoryFilter.toLowerCase())
-        )
-      })
+      filtered = filtered.filter(book => bookMatchesGenreFilter(book, categoryFilter))
     }
 
     // Admin location filter
@@ -1279,9 +1334,10 @@ export default function BookLibrary() {
   )
 
 
-  const allCategories = Array.from(
-    new Set(books.flatMap(book => book.enhancedGenres || book.categories || []))
-  ).sort()
+  // Use curated genres that actually have books mapped to them in the user's library
+  const allCategories = CURATED_GENRES.filter(curatedGenre => {
+    return books.some(book => bookMatchesGenreFilter(book, curatedGenre))
+  }).sort()
 
   const booksByShelf = shelves.reduce((acc: Record<string, number>, shelf) => {
     acc[shelf.name] = books.filter(book => book.shelf_name === shelf.name).length
@@ -1510,15 +1566,15 @@ export default function BookLibrary() {
 
           <Box sx={{ flex: '1 1 200px', minWidth: 200 }}>
             <FormControl fullWidth size="small">
-              <InputLabel>Category</InputLabel>
+              <InputLabel>Genre</InputLabel>
               <Select
                 value={categoryFilter}
-                label="Category"
+                label="Genre"
                 onChange={(e) => setCategoryFilter(e.target.value)}
               >
-                <MenuItem value="">All categories</MenuItem>
-                {allCategories.map(category => (
-                  <MenuItem key={category} value={category}>{category}</MenuItem>
+                <MenuItem value="">All genres</MenuItem>
+                {allCategories.map(genre => (
+                  <MenuItem key={genre} value={genre}>{genre}</MenuItem>
                 ))}
               </Select>
             </FormControl>

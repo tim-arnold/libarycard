@@ -105,12 +105,12 @@ This file contains development todos, notes, and context for AI assistants worki
   - [ ] Current approach works but may be confusing when books from different locations appear on same page
   - [ ] Evaluate user feedback and consider per-location pagination for better admin UX
 
-- [ ] **Genre Classification Improvements**
-  - [ ] Research and implement better genre classification system to replace unwieldy Google Books genres
-  - [ ] Current issue: Google Books provides verbose, nested genres like "Fiction, science fiction, action & adventure" and "Fiction, science fiction, general"
-  - [ ] Evaluate options: custom genre mapping, alternative APIs (Goodreads, Open Library), or manual curation system
-  - [ ] Create simplified, user-friendly genre categories (e.g., "Science Fiction", "Fantasy", "Mystery", etc.)
-  - [ ] Implement genre normalization and cleanup for existing books in database
+- [x] ~~**Genre Classification Improvements**~~ ✅ **COMPLETED**
+  - [x] ~~Research and implement better genre classification system to replace unwieldy Google Books genres~~ ✅ COMPLETED
+  - [x] ~~Current issue: Google Books provides verbose, nested genres like "Fiction, science fiction, action & adventure" and "Fiction, science fiction, general"~~ ✅ RESOLVED
+  - [x] ~~Evaluate options: custom genre mapping, alternative APIs (Goodreads, Open Library), or manual curation system~~ ✅ COMPLETED
+  - [x] ~~Create simplified, user-friendly genre categories (e.g., "Science Fiction", "Fantasy", "Mystery", etc.)~~ ✅ COMPLETED
+  - [x] ~~Implement genre normalization and cleanup for existing books in database~~ ✅ COMPLETED
 
 ### Low Priority - Future Enhancements
 
@@ -414,6 +414,22 @@ This file contains development todos, notes, and context for AI assistants worki
 - **ENHANCED**: Automatic page reset when search filters change to maintain consistent user experience
 - **OPTIMIZED**: Pagination controls only display when there are more than 10 books to reduce interface clutter
 - **ADDRESSED**: Scalability concerns for libraries with hundreds of books through efficient client-side pagination
+
+### Session June 2025 - Admin Interface Cleanup & Genre Classification System
+- **REMOVED**: "All locations" option from admin interface to force location-specific focus and reduce complexity
+- **IMPLEMENTED**: Auto-default admin users to first (oldest) location on app load for consistent starting state
+- **SIMPLIFIED**: Admin pagination and title logic by removing grouped location view support
+- **HIDDEN**: Genre chips from admin book displays (both card and list views) to create more condensed interface
+- **CREATED**: Curated genre classification system in `src/lib/genreClassifier.ts` to replace unwieldy source genres
+- **ESTABLISHED**: 26 meaningful genre categories from Fiction (Fantasy, Sci-Fi, Mystery) to Non-Fiction (Biography, History, Science)
+- **IMPLEMENTED**: Smart genre mapping system that normalizes verbose Google Books categories and granular OpenLibrary subjects
+- **RESOLVED**: Genre quality issues by converting "Fiction, science fiction, action & adventure" to clean "Science Fiction" tags
+- **INTEGRATED**: Genre classification into all book APIs (enhanced scanner, search, and fallback flows)
+- **LIMITED**: Genre display to maximum 5 per book to prevent information overload while maintaining meaningful categorization
+- **PRIORITIZED**: Genre selection with intelligent primary genre detection for consistent book organization
+- **FIXED**: Genre filtering accuracy by implementing proper exclusion logic for Historical Fiction and Literary Fiction to prevent horror/fantasy/sci-fi books from incorrectly matching these compound genres
+- **ENHANCED**: `bookMatchesGenreFilter` function with strict matching rules that handle special compound genres first, use case-insensitive matching for enhanced genres, and implement word-based matching for flexible genre detection
+- **RESOLVED**: False positive matches in genre dropdown where books with only horror content were appearing in Historical Fiction results
 
 ### Next Priority: Feature Enhancements
 - Add admin notification system for user requests and activities  

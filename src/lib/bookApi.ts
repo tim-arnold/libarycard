@@ -1,4 +1,5 @@
 import type { Book, EnhancedBook } from '@/lib/types'
+import { classifyGenres } from '@/lib/genreClassifier'
 
 const GOOGLE_BOOKS_API = 'https://www.googleapis.com/books/v1/volumes'
 
@@ -103,29 +104,21 @@ export async function fetchEnhancedBookData(isbn: string): Promise<EnhancedBook 
           const workData = await workResponse.json()
           
           if (workData.subjects) {
-            // Extract enhanced genre information
-            const subjects = workData.subjects
-            enhancedBook.subjects = subjects
+            // Store raw subjects for reference
+            enhancedBook.subjects = workData.subjects
             
-            // Extract specific genres and series info
-            const genres = subjects.filter((subject: string) => 
-              subject.toLowerCase().includes('fantasy') ||
-              subject.toLowerCase().includes('science fiction') ||
-              subject.toLowerCase().includes('mystery') ||
-              subject.toLowerCase().includes('romance') ||
-              subject.toLowerCase().includes('thriller') ||
-              subject.toLowerCase().includes('horror') ||
-              subject.toLowerCase().includes('historical') ||
-              subject.toLowerCase().includes('biography') ||
-              subject.toLowerCase().includes('adventure')
+            // Use our curated genre classification system
+            const classifiedGenres = classifyGenres(
+              enhancedBook.categories, // Google Books categories
+              workData.subjects        // OpenLibrary subjects
             )
             
-            if (genres.length > 0) {
-              enhancedBook.enhancedGenres = genres
+            if (classifiedGenres.length > 0) {
+              enhancedBook.enhancedGenres = classifiedGenres
             }
             
             // Extract series information
-            const seriesSubjects = subjects.filter((subject: string) => 
+            const seriesSubjects = workData.subjects.filter((subject: string) => 
               subject.toLowerCase().startsWith('series:')
             )
             
@@ -149,6 +142,14 @@ export async function fetchEnhancedBookData(isbn: string): Promise<EnhancedBook 
       }
     } catch (olError) {
       console.log('OpenLibrary enhancement failed, using Google Books data only:', olError)
+    }
+
+    // If we don't have enhanced genres yet, try to classify from Google Books categories alone
+    if (!enhancedBook.enhancedGenres && enhancedBook.categories) {
+      const classifiedGenres = classifyGenres(enhancedBook.categories)
+      if (classifiedGenres.length > 0) {
+        enhancedBook.enhancedGenres = classifiedGenres
+      }
     }
 
     return enhancedBook
@@ -181,6 +182,14 @@ export async function fetchEnhancedBookFromSearch(googleBookItem: any): Promise<
     pageCount: googleBookItem.volumeInfo.pageCount,
     averageRating: googleBookItem.volumeInfo.averageRating,
     ratingsCount: googleBookItem.volumeInfo.ratingsCount
+  }
+
+  // Apply genre classification to the fallback data too
+  if (enhancedBook.categories) {
+    const classifiedGenres = classifyGenres(enhancedBook.categories)
+    if (classifiedGenres.length > 0) {
+      enhancedBook.enhancedGenres = classifiedGenres
+    }
   }
 
   return enhancedBook
