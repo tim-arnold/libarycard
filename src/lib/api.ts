@@ -1,4 +1,4 @@
-import type { EnhancedBook } from '@/lib/bookApi'
+import type { EnhancedBook } from '@/lib/types'
 
 export async function saveBook(book: Omit<EnhancedBook, 'id'>): Promise<boolean> {
   try {
