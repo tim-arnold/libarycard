@@ -726,6 +726,10 @@ export default function BookLibrary() {
             <input type="radio" name="reason" value="missing" style="margin-right: 0.5rem;">
             Book is missing from its location
           </label>
+          <label style="display: block; margin-bottom: 0.5rem;">
+            <input type="radio" name="reason" value="delicious" style="margin-right: 0.5rem;">
+            Book was delicious
+          </label>
           <label style="display: block; margin-bottom: 1rem;">
             <input type="radio" name="reason" value="other" style="margin-right: 0.5rem;">
             Other reason
@@ -757,7 +761,8 @@ export default function BookLibrary() {
       const reasonLabels: Record<string, string> = {
         lost: 'Book is lost',
         damaged: 'Book is damaged beyond repair',
-        missing: 'Book tasted delicious',
+        missing: 'Book is missing from its location',
+        delicious: 'Book was delicious',
         other: 'Other reason'
       }
 
@@ -2102,25 +2107,24 @@ export default function BookLibrary() {
           <DialogContent>
             <Box sx={{ pt: 2 }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Current shelf: <strong>{selectedBookForRelocate.shelf_name || 'No shelf assigned'}</strong><br />
                 Select a new shelf for this book:
               </Typography>
               <FormControl fullWidth>
                 <InputLabel>Select Shelf</InputLabel>
                 <Select
-                  value=""
+                  value={selectedBookForRelocate.shelf_id || ""}
                   label="Select Shelf"
                   onChange={(e) => {
                     const newShelfId = parseInt(String(e.target.value))
                     handleRelocateBook(newShelfId)
                   }}
                 >
-                  {shelves
-                    .filter(shelf => shelf.id !== selectedBookForRelocate.shelf_id)
-                    .map(shelf => (
-                      <MenuItem key={shelf.id} value={shelf.id}>
-                        {shelf.name}
-                      </MenuItem>
-                    ))}
+                  {shelves.map(shelf => (
+                    <MenuItem key={shelf.id} value={shelf.id}>
+                      {shelf.name} {shelf.id === selectedBookForRelocate.shelf_id ? '(current)' : ''}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Box>
