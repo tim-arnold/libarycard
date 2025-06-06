@@ -41,10 +41,12 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'scan' | 'library' | 'locations' | 'requests'>('library')
   const [userRole, setUserRole] = useState<string | null>(null)
   const [userFirstName, setUserFirstName] = useState<string | null>(null)
+  const [userLocation, setUserLocation] = useState<string | null>(null)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
 
   useEffect(() => {
     if (session) {
+      // Fetch user profile data
       fetch('/api/profile')
         .then(res => res.json())
         .then(data => {
@@ -59,6 +61,23 @@ export default function Home() {
           }
         })
         .catch(err => console.error('Failed to fetch user role:', err))
+
+      // Fetch user's locations to get the location name for regular users
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
+      fetch(`${API_BASE}/api/locations`, {
+        headers: {
+          'Authorization': `Bearer ${session.user?.email}`,
+          'Content-Type': 'application/json',
+        },
+      })
+        .then(res => res.json())
+        .then(locations => {
+          // For regular users, they should only have one location
+          if (locations && locations.length > 0) {
+            setUserLocation(locations[0].name)
+          }
+        })
+        .catch(err => console.error('Failed to fetch user locations:', err))
     }
   }, [session])
 
@@ -162,7 +181,7 @@ export default function Home() {
           >
             <Tab 
               value="library" 
-              label={userRole === 'admin' ? "Manage Libraries" : "My Libary"} 
+              label={userRole === 'admin' ? "Manage Libraries" : (userLocation ? `${userLocation} Library` : "My Libary")} 
               icon={<LibraryBooks />}
               iconPosition="start"
             />

@@ -767,13 +767,13 @@ export default function AddBooks() {
           >
             <Tab 
               value="search" 
-              label="Search Books" 
+              label="Search for Books" 
               icon={<MenuBook />}
               iconPosition="start"
             />
             <Tab 
               value="scan" 
-              label="Scan ISBN" 
+              label="Scan/Enter ISBN" 
               icon={<QrCodeScanner />}
               iconPosition="start"
             />
