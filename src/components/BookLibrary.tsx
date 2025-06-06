@@ -319,6 +319,9 @@ export default function BookLibrary() {
             // Admin users: store all locations and load all shelves
             setAllLocations(locations)
             
+            // Default to the first location (oldest one)
+            setLocationFilter(locations[0].name)
+            
             // Load shelves from all locations for admin users
             const allShelves: Shelf[] = []
             for (const location of locations) {
@@ -1056,23 +1059,10 @@ export default function BookLibrary() {
                 )}
               </Typography>
             )}
-
-            {userRole === 'admin' && shelves.length > 1 && (
-              <Typography 
-                variant="body2" 
-                color="text.secondary"
-                sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem', md: '0.875rem' } }}
-              >
-                <Typography component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>
-                  Shelf: 
-                </Typography>
-                {book.shelf_name}
-              </Typography>
-            )}
           </Box>
 
-          {/* Genre */}
-          {(book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
+          {/* Genre - only show for regular users */}
+          {userRole !== 'admin' && (book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
             <Box sx={{ mb: 1.5 }}>
               <Chip 
                 label={book.enhancedGenres?.[0] || book.categories?.[0]} 
@@ -1305,11 +1295,7 @@ export default function BookLibrary() {
   // Generate title based on user role and current filters
   const getLibraryTitle = () => {
     if (userRole === 'admin') {
-      if (locationFilter) {
-        return `📚 ${locationFilter} (${filteredBooks.length} books)`
-      } else {
-        return `📚 All Libraries (${filteredBooks.length} books)`
-      }
+      return `📚 ${locationFilter} (${filteredBooks.length} books)`
     }
     
     if (!currentLocation) {
@@ -1486,7 +1472,6 @@ export default function BookLibrary() {
                   label="Location"
                   onChange={(e) => setLocationFilter(e.target.value)}
                 >
-                  <MenuItem value="">All locations</MenuItem>
                   {allLocations.map(location => (
                     <MenuItem key={location.id} value={location.name}>{location.name}</MenuItem>
                   ))}
@@ -1717,17 +1702,7 @@ export default function BookLibrary() {
                                     {book.seriesNumber && ` (#${book.seriesNumber})`}
                                   </Typography>
                                 )}
-                                {/* Show only first genre */}
-                                {(book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
-                                  <Box sx={{ mt: 1, mb: 1 }}>
-                                    <Chip 
-                                      label={book.enhancedGenres?.[0] || book.categories?.[0]}
-                                      size="small" 
-                                      color={book.enhancedGenres ? 'primary' : 'default'}
-                                      sx={{ mr: 0.5, mb: 0.5 }} 
-                                    />
-                                  </Box>
-                                )}
+                                {/* Genre removed for admin card view to condense interface */}
                                 {book.description && (
                                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                                     {book.description.substring(0, 200)}...
@@ -1873,8 +1848,8 @@ export default function BookLibrary() {
                             {book.seriesNumber && ` (#${book.seriesNumber})`}
                           </Typography>
                         )}
-                        {/* Show only first genre */}
-                        {(book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
+                        {/* Genre - only show for regular users */}
+                        {userRole !== 'admin' && (book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
                           <Box sx={{ mt: 1, mb: 1 }}>
                             <Chip 
                               label={book.enhancedGenres?.[0] || book.categories?.[0]} 
