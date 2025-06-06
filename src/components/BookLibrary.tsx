@@ -418,11 +418,12 @@ export default function BookLibrary() {
     }
 
     if (categoryFilter) {
-      filtered = filtered.filter(book =>
-        book.categories?.some(category =>
-          category.toLowerCase().includes(categoryFilter.toLowerCase())
+      filtered = filtered.filter(book => {
+        const genres = book.enhancedGenres || book.categories || []
+        return genres.some(genre =>
+          genre.toLowerCase().includes(categoryFilter.toLowerCase())
         )
-      )
+      })
     }
 
     // Admin location filter
@@ -1228,7 +1229,7 @@ export default function BookLibrary() {
 
 
   const allCategories = Array.from(
-    new Set(books.flatMap(book => book.categories || []))
+    new Set(books.flatMap(book => book.enhancedGenres || book.categories || []))
   ).sort()
 
   const booksByShelf = shelves.reduce((acc: Record<string, number>, shelf) => {
