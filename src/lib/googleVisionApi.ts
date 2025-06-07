@@ -1,4 +1,5 @@
 import { ImageAnnotatorClient } from '@google-cloud/vision';
+import { GoogleAuth } from 'google-auth-library';
 import path from 'path';
 
 // Lazy client initialization to ensure environment variables are loaded
@@ -43,7 +44,16 @@ function getClient(): ImageAnnotatorClient {
         }
         
         console.log('Credentials parsed successfully, client_email:', credentials.client_email);
-        clientConfig.credentials = credentials;
+        
+        // Try using GoogleAuth for more explicit credential handling
+        const auth = new GoogleAuth({
+          credentials: credentials,
+          scopes: ['https://www.googleapis.com/auth/cloud-vision'],
+        });
+        
+        clientConfig.auth = auth;
+        // Remove the direct credentials assignment to avoid conflicts
+        // clientConfig.credentials = credentials;
       } catch (error) {
         console.error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', error);
         throw new Error('Invalid JSON in GOOGLE_APPLICATION_CREDENTIALS_JSON');
