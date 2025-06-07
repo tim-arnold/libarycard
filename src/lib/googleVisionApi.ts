@@ -1,5 +1,7 @@
 import { ImageAnnotatorClient } from '@google-cloud/vision';
 import path from 'path';
+import fs from 'fs';
+import os from 'os';
 
 // Lazy client initialization to ensure environment variables are loaded
 let client: ImageAnnotatorClient | null = null;
@@ -9,7 +11,7 @@ function getClient(): ImageAnnotatorClient {
     console.log('Initializing Google Vision client...');
     console.log('Project ID:', process.env.GOOGLE_CLOUD_PROJECT_ID);
     
-    // Production: Write credentials to temp file for Google libraries to use
+    // Production: Write credentials to temp file for Google SDK to use
     if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
       console.log('Setting up credentials from JSON environment variable');
       try {
@@ -30,13 +32,19 @@ function getClient(): ImageAnnotatorClient {
         
         console.log('Credentials parsed, client_email:', credentials.client_email);
         
-        // Use the standard approach - set environment variables Google SDK expects
-        process.env.GOOGLE_APPLICATION_CREDENTIALS_CONTENT = JSON.stringify(credentials);
+        // Write credentials to a temporary file that Google SDK can read
+        const tempDir = os.tmpdir();
+        const credentialsPath = path.join(tempDir, 'google-credentials.json');
         
-        // Create client with minimal config, let Google SDK handle auth
+        fs.writeFileSync(credentialsPath, JSON.stringify(credentials, null, 2));
+        console.log('Temporary credentials file created at:', credentialsPath);
+        
+        // Set the environment variable that Google SDK looks for
+        process.env.GOOGLE_APPLICATION_CREDENTIALS = credentialsPath;
+        
+        // Create client using the file path approach
         client = new ImageAnnotatorClient({
           projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-          credentials: credentials
         });
         
       } catch (error) {
