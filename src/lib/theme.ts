@@ -17,6 +17,18 @@ const commonTypography = {
 }
 
 const commonComponents = {
+  MuiContainer: {
+    styleOverrides: {
+      root: ({ theme }: { theme: any }) => ({
+        paddingLeft: '0 !important',
+        paddingRight: '0 !important',
+        [theme.breakpoints.up('md')]: {
+          paddingLeft: '24px !important',
+          paddingRight: '24px !important',
+        },
+      }),
+    },
+  },
   MuiCard: {
     styleOverrides: {
       root: {
