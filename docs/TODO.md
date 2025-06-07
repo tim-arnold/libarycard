@@ -25,14 +25,13 @@ This file tracks active development tasks and future enhancements for the Libary
 ### Low Priority - Future Enhancements
 
 - [ ] **Admin Dashboard & Analytics**
+  - [ ] Implement admin analytics (books per location, user activity, etc.)
   - [ ] Create separate admin dashboard with location overview, user management, and pending requests
   - [ ] Add bulk actions for admin users (bulk book approval, multi-user invitations, etc.)
-  - [ ] Implement admin analytics (books per location, user activity, etc.)
 
 - [ ] **Enhanced Book Features**
   - [ ] Add star rating system, just display average rating for each book from scoped to the location
-  - [ ] Add profile picture upload functionality with image resizing and storage
 
 ---
 
-**Last updated**: December 2025
+**Last updated**: June 2025
