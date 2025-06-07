@@ -2,6 +2,78 @@
 
 This guide covers common issues you might encounter while using or deploying LibaryCard.
 
+## OCR and Bookshelf Scanning Issues
+
+### OCR Not Working - "Private key missing from credentials"
+
+#### Symptoms
+- Bookshelf photo scanning fails
+- Error: "OCR processing failed: Private key missing from credentials"
+- Google Vision API returning 500 errors
+
+#### Root Cause
+This error occurs when OAuth client credentials are configured instead of service account credentials.
+
+#### Solution
+1. **Check Current Credentials Type**
+   ```bash
+   # Test the OCR endpoint to see error details
+   curl -X POST https://api.libarycard.tim52.io/api/ocr-vision \
+     -H "Content-Type: application/json" \
+     -d '{"image": "data:image/png;base64,test"}'
+   ```
+
+2. **Create Service Account Credentials**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Navigate to "IAM & Admin" > "Service Accounts"
+   - Create a new service account or use existing one
+   - Generate a new JSON key file (service account credentials)
+
+3. **Enable Google Vision API**
+   - Go to "APIs & Services" > "Library"
+   - Search for "Cloud Vision API"
+   - Click "Enable" if not already enabled
+
+4. **Update Cloudflare Worker Secret**
+   ```bash
+   # Navigate to workers directory
+   cd workers
+   
+   # Set the service account credentials
+   cat /path/to/service-account.json | npx wrangler secret put GOOGLE_APPLICATION_CREDENTIALS_JSON
+   ```
+
+5. **Verify the Fix**
+   ```bash
+   curl -X POST https://api.libarycard.tim52.io/api/ocr-vision \
+     -H "Content-Type: application/json" \
+     -d '{"image": "data:image/png;base64,test"}'
+   # Should return: {"detectedText":[],"processedCount":0}
+   ```
+
+#### Expected Credential Format
+Service account JSON should contain:
+```json
+{
+  "type": "service_account",
+  "project_id": "your-project-id",
+  "private_key_id": "...",
+  "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
+  "client_email": "service-account@project.iam.gserviceaccount.com",
+  ...
+}
+```
+
+**NOT** OAuth client credentials with:
+```json
+{
+  "client_id": "...",
+  "client_secret": "...",
+  "redirect_uris": [...],
+  "javascript_origins": [...]
+}
+```
+
 ## Camera and Scanning Issues
 
 ### Camera Not Working

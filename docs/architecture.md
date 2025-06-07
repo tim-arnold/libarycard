@@ -51,6 +51,7 @@ LibaryCard is built as a modern, serverless web application using a hybrid archi
 - **Book Data**: Google Books API (primary)
 - **Fallback**: OpenLibrary API
 - **Barcode Scanning**: ZXing library (@zxing/library)
+- **OCR Processing**: Google Vision API for bookshelf photo scanning
 - **Email Service**: Resend for user verification
 - **Authentication**: NextAuth.js with Google OAuth and email/password
 
@@ -166,6 +167,7 @@ src/
 │   ├── AddBooks.tsx        # Main book addition coordinator
 │   ├── ISBNScanner.tsx     # Camera scanning + manual ISBN entry
 │   ├── BookSearch.tsx      # Google Books API search interface
+│   ├── BookshelfScanner.tsx # OCR bookshelf photo scanning
 │   ├── BookPreview.tsx     # Selected book display + editing
 │   ├── BookLibrary.tsx     # Main library display coordinator
 │   ├── BookGrid.tsx        # Card view display component
@@ -297,6 +299,9 @@ books (
 - `POST /api/books` - Add new book
 - `PUT /api/books/:id` - Update book location/tags
 - `DELETE /api/books/:id` - Remove book
+
+#### OCR Processing (Public Endpoint)
+- `POST /api/ocr-vision` - Process bookshelf photos with Google Vision API
 
 ### Design Decisions
 - **Role-based access**: Admin/user roles with permission enforcement
