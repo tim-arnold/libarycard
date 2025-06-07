@@ -25,6 +25,10 @@ LibaryCard is a sophisticated library management platform with comprehensive fea
 
 > **Detailed Architecture**: See [docs/architecture.md](./docs/architecture.md) for complete technical documentation
 
+## Development Guidelines
+
+**Commit Messages**: Use clear, descriptive commit messages without AI tool attribution or co-authoring credits
+
 ## Recent Highlights
 
 - **Complete**: Material UI design system with dark mode

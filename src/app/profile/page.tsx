@@ -37,6 +37,7 @@ interface ProfileData {
   first_name: string
   last_name: string
   auth_provider: string
+  user_role: string
 }
 
 interface Location {
@@ -352,8 +353,8 @@ export default function ProfilePage() {
         ) : (
           <Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              You have access to {locations.length} library location{locations.length > 1 ? 's' : ''}. 
-              You can leave locations you no longer need access to.
+              You have access to {locations.length} library location{locations.length > 1 ? 's' : ''}.
+              {profile?.user_role !== 'admin' && ' You can leave locations you no longer need access to.'}
             </Typography>
             
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -372,7 +373,7 @@ export default function ProfilePage() {
                         )}
                       </Box>
                       
-                      {locations.length > 1 && (
+                      {locations.length > 1 && profile?.user_role !== 'admin' && (
                         <Button
                           variant="contained"
                           color="error"
@@ -389,10 +390,18 @@ export default function ProfilePage() {
               ))}
             </Box>
             
-            {locations.length === 1 && (
+            {locations.length === 1 && profile?.user_role !== 'admin' && (
               <Alert severity="warning" sx={{ mt: 2 }}>
                 <Typography variant="body2">
                   You can't leave your last location. You need access to at least one library.
+                </Typography>
+              </Alert>
+            )}
+            
+            {profile?.user_role === 'admin' && (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                <Typography variant="body2">
+                  As an admin, you cannot leave locations. Admins must maintain access to manage library settings.
                 </Typography>
               </Alert>
             )}
