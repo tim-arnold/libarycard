@@ -664,12 +664,28 @@ export default function AddBooks() {
                     <>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                         Found matches for your bookshelf scan. Select books to add to your library.
+                        <br />
+                        💡 <strong>Tip:</strong> Click any search term below to see more results in the Search tab.
                       </Typography>
                       
                       {Object.entries(bulkSearchResults).map(([searchTerm, results]) => (
                       <Box key={searchTerm} sx={{ mb: 4 }}>
                         <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold' }}>
-                          🔍 "{searchTerm}" ({results.length} results)
+                          🔍 <Typography 
+                            component="span" 
+                            sx={{ 
+                              cursor: 'pointer', 
+                              color: 'primary.main', 
+                              textDecoration: 'underline',
+                              '&:hover': { color: 'primary.dark' }
+                            }}
+                            onClick={() => {
+                              setSearchQuery(searchTerm)
+                              setActiveTab('search')
+                            }}
+                          >
+                            "{searchTerm}"
+                          </Typography> ({results.length} results{results.length === 3 ? ' - click for more' : ''})
                         </Typography>
                         
                         {results.length > 0 ? (

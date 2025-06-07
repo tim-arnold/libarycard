@@ -70,6 +70,13 @@ export default function BookSearch({
     return () => clearTimeout(timer)
   }, [])
 
+  // Auto-search when searchQuery is provided (e.g., from OCR results)
+  useEffect(() => {
+    if (searchQuery.trim() && searchResults.length === 0 && !isSearching) {
+      searchGoogleBooks(searchQuery)
+    }
+  }, [searchQuery])
+
   const searchGoogleBooks = async (query: string) => {
     if (!query.trim()) return
 
