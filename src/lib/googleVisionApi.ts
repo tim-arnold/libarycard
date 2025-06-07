@@ -7,20 +7,33 @@ let client: ImageAnnotatorClient | null = null;
 function getClient(): ImageAnnotatorClient {
   if (!client) {
     console.log('Initializing Google Vision client...');
-    console.log('Credentials path:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
     console.log('Project ID:', process.env.GOOGLE_CLOUD_PROJECT_ID);
     
-    const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS 
-      ? path.resolve(process.cwd(), process.env.GOOGLE_APPLICATION_CREDENTIALS)
-      : undefined;
-      
-    console.log('Resolved credentials path:', credentialsPath);
-    
-    client = new ImageAnnotatorClient({
-      keyFilename: credentialsPath,
+    let clientConfig: any = {
       projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-    });
+    };
     
+    // Production: use JSON credentials from environment variable
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+      console.log('Using JSON credentials from environment variable');
+      try {
+        const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+        clientConfig.credentials = credentials;
+      } catch (error) {
+        console.error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', error);
+        throw new Error('Invalid JSON in GOOGLE_APPLICATION_CREDENTIALS_JSON');
+      }
+    } 
+    // Development: use file path
+    else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      console.log('Using credentials file path:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
+      const credentialsPath = path.resolve(process.cwd(), process.env.GOOGLE_APPLICATION_CREDENTIALS);
+      clientConfig.keyFilename = credentialsPath;
+    } else {
+      throw new Error('No Google Cloud credentials found. Set either GOOGLE_APPLICATION_CREDENTIALS_JSON or GOOGLE_APPLICATION_CREDENTIALS');
+    }
+    
+    client = new ImageAnnotatorClient(clientConfig);
     console.log('Google Vision client initialized');
   }
   return client;
@@ -91,23 +104,20 @@ export async function extractTextFromImage(imageBase64: string): Promise<GoogleV
 
 export async function isConfigured(): Promise<boolean> {
   try {
-    // Check environment variables
-    if (!process.env.GOOGLE_APPLICATION_CREDENTIALS || !process.env.GOOGLE_CLOUD_PROJECT_ID) {
-      console.log('Missing environment variables');
+    // Check environment variables - either JSON credentials or file path required
+    const hasJsonCredentials = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+    const hasFileCredentials = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    const hasProjectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
+    
+    if (!hasProjectId || (!hasJsonCredentials && !hasFileCredentials)) {
+      console.log('Missing required environment variables');
       return false;
     }
     
-    // Try to create a simple client to verify credentials work
+    // Try to create a client using the same logic as getClient()
     try {
-      const testClient = new ImageAnnotatorClient({
-        keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS 
-          ? path.resolve(process.cwd(), process.env.GOOGLE_APPLICATION_CREDENTIALS)
-          : undefined,
-        projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-      });
-      
-      // This doesn't make an API call, just verifies the client can be created
-      console.log('Google Vision client created successfully');
+      getClient();
+      console.log('Google Vision client configuration verified');
       return true;
     } catch (clientError) {
       console.error('Failed to create Google Vision client:', clientError);
