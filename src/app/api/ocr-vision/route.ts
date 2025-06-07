@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
       data: {
         text: extractedText,
         detections: results.length,
-        confidence: results.length > 0 ? results.reduce((acc, r) => acc + r.confidence, 0) / results.length : 0
+        confidence: results.length > 0 ? results.reduce((acc, r) => acc + r.confidence, 0) / results.length : 0,
+        spatialData: results // Include the full spatial data for advanced processing
       }
     });
 
