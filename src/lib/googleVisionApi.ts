@@ -1,5 +1,4 @@
 import { ImageAnnotatorClient } from '@google-cloud/vision';
-import { GoogleAuth } from 'google-auth-library';
 import path from 'path';
 
 // Lazy client initialization to ensure environment variables are loaded
@@ -10,50 +9,36 @@ function getClient(): ImageAnnotatorClient {
     console.log('Initializing Google Vision client...');
     console.log('Project ID:', process.env.GOOGLE_CLOUD_PROJECT_ID);
     
-    let clientConfig: any = {
-      projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-    };
-    
-    // Production: use JSON credentials from environment variable
+    // Production: Write credentials to temp file for Google libraries to use
     if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-      console.log('Using JSON credentials from environment variable');
-      console.log('JSON length:', process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON.length);
+      console.log('Setting up credentials from JSON environment variable');
       try {
         const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
         
-        // Fix private key formatting - ensure proper newlines
+        // Fix private key formatting
         if (credentials.private_key) {
           let privateKey = credentials.private_key;
-          
-          // Handle different escape patterns that can occur in environment variables
           if (privateKey.includes('\\n')) {
             privateKey = privateKey.replace(/\\n/g, '\n');
           }
           if (privateKey.includes('\\\\n')) {
             privateKey = privateKey.replace(/\\\\n/g, '\n');
           }
-          
-          // Ensure clean formatting
           privateKey = privateKey.replace(/\n\n+/g, '\n');
-          
           credentials.private_key = privateKey;
-          console.log('Private key processed, starts with:', privateKey.substring(0, 30));
-          console.log('Private key length:', privateKey.length);
-          console.log('Has BEGIN marker:', privateKey.includes('-----BEGIN PRIVATE KEY-----'));
-          console.log('Has END marker:', privateKey.includes('-----END PRIVATE KEY-----'));
         }
         
-        console.log('Credentials parsed successfully, client_email:', credentials.client_email);
+        console.log('Credentials parsed, client_email:', credentials.client_email);
         
-        // Try using GoogleAuth for more explicit credential handling
-        const auth = new GoogleAuth({
-          credentials: credentials,
-          scopes: ['https://www.googleapis.com/auth/cloud-vision'],
+        // Use the standard approach - set environment variables Google SDK expects
+        process.env.GOOGLE_APPLICATION_CREDENTIALS_CONTENT = JSON.stringify(credentials);
+        
+        // Create client with minimal config, let Google SDK handle auth
+        client = new ImageAnnotatorClient({
+          projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+          credentials: credentials
         });
         
-        clientConfig.auth = auth;
-        // Remove the direct credentials assignment to avoid conflicts
-        // clientConfig.credentials = credentials;
       } catch (error) {
         console.error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', error);
         throw new Error('Invalid JSON in GOOGLE_APPLICATION_CREDENTIALS_JSON');
@@ -63,12 +48,15 @@ function getClient(): ImageAnnotatorClient {
     else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
       console.log('Using credentials file path:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
       const credentialsPath = path.resolve(process.cwd(), process.env.GOOGLE_APPLICATION_CREDENTIALS);
-      clientConfig.keyFilename = credentialsPath;
+      
+      client = new ImageAnnotatorClient({
+        keyFilename: credentialsPath,
+        projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+      });
     } else {
       throw new Error('No Google Cloud credentials found. Set either GOOGLE_APPLICATION_CREDENTIALS_JSON or GOOGLE_APPLICATION_CREDENTIALS');
     }
     
-    client = new ImageAnnotatorClient(clientConfig);
     console.log('Google Vision client initialized');
   }
   return client;
