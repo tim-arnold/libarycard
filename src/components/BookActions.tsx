@@ -102,20 +102,18 @@ export default function BookActions({
                   size="small"
                   variant="outlined"
                   color="warning"
-                  startIcon={<ReportProblem />}
                   onClick={() => onRequestRemoval(book.id, book.title)}
                 >
-                  Request Removal
+                  <ReportProblem />
                 </Button>
               ) : (
                 <Button
                   size="small"
                   variant="outlined"
                   color="info"
-                  startIcon={<Cancel />}
                   onClick={() => onCancelRemovalRequest(book.id, book.title)}
                 >
-                  Cancel Request
+                  <Cancel />
                 </Button>
               )}
             </>
@@ -178,26 +176,24 @@ export default function BookActions({
       </Box>
 
       {userRole !== 'admin' && (
-        <Box>
+        <Box sx={{ ml: 1 }}>
           {!hasPendingRemovalRequest ? (
             <Button
               size="small"
               variant="outlined"
               color="warning"
-              startIcon={<ReportProblem />}
               onClick={() => onRequestRemoval(book.id, book.title)}
             >
-              Request Removal
+              <ReportProblem />
             </Button>
           ) : (
             <Button
               size="small"
               variant="outlined"
               color="info"
-              startIcon={<Cancel />}
               onClick={() => onCancelRemovalRequest(book.id, book.title)}
             >
-              Cancel Request
+              <Cancel />
             </Button>
           )}
         </Box>

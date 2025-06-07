@@ -21,6 +21,7 @@ import {
   PersonAdd,
   Login,
 } from '@mui/icons-material'
+import Footer from '@/components/Footer'
 
 function SignInForm() {
   const [loading, setLoading] = useState(false)
@@ -548,6 +549,8 @@ function SignInForm() {
           </Box>
         )}
       </Paper>
+      
+      <Footer />
     </Container>
   )
 }

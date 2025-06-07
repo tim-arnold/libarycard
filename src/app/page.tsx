@@ -32,6 +32,7 @@ import AddBooks from '@/components/AddBooks'
 import BookLibrary from '@/components/BookLibrary'
 import LocationManager from '@/components/LocationManager'
 import RemovalRequestManager from '@/components/RemovalRequestManager'
+import Footer from '@/components/Footer'
 import { useTheme } from '@/lib/ThemeContext'
 
 export default function Home() {
@@ -197,7 +198,7 @@ export default function Home() {
           >
             <Tab 
               value="library" 
-              label={userRole === 'admin' ? "Manage Libraries" : (userLocation ? `${userLocation} Library` : "My Libary")} 
+              label={userRole === 'admin' ? "Manage Libraries" : (userLocation ? `${userLocation} Libary` : "My Libary")}
               icon={<LibraryBooks />}
               iconPosition="start"
             />
@@ -231,6 +232,8 @@ export default function Home() {
         {activeTab === 'scan' && <AddBooks />}
         {activeTab === 'library' && <BookLibrary />}
       </Container>
+      
+      <Footer />
     </Box>
   )
 }

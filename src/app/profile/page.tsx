@@ -27,6 +27,7 @@ import {
 } from '@mui/icons-material'
 import ConfirmationModal from '@/components/ConfirmationModal'
 import AlertModal from '@/components/AlertModal'
+import Footer from '@/components/Footer'
 import { useModal } from '@/hooks/useModal'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
@@ -514,6 +515,8 @@ export default function ProfilePage() {
           />
         )}
       </Paper>
+      
+      <Footer />
     </Container>
   )
 }

@@ -76,6 +76,11 @@ export default {
         return await processOCR(request, env, corsHeaders);
       }
 
+      // Contact form endpoint (public)
+      if (path === '/api/contact' && request.method === 'POST') {
+        return await sendContactEmail(request, env, corsHeaders);
+      }
+
       // Get user from session/token for protected endpoints
       const userId = await getUserFromRequest(request, env);
       
@@ -1269,6 +1274,124 @@ async function checkUserExists(request: Request, env: Env, corsHeaders: Record<s
   } catch (error) {
     console.error('Error checking user existence:', error);
     return new Response(JSON.stringify({ exists: false }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+// Contact form function
+async function sendContactEmail(request: Request, env: Env, corsHeaders: Record<string, string>) {
+  try {
+    const { name, email, message }: {
+      name: string;
+      email: string;
+      message: string;
+    } = await request.json();
+
+    // Validate required fields
+    if (!name?.trim() || !email?.trim() || !message?.trim()) {
+      return new Response(JSON.stringify({ error: 'Name, email, and message are required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Basic email validation
+    if (!email.includes('@')) {
+      return new Response(JSON.stringify({ error: 'Please enter a valid email address' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Send email using Resend (same system as invitations)
+    if (env.RESEND_API_KEY) {
+      try {
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: env.FROM_EMAIL || 'LibaryCard <noreply@tim52.io>',
+            to: ['libarian@tim52.io'],
+            reply_to: [email],
+            subject: `LibaryCard Contact: Message from ${name}`,
+            html: `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>LibaryCard Contact Form</title>
+              </head>
+              <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: #f8f9fa; padding: 30px; border-radius: 10px;">
+                  <h1 style="color: #007bff; margin-bottom: 10px;">📚 LibaryCard Contact</h1>
+                  <h2 style="color: #333; margin-bottom: 20px;">New message from ${name}</h2>
+                  
+                  <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0;">
+                    <p style="font-size: 16px; margin-bottom: 10px;"><strong>From:</strong> ${name}</p>
+                    <p style="font-size: 16px; margin-bottom: 10px;"><strong>Email:</strong> ${email}</p>
+                    <p style="font-size: 16px; margin-bottom: 15px;"><strong>Message:</strong></p>
+                    <div style="background: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; border-radius: 3px;">
+                      ${message.split('\n').map(line => `<p style="margin: 0 0 10px 0;">${line}</p>`).join('')}
+                    </div>
+                  </div>
+                  
+                  <p style="font-size: 14px; color: #666; margin-top: 20px;">
+                    You can reply directly to this email to respond to ${name}.
+                  </p>
+                </div>
+              </body>
+              </html>
+            `
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          console.error('Failed to send contact email:', error);
+          throw new Error(`Email service error: ${response.status}`);
+        }
+
+        const result = await response.json() as { id: string };
+        console.log('Contact email sent successfully:', result.id);
+
+        return new Response(JSON.stringify({ 
+          message: 'Message sent successfully!',
+          id: result.id
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+
+      } catch (error) {
+        console.error('Error sending contact email:', error);
+        return new Response(JSON.stringify({ error: 'Failed to send message' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      // Fallback for development without email service
+      console.log(`
+        Contact form submission (development mode):
+        From: ${name} (${email})
+        Message: ${message}
+      `);
+      
+      return new Response(JSON.stringify({ 
+        message: 'Message received! (Development mode - no email sent)'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+  } catch (error) {
+    console.error('Contact form processing error:', error);
+    return new Response(JSON.stringify({ error: 'Failed to process contact form' }), {
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
