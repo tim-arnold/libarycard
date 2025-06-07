@@ -45,3 +45,4 @@ workers/updated-index.ts
 workers/node_modules/
 .idea/
 als
+/google-service-account.json

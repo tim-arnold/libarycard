@@ -15,6 +15,7 @@ import {
 import {
   QrCodeScanner,
   MenuBook,
+  PhotoLibrary,
 } from '@mui/icons-material'
 import { fetchEnhancedBookData, fetchEnhancedBookFromSearch } from '@/lib/bookApi'
 import type { EnhancedBook } from '@/lib/types'
@@ -25,6 +26,7 @@ import ShelfSelector from './ShelfSelector'
 import ISBNScanner from './ISBNScanner'
 import BookSearch from './BookSearch'
 import BookPreview from './BookPreview'
+import BookshelfScanner from './BookshelfScanner'
 import { useModal } from '@/hooks/useModal'
 import {
   Dialog,
@@ -171,10 +173,10 @@ interface GoogleBookItem {
 export default function AddBooks() {
   const { data: session } = useSession()
   const { modalState, alert, closeModal } = useModal()
-  const [activeTab, setActiveTab] = useState<'scan' | 'search'>(() => {
+  const [activeTab, setActiveTab] = useState<'scan' | 'search' | 'bookshelf'>(() => {
     // Remember user's preferred tab choice
     if (typeof window !== 'undefined') {
-      const savedTab = localStorage.getItem('addBooks_preferredTab') as 'scan' | 'search'
+      const savedTab = localStorage.getItem('addBooks_preferredTab') as 'scan' | 'search' | 'bookshelf'
       return savedTab || 'search'
     }
     return 'search'
@@ -282,6 +284,16 @@ export default function AddBooks() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleTitlesDetected = (titles: string[]) => {
+    console.log('Detected titles from bookshelf:', titles)
+    alert({
+      title: 'Titles Detected!',
+      message: `Found ${titles.length} potential book titles: ${titles.slice(0, 3).join(', ')}${titles.length > 3 ? '...' : ''}`,
+      variant: 'success'
+    })
+    // TODO: Next step will be to search for these titles and show results
   }
 
   const selectBookFromSearch = async (item: GoogleBookItem) => {
@@ -393,7 +405,7 @@ export default function AddBooks() {
     })
   }
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: 'scan' | 'search') => {
+  const handleTabChange = (event: React.SyntheticEvent, newValue: 'scan' | 'search' | 'bookshelf') => {
     setActiveTab(newValue)
     
     // Save user's preferred tab choice
@@ -401,8 +413,8 @@ export default function AddBooks() {
       localStorage.setItem('addBooks_preferredTab', newValue)
     }
     
-    // Clear search query when switching to scan
-    if (newValue === 'scan') {
+    // Clear search query when switching away from search
+    if (newValue !== 'search') {
       setSearchQuery('')
     }
   }
@@ -487,6 +499,12 @@ export default function AddBooks() {
               icon={<QrCodeScanner />}
               iconPosition="start"
             />
+            <Tab 
+              value="bookshelf" 
+              label="Scan Bookshelf" 
+              icon={<PhotoLibrary />}
+              iconPosition="start"
+            />
           </Tabs>
         </Paper>
 
@@ -509,6 +527,14 @@ export default function AddBooks() {
             onError={handleError}
             existingBooks={existingBooks}
             justAddedBooks={justAddedBooks}
+            disabled={loadingData || isLoading}
+          />
+        )}
+
+        {/* Bookshelf Scanner Tab */}
+        {activeTab === 'bookshelf' && !selectedBook && (
+          <BookshelfScanner
+            onTitlesDetected={handleTitlesDetected}
             disabled={loadingData || isLoading}
           />
         )}
