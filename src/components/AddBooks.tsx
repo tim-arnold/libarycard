@@ -816,7 +816,7 @@ export default function AddBooks() {
             />
             
             {/* Shelf selector */}
-            <Box sx={{ mb: 2 }}>
+            <Box sx={{ mt: 4, mb: 2 }}>
               <ShelfSelector
                 shelves={allShelves}
                 locations={locations}
