@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import {
   Container,
@@ -11,11 +11,18 @@ import {
   Chip,
   Tabs,
   Tab,
+  CircularProgress,
+  Card,
+  CardContent,
+  CardMedia,
+  CardActions,
 } from '@mui/material'
 import {
   QrCodeScanner,
   MenuBook,
   PhotoLibrary,
+  CheckCircle,
+  Add,
 } from '@mui/icons-material'
 import { fetchEnhancedBookData, fetchEnhancedBookFromSearch } from '@/lib/bookApi'
 import type { EnhancedBook } from '@/lib/types'
@@ -197,6 +204,41 @@ export default function AddBooks() {
   const [existingBooks, setExistingBooks] = useState<EnhancedBook[]>([])
   const [justAddedBooks, setJustAddedBooks] = useState<Set<string>>(new Set())
 
+  // Refs for scroll targets
+  const capturedImageRef = useRef<HTMLDivElement>(null)
+  const bookSearchResultsRef = useRef<HTMLDivElement>(null)
+  const [lastAddedBookKey, setLastAddedBookKey] = useState<string | null>(null)
+
+  // Scroll utility function
+  const scrollToElement = (ref: React.RefObject<HTMLElement>, offset: number = 0) => {
+    if (ref.current) {
+      const elementTop = ref.current.offsetTop + offset
+      window.scrollTo({
+        top: elementTop,
+        behavior: 'smooth'
+      })
+    }
+  }
+
+  // Scroll to newly added book when it's added
+  useEffect(() => {
+    if (lastAddedBookKey) {
+      setTimeout(() => {
+        // Find the book card element that was just added
+        const bookCards = document.querySelectorAll('[data-book-key]')
+        Array.from(bookCards).forEach(card => {
+          if (card.getAttribute('data-book-key') === lastAddedBookKey) {
+            const elementTop = (card as HTMLElement).offsetTop - 20
+            window.scrollTo({
+              top: elementTop,
+              behavior: 'smooth'
+            })
+          }
+        })
+      }, 300)
+    }
+  }, [lastAddedBookKey])
+
   useEffect(() => {
     // Load locations and shelves when session is available
     if (session?.user?.email) {
@@ -286,14 +328,70 @@ export default function AddBooks() {
     }
   }
 
-  const handleTitlesDetected = (titles: string[]) => {
+  const [detectedTitles, setDetectedTitles] = useState<string[]>([])
+  const [bulkSearchResults, setBulkSearchResults] = useState<{ [title: string]: GoogleBookItem[] }>({})
+  const [isBulkSearching, setIsBulkSearching] = useState(false)
+
+  const handleImageCaptured = () => {
+    // Clear previous search results when starting a new scan
+    setDetectedTitles([])
+    setBulkSearchResults({})
+    
+    // Scroll to captured image section after image is selected
+    setTimeout(() => {
+      scrollToElement(capturedImageRef, -20)
+    }, 100)
+  }
+
+  const handleTitlesDetected = async (titles: string[]) => {
     console.log('Detected titles from bookshelf:', titles)
-    alert({
-      title: 'Titles Detected!',
-      message: `Found ${titles.length} potential book titles: ${titles.slice(0, 3).join(', ')}${titles.length > 3 ? '...' : ''}`,
-      variant: 'success'
-    })
-    // TODO: Next step will be to search for these titles and show results
+    setDetectedTitles(titles)
+    
+    // Start bulk search immediately
+    await performBulkSearch(titles)
+    
+    // Scroll to search results when Google API processing completes
+    setTimeout(() => {
+      scrollToElement(bookSearchResultsRef, -20)
+    }, 200)
+  }
+
+  const performBulkSearch = async (titles: string[]) => {
+    setIsBulkSearching(true)
+    setBulkSearchResults({})
+    
+    try {
+      const searchPromises = titles.map(async (title) => {
+        try {
+          const response = await fetch(
+            `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(title)}&maxResults=3`
+          )
+          
+          if (response.ok) {
+            const data = await response.json()
+            return { title, results: data.items || [] }
+          } else {
+            return { title, results: [] }
+          }
+        } catch (error) {
+          console.error(`Failed to search for "${title}":`, error)
+          return { title, results: [] }
+        }
+      })
+      
+      const searchResults = await Promise.all(searchPromises)
+      
+      const resultsMap: { [title: string]: GoogleBookItem[] } = {}
+      searchResults.forEach(({ title, results }) => {
+        resultsMap[title] = results
+      })
+      
+      setBulkSearchResults(resultsMap)
+      setIsBulkSearching(false)
+    } catch (error) {
+      setIsBulkSearching(false)
+      console.error('Bulk search failed:', error)
+    }
   }
 
   const selectBookFromSearch = async (item: GoogleBookItem) => {
@@ -370,6 +468,7 @@ export default function AddBooks() {
         // Mark this book as just added for display purposes
         const bookKey = selectedBook.isbn || selectedBook.title
         setJustAddedBooks(prev => new Set(prev).add(bookKey))
+        setLastAddedBookKey(bookKey)
       } catch (error) {
         // If we can't refresh the books list, continue anyway
         console.error('Failed to refresh books list:', error)
@@ -405,7 +504,7 @@ export default function AddBooks() {
     })
   }
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: 'scan' | 'search' | 'bookshelf') => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: 'scan' | 'search' | 'bookshelf') => {
     setActiveTab(newValue)
     
     // Save user's preferred tab choice
@@ -416,6 +515,13 @@ export default function AddBooks() {
     // Clear search query when switching away from search
     if (newValue !== 'search') {
       setSearchQuery('')
+    }
+    
+    // Reset bookshelf scanner when switching to it from another tab
+    if (newValue === 'bookshelf') {
+      setDetectedTitles([])
+      setBulkSearchResults({})
+      setIsBulkSearching(false)
     }
   }
 
@@ -533,10 +639,162 @@ export default function AddBooks() {
 
         {/* Bookshelf Scanner Tab */}
         {activeTab === 'bookshelf' && !selectedBook && (
-          <BookshelfScanner
-            onTitlesDetected={handleTitlesDetected}
-            disabled={loadingData || isLoading}
-          />
+          <Box>
+            <BookshelfScanner
+              key={activeTab} // Force reset when switching to this tab
+              onTitlesDetected={handleTitlesDetected}
+              onImageCaptured={handleImageCaptured}
+              capturedImageRef={capturedImageRef}
+              disabled={loadingData || isLoading || isBulkSearching}
+            />
+            
+            {/* Bulk Search Results */}
+            {(detectedTitles.length > 0 || isBulkSearching) && (
+              <Box sx={{ mt: 3 }}>
+                <Paper sx={{ p: 3 }}>
+                  <Box sx={{ display: 'fcommilex', alignItems: 'center', gap: 2, mb: 3 }}>
+                    <Typography variant="h6" ref={bookSearchResultsRef}>
+                      📚 Book Search Results
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    Searching Google Books for {detectedTitles.length} detected terms...
+                  </Typography>
+
+                  {Object.keys(bulkSearchResults).length > 0 && (
+                    <>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                        Found matches for your bookshelf scan. Select books to add to your library.
+                      </Typography>
+                      
+                      {Object.entries(bulkSearchResults).map(([searchTerm, results]) => (
+                      <Box key={searchTerm} sx={{ mb: 4 }}>
+                        <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold' }}>
+                          🔍 "{searchTerm}" ({results.length} results)
+                        </Typography>
+                        
+                        {results.length > 0 ? (
+                          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 2 }}>
+                            {results.map((item) => {
+                              const isbn = item.volumeInfo.industryIdentifiers?.find(
+                                id => id.type === 'ISBN_13' || id.type === 'ISBN_10'
+                              )?.identifier
+                              const bookKey = isbn || item.volumeInfo.title
+                              const isJustAdded = justAddedBooks.has(bookKey)
+                              const isDuplicate = existingBooks.some(existingBook => {
+                                if (isbn && existingBook.isbn === isbn) return true
+                                const titleMatch = existingBook.title.toLowerCase() === item.volumeInfo.title.toLowerCase()
+                                const authorMatch = (item.volumeInfo.authors || []).some(author => 
+                                  existingBook.authors.some(existingAuthor => 
+                                    existingAuthor.toLowerCase() === author.toLowerCase()
+                                  )
+                                )
+                                return titleMatch && authorMatch
+                              })
+                              
+                              return (
+                                <Card key={item.id} data-book-key={bookKey} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                                  <CardContent sx={{ flex: 1 }}>
+                                    {item.volumeInfo.imageLinks?.thumbnail && (
+                                      <CardMedia
+                                        component="img"
+                                        src={item.volumeInfo.imageLinks.thumbnail}
+                                        alt={item.volumeInfo.title}
+                                        sx={{ width: 60, height: 'auto', mx: 'auto', mb: 1 }}
+                                      />
+                                    )}
+                                    <Typography variant="subtitle2" component="h3" gutterBottom sx={{ fontSize: '0.9rem' }}>
+                                      {item.volumeInfo.title}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: '0.8rem' }}>
+                                      {item.volumeInfo.authors?.join(', ') || 'Unknown Author'}
+                                    </Typography>
+                                    {item.volumeInfo.publishedDate && (
+                                      <Typography variant="caption" color="text.secondary">
+                                        {item.volumeInfo.publishedDate}
+                                      </Typography>
+                                    )}
+                                  </CardContent>
+                                  <CardActions>
+                                    {isJustAdded ? (
+                                      <Button 
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={<CheckCircle />}
+                                        disabled
+                                        fullWidth
+                                        sx={{ 
+                                          color: 'success.main',
+                                          borderColor: 'success.main',
+                                          '&.Mui-disabled': {
+                                            color: 'success.main',
+                                            borderColor: 'success.main'
+                                          }
+                                        }}
+                                      >
+                                        Added!
+                                      </Button>
+                                    ) : isDuplicate ? (
+                                      <Button 
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={<CheckCircle />}
+                                        disabled
+                                        fullWidth
+                                        sx={{ 
+                                          color: 'text.secondary',
+                                          borderColor: 'grey.400',
+                                          '&.Mui-disabled': {
+                                            color: 'text.secondary',
+                                            borderColor: 'grey.400'
+                                          }
+                                        }}
+                                      >
+                                        In Library
+                                      </Button>
+                                    ) : (
+                                      <Button 
+                                        variant="contained"
+                                        size="small"
+                                        startIcon={<Add />}
+                                        onClick={() => selectBookFromSearch(item)}
+                                        disabled={isLoading}
+                                        fullWidth
+                                      >
+                                        Add Book
+                                      </Button>
+                                    )}
+                                  </CardActions>
+                                </Card>
+                              )
+                            })}
+                          </Box>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                            No matches found for this search term.
+                          </Typography>
+                        )}
+                      </Box>
+                    ))}
+                    
+                    {/* Clear results button */}
+                    <Box sx={{ textAlign: 'center', mt: 3 }}>
+                      <Button 
+                        variant="outlined" 
+                        onClick={() => {
+                          setDetectedTitles([])
+                          setBulkSearchResults({})
+                        }}
+                      >
+                        Clear Results & Scan New Bookshelf
+                      </Button>
+                    </Box>
+                    </>
+                  )}
+                </Paper>
+              </Box>
+            )}
+          </Box>
         )}
 
         {/* Selected Book Display (shared between tabs) */}

@@ -8,9 +8,6 @@ import {
   Paper,
   CircularProgress,
   Alert,
-  List,
-  ListItem,
-  ListItemText,
 } from '@mui/material'
 import {
   PhotoCamera,
@@ -19,6 +16,8 @@ import {
 
 interface BookshelfScannerProps {
   onTitlesDetected: (titles: string[]) => void
+  onImageCaptured?: () => void
+  capturedImageRef?: React.RefObject<HTMLDivElement>
   disabled?: boolean
 }
 
@@ -32,6 +31,8 @@ interface OCRResult {
 
 export default function BookshelfScanner({
   onTitlesDetected,
+  onImageCaptured,
+  capturedImageRef,
   disabled = false,
 }: BookshelfScannerProps) {
   const [isProcessing, setIsProcessing] = useState(false)
@@ -50,6 +51,11 @@ export default function BookshelfScanner({
     const imageUrl = URL.createObjectURL(file)
     setCapturedImage(imageUrl)
     setError(null)
+    
+    // Call the onImageCaptured callback for scrolling
+    if (onImageCaptured) {
+      onImageCaptured()
+    }
     
     // Start OCR processing
     processImage(file)
@@ -260,9 +266,25 @@ export default function BookshelfScanner({
         body: JSON.stringify({ imageBase64: base64Image }),
       })
       
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`Google Vision API HTTP ${response.status}:`, errorText)
+        throw new Error(`Google Vision API returned ${response.status}: ${errorText}`)
+      }
+      
       const result = await response.json()
       
       if (!result.success) {
+        console.error('Google Vision API error:', result.error)
+        
+        // Check if it's a configuration error
+        if (result.error.includes('not configured')) {
+          throw new Error(
+            'Google Vision API is not configured. This feature requires Google Cloud Vision API setup with service account credentials. ' +
+            'Please contact the administrator to enable this feature.'
+          )
+        }
+        
         throw new Error(result.error)
       }
       
@@ -337,6 +359,18 @@ export default function BookshelfScanner({
 
   return (
     <Box>
+      {/* Experimental Feature Notice */}
+      <Alert severity="info" sx={{ mb: 3 }}>
+        <Typography variant="body2" sx={{ mb: 2 }}>
+          🧪 <strong>Experimental Feature:</strong> Bookshelf scanning uses AI to detect book titles from photos. 
+          Results may vary depending on photo quality, lighting, and spine visibility. 
+          For best results, take clear photos with good lighting and visible book spines.
+        </Typography>
+        <Typography variant="body2">
+          📚 Take, or upload, a photo of your bookshelf to detect book titles. Photos should only include books on the same shelf, and try to limit the number of books in frame to 20 or so.
+        </Typography>
+      </Alert>
+
       {/* Photo Capture */}
       {!capturedImage && (
         <Box sx={{ textAlign: 'center', mb: 3 }}>
@@ -359,15 +393,12 @@ export default function BookshelfScanner({
           >
             Scan Bookshelf
           </Button>
-          <Typography variant="body2" color="text.secondary">
-            📚 Take a photo of your bookshelf to detect book titles
-          </Typography>
         </Box>
       )}
 
       {/* Captured Image Preview */}
       {capturedImage && (
-        <Paper sx={{ p: 2, mb: 3 }}>
+        <Paper sx={{ p: 2, mb: 3 }} ref={capturedImageRef}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Typography variant="h6">
               📸 Captured Image
@@ -420,54 +451,7 @@ export default function BookshelfScanner({
         </Alert>
       )}
 
-      {/* OCR Results */}
-      {ocrResult && (
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            📊 Scan Results
-          </Typography>
-          
-          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <strong>{ocrResult.titles.length} terms detected</strong>
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              • {(ocrResult.processingTime / 1000).toFixed(1)}s processing time
-            </Typography>
-            {ocrResult.confidence && (
-              <Typography variant="body2" color="text.secondary">
-                • {(ocrResult.confidence * 100).toFixed(0)}% confidence
-              </Typography>
-            )}
-          </Box>
-        </Paper>
-      )}
 
-      {/* Detected Titles */}
-      {detectedTitles.length > 0 && (
-        <Paper sx={{ p: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            📚 Detected Book Terms ({detectedTitles.length})
-          </Typography>
-          <List dense>
-            {detectedTitles.map((title, index) => (
-              <ListItem key={index} divider>
-                <ListItemText 
-                  primary={title}
-                  slotProps={{
-                    primary: { variant: 'body2' }
-                  }}
-                />
-              </ListItem>
-            ))}
-          </List>
-          {detectedTitles.length === 0 && (
-            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-              No book titles detected. Try a clearer photo with better lighting.
-            </Typography>
-          )}
-        </Paper>
-      )}
     </Box>
   )
 }

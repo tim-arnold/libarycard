@@ -1,10 +1,30 @@
 import { ImageAnnotatorClient } from '@google-cloud/vision';
+import path from 'path';
 
-// Initialize the client with credentials from environment
-const client = new ImageAnnotatorClient({
-  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS, // Path to service account key
-  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-});
+// Lazy client initialization to ensure environment variables are loaded
+let client: ImageAnnotatorClient | null = null;
+
+function getClient(): ImageAnnotatorClient {
+  if (!client) {
+    console.log('Initializing Google Vision client...');
+    console.log('Credentials path:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
+    console.log('Project ID:', process.env.GOOGLE_CLOUD_PROJECT_ID);
+    
+    const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS 
+      ? path.resolve(process.cwd(), process.env.GOOGLE_APPLICATION_CREDENTIALS)
+      : undefined;
+      
+    console.log('Resolved credentials path:', credentialsPath);
+    
+    client = new ImageAnnotatorClient({
+      keyFilename: credentialsPath,
+      projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+    });
+    
+    console.log('Google Vision client initialized');
+  }
+  return client;
+}
 
 export interface GoogleVisionResult {
   text: string;
@@ -25,8 +45,11 @@ export async function extractTextFromImage(imageBase64: string): Promise<GoogleV
     // Convert base64 to buffer
     const imageBuffer = Buffer.from(base64Data, 'base64');
 
+    // Get the client instance
+    const visionClient = getClient();
+
     // Perform text detection
-    const [result] = await client.textDetection({
+    const [result] = await visionClient.textDetection({
       image: { content: imageBuffer },
     });
 
@@ -68,8 +91,30 @@ export async function extractTextFromImage(imageBase64: string): Promise<GoogleV
 
 export async function isConfigured(): Promise<boolean> {
   try {
-    return !!(process.env.GOOGLE_APPLICATION_CREDENTIALS && process.env.GOOGLE_CLOUD_PROJECT_ID);
-  } catch {
+    // Check environment variables
+    if (!process.env.GOOGLE_APPLICATION_CREDENTIALS || !process.env.GOOGLE_CLOUD_PROJECT_ID) {
+      console.log('Missing environment variables');
+      return false;
+    }
+    
+    // Try to create a simple client to verify credentials work
+    try {
+      const testClient = new ImageAnnotatorClient({
+        keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS 
+          ? path.resolve(process.cwd(), process.env.GOOGLE_APPLICATION_CREDENTIALS)
+          : undefined,
+        projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+      });
+      
+      // This doesn't make an API call, just verifies the client can be created
+      console.log('Google Vision client created successfully');
+      return true;
+    } catch (clientError) {
+      console.error('Failed to create Google Vision client:', clientError);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error checking Google Vision configuration:', error);
     return false;
   }
 }
