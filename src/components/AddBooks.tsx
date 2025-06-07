@@ -11,7 +11,6 @@ import {
   Chip,
   Tabs,
   Tab,
-  CircularProgress,
   Card,
   CardContent,
   CardMedia,
