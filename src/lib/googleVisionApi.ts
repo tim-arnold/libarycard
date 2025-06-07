@@ -18,6 +18,15 @@ function getClient(): ImageAnnotatorClient {
       console.log('Using JSON credentials from environment variable');
       try {
         const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+        
+        // Fix private key formatting - ensure proper newlines
+        if (credentials.private_key) {
+          credentials.private_key = credentials.private_key
+            .replace(/\\n/g, '\n')  // Replace literal \n with actual newlines
+            .replace(/\n\n/g, '\n'); // Remove any double newlines
+        }
+        
+        console.log('Credentials parsed successfully, client_email:', credentials.client_email);
         clientConfig.credentials = credentials;
       } catch (error) {
         console.error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', error);
