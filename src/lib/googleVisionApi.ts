@@ -21,9 +21,21 @@ function getClient(): ImageAnnotatorClient {
         
         // Fix private key formatting - ensure proper newlines
         if (credentials.private_key) {
-          credentials.private_key = credentials.private_key
-            .replace(/\\n/g, '\n')  // Replace literal \n with actual newlines
-            .replace(/\n\n/g, '\n'); // Remove any double newlines
+          let privateKey = credentials.private_key;
+          
+          // Handle different escape patterns that can occur in environment variables
+          if (privateKey.includes('\\n')) {
+            privateKey = privateKey.replace(/\\n/g, '\n');
+          }
+          if (privateKey.includes('\\\\n')) {
+            privateKey = privateKey.replace(/\\\\n/g, '\n');
+          }
+          
+          // Ensure clean formatting
+          privateKey = privateKey.replace(/\n\n+/g, '\n');
+          
+          credentials.private_key = privateKey;
+          console.log('Private key processed, starts with:', privateKey.substring(0, 30));
         }
         
         console.log('Credentials parsed successfully, client_email:', credentials.client_email);
