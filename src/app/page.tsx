@@ -38,7 +38,14 @@ export default function Home() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const { isDarkMode, toggleTheme } = useTheme()
-  const [activeTab, setActiveTab] = useState<'scan' | 'library' | 'locations' | 'requests'>('library')
+  const [activeTab, setActiveTab] = useState<'scan' | 'library' | 'locations' | 'requests'>(() => {
+    // Try to restore the tab from current session
+    if (typeof window !== 'undefined') {
+      const savedTab = sessionStorage.getItem('activeMainTab') as 'scan' | 'library' | 'locations' | 'requests'
+      return savedTab || 'library'
+    }
+    return 'library'
+  })
   const [userRole, setUserRole] = useState<string | null>(null)
   const [userFirstName, setUserFirstName] = useState<string | null>(null)
   const [userLocation, setUserLocation] = useState<string | null>(null)
@@ -52,8 +59,11 @@ export default function Home() {
         .then(data => {
           if (data.user_role) {
             setUserRole(data.user_role)
-            // Set default tab to library for all users (first tab)
-            setActiveTab('library')
+            // Only set default tab if no tab is saved in session (first login)
+            if (typeof window !== 'undefined' && !sessionStorage.getItem('activeMainTab')) {
+              setActiveTab('library')
+              sessionStorage.setItem('activeMainTab', 'library')
+            }
           }
           // Store the user's first name from profile data
           if (data.first_name) {
@@ -175,7 +185,13 @@ export default function Home() {
         <Paper sx={{ mb: 2 }}>
           <Tabs 
             value={activeTab} 
-            onChange={(_, newValue) => setActiveTab(newValue)}
+            onChange={(_, newValue) => {
+              setActiveTab(newValue)
+              // Persist the tab selection in session storage
+              if (typeof window !== 'undefined') {
+                sessionStorage.setItem('activeMainTab', newValue)
+              }
+            }}
             variant="scrollable"
             scrollButtons="auto"
           >

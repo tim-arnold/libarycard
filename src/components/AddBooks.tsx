@@ -330,6 +330,8 @@ export default function AddBooks() {
   const [detectedTitles, setDetectedTitles] = useState<string[]>([])
   const [bulkSearchResults, setBulkSearchResults] = useState<{ [title: string]: GoogleBookItem[] }>({})
   const [isBulkSearching, setIsBulkSearching] = useState(false)
+  const [preserveOcrResults, setPreserveOcrResults] = useState(false)
+  const [scannerResetKey, setScannerResetKey] = useState(0)
 
   const handleImageCaptured = () => {
     // Clear previous search results when starting a new scan
@@ -512,15 +514,21 @@ export default function AddBooks() {
     }
     
     // Clear search query when switching away from search
-    if (newValue !== 'search') {
+    // BUT don't clear it if we're preserving OCR results (user clicked an OCR term)
+    if (newValue !== 'search' && !preserveOcrResults) {
       setSearchQuery('')
     }
     
     // Reset bookshelf scanner when switching to it from another tab
+    // BUT preserve results if user navigated from OCR results to search and back
     if (newValue === 'bookshelf') {
-      setDetectedTitles([])
-      setBulkSearchResults({})
-      setIsBulkSearching(false)
+      if (!preserveOcrResults) {
+        setDetectedTitles([])
+        setBulkSearchResults({})
+        setIsBulkSearching(false)
+      }
+      // Reset the preserve flag after handling the tab switch
+      setPreserveOcrResults(false)
     }
   }
 
@@ -681,6 +689,7 @@ export default function AddBooks() {
                             }}
                             onClick={() => {
                               setSearchQuery(searchTerm)
+                              setPreserveOcrResults(true)
                               setActiveTab('search')
                             }}
                           >
