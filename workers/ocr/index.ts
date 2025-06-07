@@ -161,11 +161,6 @@ export async function getGoogleAccessToken(credentials: any): Promise<string> {
   
   // Handle nested credentials structure (common with Google Cloud service accounts)
   const creds = credentials.web || credentials;
-  console.log('Using credentials from:', credentials.web ? 'credentials.web' : 'credentials root');
-  console.log('Nested credentials keys:', Object.keys(creds));
-  console.log('Private key exists:', !!creds.private_key);
-  console.log('Private key type:', typeof creds.private_key);
-  console.log('Client email exists:', !!creds.client_email);
   
   const now = Math.floor(Date.now() / 1000);
   const expiration = now + 3600; // 1 hour
