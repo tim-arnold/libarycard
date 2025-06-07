@@ -117,4 +117,4 @@ Locations and shelves are managed dynamically through the admin interface. The a
 
 This is a personal project, but feel free to fork and adapt for your own use!
 
-Update to trigger a build
+Update to trigger a build again
