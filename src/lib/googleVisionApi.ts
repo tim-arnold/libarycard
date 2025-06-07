@@ -16,6 +16,7 @@ function getClient(): ImageAnnotatorClient {
     // Production: use JSON credentials from environment variable
     if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
       console.log('Using JSON credentials from environment variable');
+      console.log('JSON length:', process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON.length);
       try {
         const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
         
@@ -36,6 +37,9 @@ function getClient(): ImageAnnotatorClient {
           
           credentials.private_key = privateKey;
           console.log('Private key processed, starts with:', privateKey.substring(0, 30));
+          console.log('Private key length:', privateKey.length);
+          console.log('Has BEGIN marker:', privateKey.includes('-----BEGIN PRIVATE KEY-----'));
+          console.log('Has END marker:', privateKey.includes('-----END PRIVATE KEY-----'));
         }
         
         console.log('Credentials parsed successfully, client_email:', credentials.client_email);
