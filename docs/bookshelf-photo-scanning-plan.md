@@ -354,4 +354,49 @@ interface TitleReviewProps {
 
 **We are goddamn heroes! 🏆**
 
+## 🔧 Production Deployment & Troubleshooting
+
+### Issue: OCR Migration from Netlify to Cloudflare Workers
+**Date**: January 7, 2025  
+**Problem**: Original Netlify implementation hit limits with Google Cloud API integration, requiring migration to Cloudflare Workers.
+
+**Migration Process**:
+- ✅ Moved Google Vision API processing from Netlify Functions to Cloudflare Workers  
+- ✅ Implemented JWT-based service account authentication using Web Crypto API
+- ✅ Added comprehensive error handling and logging for debugging
+
+### Critical Bug: Google Cloud Credentials Structure
+**Error**: `"OCR Failed: Google Vision API returned 500: {"error":"OCR processing failed: Cannot read properties of undefined (reading 'replace')"}"`
+
+**Root Cause**: Google Cloud service account credentials were nested under a `"web"` key in the JSON structure, but code was accessing `credentials.private_key` directly instead of `credentials.web.private_key`.
+
+**Debugging Process**:
+1. Used `npx wrangler tail` to monitor real-time Worker logs
+2. Added extensive debugging to see credential object structure:
+   ```javascript
+   console.log('Credentials keys:', Object.keys(credentials)); // Shows: ["web"]
+   console.log('Private key exists:', !!credentials.private_key); // Shows: false
+   ```
+3. Identified credentials were nested: `credentials.web.private_key` instead of `credentials.private_key`
+
+**Solution**: Updated `getGoogleAccessToken` function to handle nested credential structure:
+```javascript
+// Handle nested credentials structure (common with Google Cloud service accounts)
+const creds = credentials.web || credentials;
+console.log('Using credentials from:', credentials.web ? 'credentials.web' : 'credentials root');
+
+// Use creds.private_key instead of credentials.private_key
+if (!creds.private_key) {
+  throw new Error('Private key missing from credentials');
+}
+```
+
+**Status**: 🚧 **IN PROGRESS** - Still debugging credential structure issues
+
+**Deployment**: Worker version `6114148e-cad6-44e0-9e84-58632ab9c38d` deployed with credential handling fix
+
+**Current Issue**: Still getting "Private key missing from credentials" error locally despite fix - need to verify credential structure and environment variable setup
+
+**Learning**: Same credential structure issue that originally caused Netlify problems - fix attempted but needs further debugging
+
 **Next Phase**: Real-world usage and feedback collection

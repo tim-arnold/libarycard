@@ -257,13 +257,13 @@ export default function BookshelfScanner({
       // Convert to base64
       const base64Image = await fileToBase64(rotatedImage)
       
-      // Call our API endpoint
-      const response = await fetch('/api/ocr-vision', {
+      // Call Cloudflare Worker OCR endpoint
+      const response = await fetch('https://libarycard-api.tim-arnold.workers.dev/api/ocr-vision', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ imageBase64: base64Image }),
+        body: JSON.stringify({ image: base64Image }),
       })
       
       if (!response.ok) {
@@ -274,7 +274,8 @@ export default function BookshelfScanner({
       
       const result = await response.json()
       
-      if (!result.success) {
+      // Handle Cloudflare Worker response format
+      if (result.error) {
         console.error('Google Vision API error:', result.error)
         
         // Check if it's a configuration error
@@ -288,7 +289,10 @@ export default function BookshelfScanner({
         throw new Error(result.error)
       }
       
-      const { text, confidence } = result.data
+      // Cloudflare Worker returns { detectedText: [...], processedCount: number }
+      const detectedTextArray = result.detectedText || []
+      const text = detectedTextArray.map((item: any) => item.text).join(' ')
+      const confidence = detectedTextArray.reduce((acc: number, item: any) => acc + (item.confidence || 0), 0) / detectedTextArray.length
       console.log(`Google Vision rotation ${i + 1} OCR text:`, text.substring(0, 200) + '...')
       
       allExtractedText += `\n--- GOOGLE VISION ROTATION ${i + 1} ---\n${text}\n`
