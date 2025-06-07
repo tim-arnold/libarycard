@@ -70,32 +70,48 @@ The frontend follows a **modular component architecture** designed for:
 - **Interactive Components**: Manage user input and actions (`ISBNScanner`, `BookSearch`, `BookActions`)
 - **Utility Components**: Provide reusable UI elements (`ShelfSelector`, `BookFilters`)
 
-#### Refactoring Results
+#### Component Refactoring Results
 - **BookLibrary.tsx**: Reduced from 2,142 to 1,446 lines (32.5% reduction)
 - **AddBooks.tsx**: Reduced from 1,213 to 583 lines (52% reduction)
-- **Total token savings**: ~1,326 lines moved to focused sub-components
+- **Total frontend token savings**: ~1,326 lines moved to focused sub-components
+
+#### Backend Refactoring Results
+- **workers/index.ts**: Reduced from 2,431 to 1,282 lines (47% reduction)
+- **Total backend token savings**: ~1,149 lines extracted to modular structure
+- **Module breakdown**:
+  - `types/` - 77 lines (shared interfaces)
+  - `auth/` - 34 lines (authentication & permissions)
+  - `locations/` - 467 lines (location & shelf management)
+  - `books/` - 742 lines (book CRUD, checkout, removal requests)
+  - `ocr/` - 247 lines (Google Vision API integration)
 
 ## Design Principles
 
-### 1. Serverless-First
+### 1. Modular Architecture
+- **Frontend**: Component-based architecture for maintainability
+- **Backend**: Functional modules for separation of concerns
+- **Token efficiency**: Smaller focused files reduce AI development overhead
+- **Maintainability**: Clear boundaries make debugging and feature development easier
+
+### 2. Serverless-First
 - No server management required
 - Automatic scaling
 - Pay-per-use pricing model
 - Global edge deployment
 
-### 2. Progressive Enhancement
+### 3. Progressive Enhancement
 - Works without JavaScript (basic functionality)
 - Camera scanning as enhancement
 - Graceful fallbacks (localStorage ↔ API)
 - Mobile-first responsive design
 
-### 3. Data Ownership
+### 4. Data Ownership
 - Complete data export functionality
 - No vendor lock-in
 - Transparent data storage
 - User controls their library
 
-### 4. Cost Optimization
+### 5. Cost Optimization
 - Cloudflare free tier sufficient for personal use
 - Minimal API calls (cached book data)
 - Efficient database queries
@@ -170,7 +186,18 @@ src/
 ### Backend Structure
 ```
 workers/
-└── index.ts                # Main worker with all API endpoints
+├── index.ts                # Main worker entry point and routing
+├── types/
+│   └── index.ts           # Shared TypeScript interfaces
+├── auth/
+│   └── index.ts           # Authentication and permissions
+├── locations/
+│   └── index.ts           # Location and shelf management
+├── books/
+│   └── index.ts           # Book CRUD, checkout system, removal requests
+├── ocr/
+│   └── index.ts           # Google Vision API integration
+└── tsconfig.json          # TypeScript configuration
 
 Schema:
 └── schema.sql              # Database table definitions
