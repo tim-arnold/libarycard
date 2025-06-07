@@ -15,7 +15,7 @@ A personal book collection management app that allows you to scan ISBN barcodes 
 ## Tech Stack
 
 - **Frontend**: Next.js 14 with TypeScript
-- **Scanning**: Quagga.js for barcode detection
+- **Scanning**: ZXing library for barcode detection
 - **Database**: Cloudflare D1 (SQLite)
 - **API**: Cloudflare Workers
 - **Hosting**: Netlify (Frontend) + Cloudflare Workers (API)
@@ -87,17 +87,31 @@ A personal book collection management app that allows you to scan ISBN barcodes 
    wrangler dev workers/index.ts
    \`\`\`
 
+## Component Architecture
+
+The app features a modular component architecture for improved maintainability:
+
+### Book Management Components
+- **AddBooks.tsx** - Main coordinator for adding books to the library
+- **ISBNScanner.tsx** - Camera barcode scanning and manual ISBN entry
+- **BookSearch.tsx** - Google Books API search and results display
+- **BookPreview.tsx** - Selected book display with editing capabilities
+- **ShelfSelector.tsx** - Location and shelf selection interface
+
+### Library Display Components  
+- **BookLibrary.tsx** - Main coordinator for viewing the library
+- **BookGrid.tsx** - Card-based grid view for books
+- **BookList.tsx** - Compact list view for books
+- **BookActions.tsx** - Reusable action buttons (checkout, delete, etc.)
+- **BookFilters.tsx** - Search and filtering controls
+
+This modular approach reduces token usage for AI development assistance and improves code maintainability.
+
 ## Book Locations
 
-The app comes pre-configured with these locations:
-- basement
-- julie's room
-- tim's room
-- bench
-- julie's office
-- little library
-
-You can modify these in \`src/components/ISBNScanner.tsx\` and \`src/components/BookLibrary.tsx\`.
+Locations and shelves are managed dynamically through the admin interface. The app supports multiple locations with role-based permissions for:
+- Admin users: Can create/manage locations and shelves
+- Regular users: Can add books to existing shelves
 
 ## Contributing
 

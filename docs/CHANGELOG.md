@@ -4,6 +4,25 @@ This file documents all completed features, fixes, and improvements to the Libar
 
 ## June 2025
 
+### Component Architecture Refactoring for Token Efficiency & Maintainability
+- **REFACTORED**: BookLibrary.tsx from 2,142 to 1,446 lines (32.5% reduction) by extracting focused sub-components
+- **CREATED**: BookGrid.tsx (167 lines) for card/grid view display logic with Material-UI Card components
+- **CREATED**: BookList.tsx (240 lines) for compact list view display with responsive layout design
+- **CREATED**: BookActions.tsx (207 lines) for reusable action buttons (checkout, delete, relocate, etc.)
+- **CREATED**: BookFilters.tsx (120 lines) for search and filter controls with location/shelf/genre filtering
+- **REFACTORED**: AddBooks.tsx from 1,213 to 583 lines (52% reduction) by extracting specialized components
+- **CREATED**: ISBNScanner.tsx (322 lines) for barcode scanning, camera management, and manual ISBN entry
+- **CREATED**: BookSearch.tsx (261 lines) for Google Books API search interface and results display
+- **CREATED**: BookPreview.tsx (244 lines) for selected book display, editing, and save functionality
+- **CREATED**: ShelfSelector.tsx (185 lines) for dynamic shelf/location selection with smart UX
+- **ACHIEVED**: Total reduction of 1,326 lines from main components with 52% and 32.5% size reductions
+- **ENHANCED**: Component reusability with BookActions, ShelfSelector, and other components used across multiple views
+- **IMPROVED**: Maintainability through focused component responsibilities and clear separation of concerns
+- **OPTIMIZED**: AI development workflow with significantly reduced token usage for large component files
+- **MAINTAINED**: All existing functionality while improving code organization and testability
+- **IMPLEMENTED**: Proper TypeScript interfaces and prop passing for type safety across component boundaries
+- **ESTABLISHED**: Component hierarchy with coordinators, display components, interactive components, and utilities
+
 ### Humorous UX Enhancement
 - **ADDED**: "Book was delicious" as a whimsical fifth option in the book removal request modal
 - **ENHANCED**: Removal reason selection to include both practical options (lost, damaged, missing, other) and humorous option

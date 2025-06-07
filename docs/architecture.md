@@ -54,6 +54,27 @@ LibaryCard is built as a modern, serverless web application using a hybrid archi
 - **Email Service**: Resend for user verification
 - **Authentication**: NextAuth.js with Google OAuth and email/password
 
+### Component Design Philosophy
+
+The frontend follows a **modular component architecture** designed for:
+
+1. **Token Efficiency**: Smaller, focused components reduce AI development token usage
+2. **Separation of Concerns**: Each component has a single, well-defined responsibility
+3. **Reusability**: Components like `BookActions` and `ShelfSelector` are used across the app
+4. **Maintainability**: Bug fixes and feature additions are localized to specific components
+5. **Testing**: Individual components can be tested in isolation
+
+#### Component Hierarchy
+- **Coordinator Components**: Manage state and orchestrate child components (`AddBooks`, `BookLibrary`)
+- **Display Components**: Handle pure rendering logic (`BookGrid`, `BookList`, `BookPreview`)
+- **Interactive Components**: Manage user input and actions (`ISBNScanner`, `BookSearch`, `BookActions`)
+- **Utility Components**: Provide reusable UI elements (`ShelfSelector`, `BookFilters`)
+
+#### Refactoring Results
+- **BookLibrary.tsx**: Reduced from 2,142 to 1,446 lines (32.5% reduction)
+- **AddBooks.tsx**: Reduced from 1,213 to 583 lines (52% reduction)
+- **Total token savings**: ~1,326 lines moved to focused sub-components
+
 ## Design Principles
 
 ### 1. Serverless-First
@@ -126,11 +147,24 @@ src/
 │   ├── page.tsx            # Main app with tab navigation
 │   └── globals.css         # Global styles
 ├── components/
-│   ├── ISBNScanner.tsx     # Camera scanning + book entry
-│   └── BookLibrary.tsx     # Book display + management
+│   ├── AddBooks.tsx        # Main book addition coordinator
+│   ├── ISBNScanner.tsx     # Camera scanning + manual ISBN entry
+│   ├── BookSearch.tsx      # Google Books API search interface
+│   ├── BookPreview.tsx     # Selected book display + editing
+│   ├── BookLibrary.tsx     # Main library display coordinator
+│   ├── BookGrid.tsx        # Card view display component
+│   ├── BookList.tsx        # List view display component
+│   ├── BookActions.tsx     # Reusable action buttons
+│   ├── BookFilters.tsx     # Search and filter controls
+│   ├── ShelfSelector.tsx   # Shelf/location selection UI
+│   ├── LocationManager.tsx # Admin location management
+│   ├── RemovalRequestManager.tsx # Admin removal requests
+│   └── ...                 # Modal and utility components
 └── lib/
     ├── bookApi.ts          # External book data fetching
-    └── api.ts              # Backend API communication
+    ├── api.ts              # Backend API communication
+    ├── types.ts            # TypeScript interfaces
+    └── theme.ts            # Material UI theme configuration
 ```
 
 ### Backend Structure

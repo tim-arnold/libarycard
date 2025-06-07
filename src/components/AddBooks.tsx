@@ -1,52 +1,37 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import {
   Container,
   Paper,
   Typography,
-  Button,
   Box,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Alert,
   Chip,
-  Card,
-  CardContent,
-  CardMedia,
-  CircularProgress,
   Tabs,
   Tab,
-  CardActions,
 } from '@mui/material'
 import {
-  Search,
-  Save,
-  Cancel,
-  PhotoCamera,
-  Stop,
   QrCodeScanner,
   MenuBook,
-  Add,
-  Info,
-  CheckCircle,
 } from '@mui/icons-material'
 import { fetchEnhancedBookData, fetchEnhancedBookFromSearch } from '@/lib/bookApi'
 import type { EnhancedBook } from '@/lib/types'
 import { saveBook as saveBookAPI, getBooks } from '@/lib/api'
-import { BrowserMultiFormatReader } from '@zxing/library'
 import ConfirmationModal from './ConfirmationModal'
 import AlertModal from './AlertModal'
+import ShelfSelector from './ShelfSelector'
+import ISBNScanner from './ISBNScanner'
+import BookSearch from './BookSearch'
+import BookPreview from './BookPreview'
 import { useModal } from '@/hooks/useModal'
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  Button,
 } from '@mui/material'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
@@ -149,7 +134,6 @@ function MoreDetailsModal({ book, isOpen, onClose }: MoreDetailsModalProps) {
   )
 }
 
-
 interface Location {
   id: number
   name: string
@@ -187,7 +171,6 @@ interface GoogleBookItem {
 export default function AddBooks() {
   const { data: session } = useSession()
   const { modalState, alert, closeModal } = useModal()
-  const scannerRef = useRef<HTMLDivElement>(null)
   const [activeTab, setActiveTab] = useState<'scan' | 'search'>(() => {
     // Remember user's preferred tab choice
     if (typeof window !== 'undefined') {
@@ -197,19 +180,8 @@ export default function AddBooks() {
     return 'search'
   })
   
-  // Scanner state
-  const [isScanning, setIsScanning] = useState(false)
-  const [isScannerLoading, setIsScannerLoading] = useState(false)
-  const [codeReader, setCodeReader] = useState<BrowserMultiFormatReader | null>(null)
-  
   // Search state
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<GoogleBookItem[]>([])
-  const [isSearching, setIsSearching] = useState(false)
-  
-  // Refs for auto-focus
-  const searchInputRef = useRef<HTMLInputElement>(null)
-  const isbnInputRef = useRef<HTMLInputElement>(null)
   
   // Common state
   const [selectedBook, setSelectedBook] = useState<EnhancedBook | null>(null)
@@ -224,38 +196,11 @@ export default function AddBooks() {
   const [justAddedBooks, setJustAddedBooks] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    // Initialize ZXing scanner
-    try {
-      const reader = new BrowserMultiFormatReader()
-      setCodeReader(reader)
-    } catch (error) {
-      alert({
-        title: 'Scanner Error',
-        message: 'Failed to initialize barcode scanner. Please refresh the page.',
-        variant: 'error'
-      })
-    }
-  }, [])
-
-  useEffect(() => {
     // Load locations and shelves when session is available
     if (session?.user?.email) {
       loadLocationsAndShelves()
     }
   }, [session])
-
-  useEffect(() => {
-    // Auto-focus the appropriate input field when component mounts or activeTab changes initially
-    const timer = setTimeout(() => {
-      if (activeTab === 'search') {
-        searchInputRef.current?.focus()
-      } else if (activeTab === 'scan') {
-        isbnInputRef.current?.focus()
-      }
-    }, 100) // Small delay to ensure the content is rendered
-
-    return () => clearTimeout(timer)
-  }, []) // Only run on mount since activeTab changes are handled by handleTabChange
 
   const loadLocationsAndShelves = async () => {
     if (!session?.user?.email) return
@@ -314,144 +259,6 @@ export default function AddBooks() {
     }
   }
 
-  // Scanner functions
-  const startScanner = async () => {
-    if (!scannerRef.current) {
-      await alert({
-        title: 'Scanner Error',
-        message: 'Scanner element not found. Please refresh the page.',
-        variant: 'error'
-      })
-      return
-    }
-    
-    if (!codeReader) {
-      await alert({
-        title: 'Scanner Error',
-        message: 'ZXing scanner not initialized. Please refresh the page.',
-        variant: 'error'
-      })
-      return
-    }
-
-    setIsScanning(true)
-    setIsScannerLoading(true)
-
-    try {
-      // Check basic browser support first
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        await alert({
-          title: 'Camera Not Supported',
-          message: 'Camera not supported in this browser. Please use manual ISBN entry or the search feature.',
-          variant: 'warning'
-        })
-        setIsScanning(false)
-        setIsScannerLoading(false)
-        return
-      }
-
-      // Request camera permission first (iOS requirement)
-      await requestCameraPermission()
-      
-      // Start ZXing scanner
-      await startZXingScanner()
-      
-    } catch (error: any) {
-      let message = 'Unknown camera error. Please try again.'
-      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        message = 'Camera permission denied. Please allow camera access in your browser settings and try again.'
-      } else if (error.name === 'NotFoundError') {
-        message = 'No camera found on this device. Please use manual ISBN entry or the search feature.'
-      } else if (error.message) {
-        message = `Camera error: ${error.message}. Please allow camera access and try again.`
-      }
-      
-      await alert({
-        title: 'Camera Error',
-        message,
-        variant: 'error'
-      })
-      setIsScanning(false)
-      setIsScannerLoading(false)
-    }
-  }
-
-  const requestCameraPermission = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1280, min: 640 },
-          height: { ideal: 720, min: 480 }
-        }
-      })
-      
-      // Stop the test stream immediately
-      stream.getTracks().forEach(track => {
-        track.stop()
-      })
-    } catch (error: any) {
-      throw error
-    }
-  }
-
-  const startZXingScanner = async () => {
-    if (!codeReader || !scannerRef.current) {
-      throw new Error('Scanner not available or DOM element not available')
-    }
-
-    try {
-      // Create video element for camera preview
-      const videoElement = document.createElement('video')
-      videoElement.style.width = '100%'
-      videoElement.style.maxWidth = '640px'
-      videoElement.style.height = 'auto'
-      videoElement.style.borderRadius = '8px'
-      videoElement.playsInline = true
-      
-      // Clear any existing content and add video
-      scannerRef.current.innerHTML = ''
-      scannerRef.current.appendChild(videoElement)
-      
-      // Start continuous scanning with improved settings
-      await codeReader.decodeFromVideoDevice(
-        null, // Use default camera
-        videoElement,
-        (result) => {
-          if (result) {
-            stopScanner()
-            handleISBNDetected(result.getText())
-          }
-        }
-      )
-      
-      setIsScannerLoading(false)
-      
-    } catch (error) {
-      setIsScannerLoading(false)
-      throw error
-    }
-  }
-
-  const stopScanner = () => {
-    setIsScanning(false)
-    setIsScannerLoading(false)
-    
-    // Stop ZXing scanner
-    if (codeReader) {
-      try {
-        codeReader.reset()
-      } catch (e) {
-        // Ignore stop errors
-      }
-    }
-    
-    // Clear the scanner element
-    if (scannerRef.current) {
-      scannerRef.current.innerHTML = ''
-    }
-  }
-
   const handleISBNDetected = async (isbn: string) => {
     setIsLoading(true)
     
@@ -475,42 +282,6 @@ export default function AddBooks() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  // Search functions
-  const searchGoogleBooks = async (query: string) => {
-    if (!query.trim()) return
-
-    setIsSearching(true)
-    try {
-      const response = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`
-      )
-      
-      if (response.ok) {
-        const data = await response.json()
-        setSearchResults(data.items || [])
-      } else {
-        await alert({
-          title: 'Search Error',
-          message: 'Failed to search books. Please try again.',
-          variant: 'error'
-        })
-      }
-    } catch (error) {
-      await alert({
-        title: 'Search Error',
-        message: 'Failed to search books. Please check your internet connection and try again.',
-        variant: 'error'
-      })
-    } finally {
-      setIsSearching(false)
-    }
-  }
-
-  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    searchGoogleBooks(searchQuery)
   }
 
   const selectBookFromSearch = async (item: GoogleBookItem) => {
@@ -597,30 +368,12 @@ export default function AddBooks() {
         message: `"${bookTitle}" has been successfully added to your library!`,
         variant: 'success'
       })
-      
-      // Auto-focus the appropriate input field after successful save
-      setTimeout(() => {
-        if (activeTab === 'search') {
-          searchInputRef.current?.focus()
-        } else if (activeTab === 'scan') {
-          isbnInputRef.current?.focus()
-        }
-      }, 100) // Small delay to ensure the alert modal has closed
     } else {
       await alert({
         title: 'Save Failed',
         message: 'Failed to save book. Please check your connection and try again.',
         variant: 'error'
       })
-    }
-  }
-
-  const manualISBNEntry = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const formData = new FormData(e.currentTarget)
-    const isbn = formData.get('isbn') as string
-    if (isbn) {
-      handleISBNDetected(isbn)
     }
   }
 
@@ -648,61 +401,13 @@ export default function AddBooks() {
       localStorage.setItem('addBooks_preferredTab', newValue)
     }
     
-    // Clear any ongoing scans when switching tabs
-    if (newValue === 'search' && isScanning) {
-      stopScanner()
-    }
-    // Clear search results when switching to scan
+    // Clear search query when switching to scan
     if (newValue === 'scan') {
-      setSearchResults([])
       setSearchQuery('')
     }
-    
-    // Auto-focus the appropriate input field
-    setTimeout(() => {
-      if (newValue === 'search') {
-        searchInputRef.current?.focus()
-      } else if (newValue === 'scan') {
-        isbnInputRef.current?.focus()
-      }
-    }, 100) // Small delay to ensure the tab content is rendered
   }
 
-  // Duplicate detection helper functions
-  const isBookDuplicate = (googleBookItem: GoogleBookItem): boolean => {
-    const isbn = googleBookItem.volumeInfo.industryIdentifiers?.find(
-      id => id.type === 'ISBN_13' || id.type === 'ISBN_10'
-    )?.identifier
-
-    const title = googleBookItem.volumeInfo.title
-    const authors = googleBookItem.volumeInfo.authors || []
-
-    return existingBooks.some(existingBook => {
-      // Check by ISBN if available
-      if (isbn && existingBook.isbn === isbn) {
-        return true
-      }
-      
-      // Check by title and author combination
-      const titleMatch = existingBook.title.toLowerCase() === title.toLowerCase()
-      const authorMatch = authors.some(author => 
-        existingBook.authors.some(existingAuthor => 
-          existingAuthor.toLowerCase() === author.toLowerCase()
-        )
-      )
-      
-      return titleMatch && authorMatch
-    })
-  }
-
-  const wasBookJustAdded = (googleBookItem: GoogleBookItem): boolean => {
-    const isbn = googleBookItem.volumeInfo.industryIdentifiers?.find(
-      id => id.type === 'ISBN_13' || id.type === 'ISBN_10'
-    )?.identifier
-    const bookKey = isbn || googleBookItem.volumeInfo.title
-    return justAddedBooks.has(bookKey)
-  }
-
+  // Duplicate detection helper function for selected book
   const isSelectedBookDuplicate = (): boolean => {
     if (!selectedBook) return false
     
@@ -722,6 +427,11 @@ export default function AddBooks() {
       
       return titleMatch && authorMatch
     })
+  }
+
+  // Error handler for components
+  const handleError = async (title: string, message: string, variant: 'error' | 'warning' | 'info' = 'error') => {
+    await alert({ title, message, variant })
   }
 
   return (
@@ -781,395 +491,55 @@ export default function AddBooks() {
         </Paper>
 
         {/* ISBN Scanner Tab */}
-        {activeTab === 'scan' && (
-          <Box>
-            {!isScanning && !selectedBook && (
-              <Box>
-                <Button
-                  variant="contained"
-                  size="large"
-                  startIcon={isScannerLoading ? <CircularProgress size={16} color="inherit" /> : <PhotoCamera />}
-                  onClick={startScanner}
-                  disabled={isScannerLoading || isScanning || !codeReader}
-                  sx={{ mb: 2 }}
-                >
-                  {isScannerLoading ? 'Starting Camera...' : isScanning ? 'Scanning...' : 'Start Camera Scanner'}
-                </Button>
-                
-                {isScannerLoading && (
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                    Initializing camera and scanner...
-                  </Typography>
-                )}
-                
-                <Box component="form" onSubmit={manualISBNEntry} sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 2 }}>
-                  <TextField
-                    name="isbn"
-                    placeholder="Or enter ISBN manually"
-                    variant="outlined"
-                    sx={{ flexGrow: 1 }}
-                    inputRef={isbnInputRef}
-                    type="number"
-                    slotProps={{
-                      input: {
-                        inputMode: 'numeric'
-                      }
-                    }}
-                  />
-                  <Button 
-                    type="submit" 
-                    variant="outlined"
-                    startIcon={<Search />}
-                    sx={{ minWidth: 120 }}
-                  >
-                    Look Up Book
-                  </Button>
-                </Box>
-              </Box>
-            )}
-
-            {/* Scanner container - always present for ref */}
-            <Box 
-              ref={scannerRef} 
-              sx={{ 
-                width: '100%', 
-                maxWidth: '640px', 
-                minHeight: isScanning ? '300px' : '0px',
-                border: isScanning ? '2px solid #673ab7' : 'none',
-                borderRadius: 2,
-                overflow: 'hidden',
-                margin: '0 auto'
-              }} 
-            />
-          
-            {isScanning && (
-              <Box sx={{ mt: 2, textAlign: 'center' }}>
-                <Typography variant="body1" color="primary" sx={{ mb: 2 }}>
-                  📱 Point your camera at the ISBN barcode
-                </Typography>
-                <Button 
-                  variant="outlined"
-                  color="error"
-                  startIcon={<Stop />}
-                  onClick={stopScanner}
-                >
-                  Stop Scanner
-                </Button>
-              </Box>
-            )}
-
-            {isLoading && (
-              <Box sx={{ textAlign: 'center', mt: 2 }}>
-                <CircularProgress />
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  Looking up book data...
-                </Typography>
-              </Box>
-            )}
-          </Box>
+        {activeTab === 'scan' && !selectedBook && (
+          <ISBNScanner
+            onISBNDetected={handleISBNDetected}
+            onError={handleError}
+            isLoading={isLoading}
+            disabled={loadingData}
+          />
         )}
 
         {/* Search Tab */}
-        {activeTab === 'search' && (
-          <Box>
-            <Box component="form" onSubmit={handleSearchSubmit} sx={{ mb: 3 }}>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <TextField
-                  fullWidth
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by title, author, or keywords..."
-                  variant="outlined"
-                  disabled={isSearching}
-                  inputRef={searchInputRef}
-                />
-                <Button 
-                  type="submit" 
-                  variant="contained"
-                  startIcon={isSearching ? <CircularProgress size={16} color="inherit" /> : <Search />}
-                  disabled={isSearching || !searchQuery.trim()}
-                  sx={{ minWidth: 120 }}
-                >
-                  {isSearching ? 'Searching...' : 'Search'}
-                </Button>
-              </Box>
-            </Box>
-
-            {/* Search Results - hide when a book is selected from search */}
-            {searchResults.length > 0 && !selectedBook && (
-              <Box data-testid="search-results-section">
-                <Typography variant="h6" gutterBottom>
-                  Search Results ({searchResults.length})
-                </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 2 }}>
-                  {searchResults.map((item) => (
-                    <Card key={item.id} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                      <CardContent sx={{ flex: 1 }}>
-                        {item.volumeInfo.imageLinks?.thumbnail && (
-                          <CardMedia
-                            component="img"
-                            src={item.volumeInfo.imageLinks.thumbnail}
-                            alt={item.volumeInfo.title}
-                            sx={{ width: 80, height: 'auto', mx: 'auto', mb: 1 }}
-                          />
-                        )}
-                        <Typography variant="h6" component="h3" gutterBottom>
-                          {item.volumeInfo.title}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                          {item.volumeInfo.authors?.join(', ') || 'Unknown Author'}
-                        </Typography>
-                        {item.volumeInfo.publishedDate && (
-                          <Typography variant="caption" color="text.secondary">
-                            Published: {item.volumeInfo.publishedDate}
-                          </Typography>
-                        )}
-                      </CardContent>
-                      <CardActions>
-                        {wasBookJustAdded(item) ? (
-                          <Button 
-                            variant="outlined"
-                            size="small"
-                            startIcon={<CheckCircle />}
-                            disabled
-                            fullWidth
-                            sx={{ 
-                              color: 'success.main',
-                              borderColor: 'success.main',
-                              '&.Mui-disabled': {
-                                color: 'success.main',
-                                borderColor: 'success.main'
-                              }
-                            }}
-                          >
-                            Book Added!
-                          </Button>
-                        ) : isBookDuplicate(item) ? (
-                          <Button 
-                            variant="outlined"
-                            size="small"
-                            startIcon={<CheckCircle />}
-                            disabled
-                            fullWidth
-                            sx={{ 
-                              color: 'text.secondary',
-                              borderColor: 'grey.400',
-                              '&.Mui-disabled': {
-                                color: 'text.secondary',
-                                borderColor: 'grey.400'
-                              }
-                            }}
-                          >
-                            Already in Your Library
-                          </Button>
-                        ) : (
-                          <Button 
-                            variant="contained"
-                            size="small"
-                            startIcon={<Add />}
-                            onClick={() => selectBookFromSearch(item)}
-                            fullWidth
-                          >
-                            Add This Book
-                          </Button>
-                        )}
-                      </CardActions>
-                    </Card>
-                  ))}
-                </Box>
-              </Box>
-            )}
-          </Box>
+        {activeTab === 'search' && !selectedBook && (
+          <BookSearch
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            onBookSelected={selectBookFromSearch}
+            onError={handleError}
+            existingBooks={existingBooks}
+            justAddedBooks={justAddedBooks}
+            disabled={loadingData || isLoading}
+          />
         )}
 
         {/* Selected Book Display (shared between tabs) */}
         {selectedBook && (
           <Box sx={{ mt: 3 }} data-testid="book-selected-section">
-            <Typography variant="h5" gutterBottom color="success.main">
-              Book Selected!
-            </Typography>
+            <BookPreview
+              book={selectedBook}
+              customTags={customTags}
+              onCustomTagsChange={setCustomTags}
+              onSave={saveBook}
+              onCancel={() => setSelectedBook(null)}
+              onMoreDetails={() => setShowMoreDetailsModal(true)}
+              onAuthorClick={handleAuthorClick}
+              onSeriesClick={handleSeriesClick}
+              isDuplicate={isSelectedBookDuplicate()}
+              isLoading={isLoading}
+              isSaveDisabled={!selectedShelfId}
+              saveButtonText={allShelves.length === 1 ? 'Add to Library' : 'Save to Library'}
+            />
             
-            <Card sx={{ mb: 3 }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                  {selectedBook.thumbnail && (
-                    <CardMedia
-                      component="img"
-                      src={selectedBook.thumbnail}
-                      alt={selectedBook.title}
-                      sx={{ width: 120, height: 'auto', flexShrink: 0 }}
-                    />
-                  )}
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="h6" gutterBottom>
-                      {selectedBook.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      <strong>Authors:</strong> {selectedBook.authors.map((author, index) => (
-                        <span key={index}>
-                          <Typography 
-                            component="span" 
-                            sx={{ 
-                              color: 'primary.main', 
-                              cursor: 'pointer',
-                              textDecoration: 'underline',
-                              '&:hover': { textDecoration: 'none' }
-                            }}
-                            onClick={() => handleAuthorClick(author)}
-                          >
-                            {author}
-                          </Typography>
-                          {index < selectedBook.authors.length - 1 && ', '}
-                        </span>
-                      ))}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      <strong>ISBN:</strong> {selectedBook.isbn}
-                    </Typography>
-                    {selectedBook.publishedDate && (
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        <strong>Published:</strong> {selectedBook.publishedDate}
-                      </Typography>
-                    )}
-                    {selectedBook.series && (
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        <strong>Series:</strong> 
-                        <Typography 
-                          component="span" 
-                          sx={{ 
-                            color: 'primary.main', 
-                            cursor: 'pointer',
-                            textDecoration: 'underline',
-                            ml: 0.5,
-                            '&:hover': { textDecoration: 'none' }
-                          }}
-                          onClick={() => handleSeriesClick(selectedBook.series!)}
-                        >
-                          {selectedBook.series}
-                        </Typography>
-                        {selectedBook.seriesNumber && ` (#${selectedBook.seriesNumber})`}
-                      </Typography>
-                    )}
-                    {/* Enhanced genres with fallback to categories */}
-                    {(selectedBook.enhancedGenres || selectedBook.categories) && (
-                      <Box sx={{ mt: 1, mb: 1 }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                          <strong>Genres:</strong>
-                        </Typography>
-                        {(selectedBook.enhancedGenres || selectedBook.categories || []).slice(0, 4).map((genre, index) => (
-                          <Chip 
-                            key={index} 
-                            label={genre} 
-                            size="small" 
-                            color={selectedBook.enhancedGenres ? 'primary' : 'default'}
-                            sx={{ mr: 0.5, mb: 0.5 }} 
-                          />
-                        ))}
-                        {selectedBook.enhancedGenres && selectedBook.enhancedGenres.length > 4 && (
-                          <Chip 
-                            label={`+${selectedBook.enhancedGenres.length - 4} more`} 
-                            size="small" 
-                            variant="outlined"
-                            sx={{ mr: 0.5, mb: 0.5 }} 
-                          />
-                        )}
-                      </Box>
-                    )}
-                    {selectedBook.description && (
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        {selectedBook.description.substring(0, 200)}...
-                      </Typography>
-                    )}
-                    {(selectedBook.extendedDescription || selectedBook.subjects || selectedBook.pageCount || selectedBook.averageRating) && (
-                      <Box sx={{ mt: 1 }}>
-                        <Button
-                          size="small"
-                          startIcon={<Info />}
-                          onClick={() => setShowMoreDetailsModal(true)}
-                          sx={{ textTransform: 'none' }}
-                        >
-                          More Details
-                        </Button>
-                      </Box>
-                    )}
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-
-            {/* Only show shelf selector if multiple shelves available */}
-            {!loadingData && allShelves.length > 1 && (
-              <Box sx={{ mb: 2 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Shelf</InputLabel>
-                  <Select 
-                    value={selectedShelfId || ''} 
-                    label="Shelf"
-                    onChange={(e) => {
-                      const newShelfId = e.target.value ? parseInt(String(e.target.value)) : null
-                      setSelectedShelfId(newShelfId)
-                      // Persist the shelf selection for future use
-                      if (newShelfId) {
-                        localStorage.setItem('lastSelectedShelfId', newShelfId.toString())
-                      }
-                    }}
-                  >
-                    <MenuItem value="">Select shelf...</MenuItem>
-                    {locations.length === 1 ? (
-                      // Single location - simple list without grouping
-                      allShelves.map(shelf => (
-                        <MenuItem key={shelf.id} value={shelf.id}>
-                          {shelf.name}
-                        </MenuItem>
-                      ))
-                    ) : (
-                      // Multiple locations - group by location
-                      locations.map(location => [
-                        <MenuItem key={`${location.id}-header`} disabled sx={{ fontWeight: 'bold' }}>
-                          {location.name}
-                        </MenuItem>,
-                        ...allShelves
-                          .filter(shelf => shelf.location_id === location.id)
-                          .map(shelf => (
-                            <MenuItem key={shelf.id} value={shelf.id} sx={{ pl: 3 }}>
-                              {shelf.name}
-                            </MenuItem>
-                          ))
-                      ]).flat()
-                    )}
-                  </Select>
-                </FormControl>
-              </Box>
-            )}
-
+            {/* Shelf selector */}
             <Box sx={{ mb: 2 }}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Tags (comma-separated)"
-                value={customTags}
-                onChange={(e) => setCustomTags(e.target.value)}
-                placeholder="e.g. fiction, mystery, favorite"
-                helperText="Add custom tags to organize your books"
+              <ShelfSelector
+                shelves={allShelves}
+                locations={locations}
+                selectedShelfId={selectedShelfId}
+                onShelfChange={setSelectedShelfId}
+                isLoading={loadingData}
               />
-            </Box>
-
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button 
-                variant="contained"
-                startIcon={<Save />}
-                onClick={saveBook}
-                disabled={!selectedShelfId}
-              >
-                {allShelves.length === 1 ? 'Add to Library' : 'Save to Library'}
-              </Button>
-              <Button 
-                variant="outlined"
-                startIcon={<Cancel />}
-                onClick={() => setSelectedBook(null)}
-              >
-                Cancel
-              </Button>
             </Box>
           </Box>
         )}
