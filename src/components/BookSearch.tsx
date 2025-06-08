@@ -11,11 +11,14 @@ import {
   CardMedia,
   CardActions,
   CircularProgress,
+  IconButton,
+  InputAdornment,
 } from '@mui/material'
 import {
   Search,
   Add,
   CheckCircle,
+  Clear,
 } from '@mui/icons-material'
 import type { EnhancedBook } from '@/lib/types'
 
@@ -46,6 +49,8 @@ interface BookSearchProps {
   existingBooks: EnhancedBook[]
   justAddedBooks: Set<string>
   disabled?: boolean
+  shouldAutoSearch?: boolean
+  onSearchComplete?: () => void
 }
 
 export default function BookSearch({
@@ -56,10 +61,13 @@ export default function BookSearch({
   existingBooks,
   justAddedBooks,
   disabled = false,
+  shouldAutoSearch = false,
+  onSearchComplete,
 }: BookSearchProps) {
   const [searchResults, setSearchResults] = useState<GoogleBookItem[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const searchFormRef = useRef<HTMLDivElement>(null)
 
   // Auto-focus the search input field when component mounts
   useEffect(() => {
@@ -70,17 +78,18 @@ export default function BookSearch({
     return () => clearTimeout(timer)
   }, [])
 
-  // Auto-search when searchQuery is provided (e.g., from OCR results)
+  // Auto-search when searchQuery is provided from OCR results or after adding a book
   useEffect(() => {
-    if (searchQuery.trim() && searchResults.length === 0 && !isSearching) {
+    if (shouldAutoSearch && searchQuery.trim() && searchResults.length === 0 && !isSearching) {
       searchGoogleBooks(searchQuery)
     }
-  }, [searchQuery])
+  }, [searchQuery, shouldAutoSearch])
 
   const searchGoogleBooks = async (query: string) => {
     if (!query.trim()) return
 
     setIsSearching(true)
+    
     try {
       const response = await fetch(
         `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`
@@ -89,6 +98,20 @@ export default function BookSearch({
       if (response.ok) {
         const data = await response.json()
         setSearchResults(data.items || [])
+        
+        // Scroll to search field at top of viewport after results are loaded
+        setTimeout(() => {
+          if (searchFormRef.current) {
+            const elementTop = searchFormRef.current.offsetTop - 20 // Small offset from top
+            window.scrollTo({
+              top: elementTop,
+              behavior: 'smooth'
+            })
+          }
+        }, 100)
+        
+        // Notify parent component that search is complete
+        onSearchComplete?.()
       } else {
         onError(
           'Search Error',
@@ -116,6 +139,12 @@ export default function BookSearch({
     if (!disabled) {
       onBookSelected(item)
     }
+  }
+
+  const handleClearSearch = () => {
+    onSearchQueryChange('')
+    setSearchResults([])
+    searchInputRef.current?.focus()
   }
 
   // Duplicate detection helper functions
@@ -156,7 +185,7 @@ export default function BookSearch({
   return (
     <Box>
       {/* Search Form */}
-      <Box component="form" onSubmit={handleSearchSubmit} sx={{ mb: 3 }}>
+      <Box component="form" onSubmit={handleSearchSubmit} sx={{ mb: 3 }} ref={searchFormRef}>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <TextField
             fullWidth
@@ -166,6 +195,20 @@ export default function BookSearch({
             variant="outlined"
             disabled={isSearching || disabled}
             inputRef={searchInputRef}
+            InputProps={{
+              endAdornment: searchQuery && (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={handleClearSearch}
+                    disabled={isSearching || disabled}
+                    size="small"
+                    aria-label="Clear search"
+                  >
+                    <Clear />
+                  </IconButton>
+                </InputAdornment>
+              )
+            }}
           />
           <Button 
             type="submit" 

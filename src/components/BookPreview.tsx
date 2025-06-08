@@ -33,6 +33,7 @@ interface BookPreviewProps {
   isLoading?: boolean
   isSaveDisabled?: boolean
   saveButtonText?: string
+  showActionButtons?: boolean
 }
 
 export default function BookPreview({
@@ -47,7 +48,8 @@ export default function BookPreview({
   isDuplicate = false,
   isLoading = false,
   isSaveDisabled = false,
-  saveButtonText = 'Add to Library'
+  saveButtonText = 'Add to Library',
+  showActionButtons = true
 }: BookPreviewProps) {
   const [tagsError, setTagsError] = useState<string>('')
 
@@ -222,24 +224,26 @@ export default function BookPreview({
       </Box>
 
       {/* Action buttons */}
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        <Button 
-          variant="contained"
-          startIcon={isLoading ? <CircularProgress size={16} color="inherit" /> : <Save />}
-          onClick={handleSave}
-          disabled={isSaveDisabled || isLoading || !!tagsError}
-        >
-          {isLoading ? 'Saving...' : saveButtonText}
-        </Button>
-        <Button 
-          variant="outlined"
-          startIcon={<Cancel />}
-          onClick={onCancel}
-          disabled={isLoading}
-        >
-          Cancel
-        </Button>
-      </Box>
+      {showActionButtons && (
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button 
+            variant="contained"
+            startIcon={isLoading ? <CircularProgress size={16} color="inherit" /> : <Save />}
+            onClick={handleSave}
+            disabled={isSaveDisabled || isLoading || !!tagsError}
+          >
+            {isLoading ? 'Saving...' : saveButtonText}
+          </Button>
+          <Button 
+            variant="outlined"
+            startIcon={<Cancel />}
+            onClick={onCancel}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+        </Box>
+      )}
     </Box>
   )
 }

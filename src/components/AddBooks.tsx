@@ -7,7 +7,6 @@ import {
   Paper,
   Typography,
   Box,
-  Alert,
   Chip,
   Tabs,
   Tab,
@@ -15,6 +14,7 @@ import {
   CardContent,
   CardMedia,
   CardActions,
+  CircularProgress,
 } from '@mui/material'
 import {
   QrCodeScanner,
@@ -22,6 +22,8 @@ import {
   PhotoLibrary,
   CheckCircle,
   Add,
+  Save,
+  Cancel,
 } from '@mui/icons-material'
 import { fetchEnhancedBookData, fetchEnhancedBookFromSearch } from '@/lib/bookApi'
 import type { EnhancedBook } from '@/lib/types'
@@ -206,6 +208,7 @@ export default function AddBooks() {
   // Refs for scroll targets
   const capturedImageRef = useRef<HTMLDivElement>(null)
   const bookSearchResultsRef = useRef<HTMLDivElement>(null)
+  const bookSelectedRef = useRef<HTMLDivElement>(null)
   const [lastAddedBookKey, setLastAddedBookKey] = useState<string | null>(null)
 
   // Scroll utility function
@@ -237,6 +240,15 @@ export default function AddBooks() {
       }, 300)
     }
   }, [lastAddedBookKey])
+
+  // Scroll to book selected section when a book is selected
+  useEffect(() => {
+    if (selectedBook) {
+      setTimeout(() => {
+        scrollToElement(bookSelectedRef, 0)
+      }, 100)
+    }
+  }, [selectedBook])
 
   useEffect(() => {
     // Load locations and shelves when session is available
@@ -331,6 +343,7 @@ export default function AddBooks() {
   const [bulkSearchResults, setBulkSearchResults] = useState<{ [title: string]: GoogleBookItem[] }>({})
   const [isBulkSearching, setIsBulkSearching] = useState(false)
   const [preserveOcrResults, setPreserveOcrResults] = useState(false)
+  const [autoSearchAfterAdd, setAutoSearchAfterAdd] = useState(false)
   const [scannerResetKey, setScannerResetKey] = useState(0)
 
   const handleImageCaptured = () => {
@@ -475,6 +488,11 @@ export default function AddBooks() {
         console.error('Failed to refresh books list:', error)
       }
       
+      // Trigger auto-search when returning to search screen
+      if (activeTab === 'search' || searchQuery.trim()) {
+        setAutoSearchAfterAdd(true)
+      }
+      
       await alert({
         title: 'Book Added!',
         message: `"${bookTitle}" has been successfully added to your library!`,
@@ -566,32 +584,6 @@ export default function AddBooks() {
           📚 Add Books
         </Typography>
       
-        {/* Contextual help text based on available options */}
-        {!loadingData && (
-          <Alert 
-            severity="info" 
-            variant="outlined"
-            sx={{ mb: 3 }}
-          >
-            {allShelves.length === 0 ? (
-              <Typography variant="body2">
-                📚 <strong>Getting Started:</strong> You don't have access to any library yet. Contact an administrator to get access before adding books.
-              </Typography>
-            ) : allShelves.length === 1 ? (
-              <Typography variant="body2">
-                📚 <strong>Ready to Add Books:</strong> Scan ISBN barcodes or search by title/author to add books to your library!
-              </Typography>
-            ) : locations.length === 1 ? (
-              <Typography variant="body2">
-                📚 <strong>Ready to Add:</strong> Choose from {allShelves.length} shelves in {locations[0].name}. Scan barcodes or search to find books!
-              </Typography>
-            ) : (
-              <Typography variant="body2">
-                📚 <strong>Multi-Location Setup:</strong> You have access to {locations.length} locations with {allShelves.length} total shelves. Select the right shelf when adding books.
-              </Typography>
-            )}
-          </Alert>
-        )}
 
         {/* Tab Navigation */}
         <Paper sx={{ mb: 3 }}>
@@ -602,19 +594,19 @@ export default function AddBooks() {
           >
             <Tab 
               value="search" 
-              label="Search for Books" 
+              label="Search"
               icon={<MenuBook />}
               iconPosition="start"
             />
             <Tab 
               value="scan" 
-              label="Scan/Enter ISBN" 
+              label="Scan ISBN"
               icon={<QrCodeScanner />}
               iconPosition="start"
             />
             <Tab 
               value="bookshelf" 
-              label="Scan Bookshelf" 
+              label="Scan Shelf"
               icon={<PhotoLibrary />}
               iconPosition="start"
             />
@@ -641,6 +633,8 @@ export default function AddBooks() {
             existingBooks={existingBooks}
             justAddedBooks={justAddedBooks}
             disabled={loadingData || isLoading}
+            shouldAutoSearch={preserveOcrResults || autoSearchAfterAdd}
+            onSearchComplete={() => setAutoSearchAfterAdd(false)}
           />
         )}
 
@@ -823,7 +817,7 @@ export default function AddBooks() {
 
         {/* Selected Book Display (shared between tabs) */}
         {selectedBook && (
-          <Box sx={{ mt: 3 }} data-testid="book-selected-section">
+          <Box sx={{ mt: 3 }} data-testid="book-selected-section" ref={bookSelectedRef}>
             <BookPreview
               book={selectedBook}
               customTags={customTags}
@@ -837,10 +831,11 @@ export default function AddBooks() {
               isLoading={isLoading}
               isSaveDisabled={!selectedShelfId}
               saveButtonText={allShelves.length === 1 ? 'Add to Library' : 'Save to Library'}
+              showActionButtons={false}
             />
             
             {/* Shelf selector */}
-            <Box sx={{ mt: 4, mb: 2 }}>
+            <Box sx={{ mt: 3, mb: 2 }}>
               <ShelfSelector
                 shelves={allShelves}
                 locations={locations}
@@ -848,6 +843,26 @@ export default function AddBooks() {
                 onShelfChange={setSelectedShelfId}
                 isLoading={loadingData}
               />
+            </Box>
+
+            {/* Action buttons */}
+            <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+              <Button 
+                variant="contained"
+                startIcon={isLoading ? <CircularProgress size={16} color="inherit" /> : <Save />}
+                onClick={saveBook}
+                disabled={!selectedShelfId || isLoading}
+              >
+                {isLoading ? 'Saving...' : (allShelves.length === 1 ? 'Add to Library' : 'Save to Library')}
+              </Button>
+              <Button 
+                variant="outlined"
+                startIcon={<Cancel />}
+                onClick={() => setSelectedBook(null)}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
             </Box>
           </Box>
         )}
