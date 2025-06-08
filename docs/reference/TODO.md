@@ -27,9 +27,12 @@ This file tracks active development tasks and future enhancements for the Libary
 - [ ] **Admin Dashboard & Analytics**
   - [ ] Implement admin analytics (books per location, user activity, etc.)
   - [ ] Create separate admin dashboard with location overview, user management, and pending requests
+  - [ ] User management should include admin settings for what users can do (delete books? add shelves? currently "no" but admins should be able to grant that permission)
   - [ ] Add bulk actions for admin users (bulk book approval, multi-user invitations, etc.)
 
 - [ ] **Enhanced Book Features**
+  - [ ] Create "multi-select" capability in search results (test, isbn, ocr) so multiple books can be selected and added in bulk.
+  - [ ] Bulk adding books should share a single shelf selector and action buttons
   - [ ] Add star rating system, just display average rating for each book from scoped to the location
 
 ---
