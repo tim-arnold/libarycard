@@ -546,7 +546,7 @@ export default function LocationManager() {
       <Container maxWidth="xl" sx={{ py: 2 }}>
         <Paper sx={{ p: 3 }}>
           <Typography variant="h4" component="h2" gutterBottom>
-            🏠 Manage Locatoins
+            🏠 Locations
           </Typography>
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
             <CircularProgress sx={{ mr: 2 }} />
@@ -563,7 +563,7 @@ export default function LocationManager() {
     <Container maxWidth="xl" sx={{ py: 2 }}>
       <Paper sx={{ p: 3 }}>
         <Typography variant="h4" component="h2" gutterBottom>
-          🏠 Manage Locations
+          🏠 Locations
         </Typography>
         
         {error && (

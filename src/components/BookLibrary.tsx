@@ -1097,7 +1097,7 @@ export default function BookLibrary() {
               </Typography>
             ) : userRole === 'admin' ? (
               <Typography variant="body2">
-                🔧 <strong>Admin View:</strong> You can see all {books.length} books across {allLocations.length} location{allLocations.length !== 1 ? 's' : ''} and {shelves.length} shelves. Use filters to organize your view. You can permanently remove books from the library.
+                🔧 <strong>Admin View:</strong> {books.length} books across {allLocations.length} location{allLocations.length !== 1 ? 's' : ''} and {shelves.length} shelves.
               </Typography>
             ) : (
               <Typography variant="body2">

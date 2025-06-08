@@ -304,7 +304,7 @@ export default function RemovalRequestManager() {
       <Container maxWidth="xl" sx={{ py: 2 }}>
         <Paper sx={{ p: 3 }}>
           <Typography variant="h4" component="h2" gutterBottom>
-            📋 Removal Requests
+            📋 Requests
           </Typography>
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
             <CircularProgress sx={{ mr: 2 }} />
@@ -322,7 +322,7 @@ export default function RemovalRequestManager() {
       <Paper sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4" component="h2">
-            📋 Removal Requests ({filteredRequests.length})
+            📋  FRequests ({filteredRequests.length})
           </Typography>
           <Button 
             variant="outlined"

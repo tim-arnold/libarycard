@@ -198,20 +198,20 @@ export default function Home() {
           >
             <Tab 
               value="library" 
-              label={userRole === 'admin' ? "Manage Libraries" : (userLocation ? `${userLocation} Libary` : "My Libary")}
+              label={userRole === 'admin' ? "Libaries" : (userLocation ? `${userLocation} Libary` : "My Libary")}
               icon={<LibraryBooks />}
               iconPosition="start"
             />
             <Tab 
               value="scan" 
-              label="Add Books" 
+              label="Books"
               icon={<QrCodeScanner />}
               iconPosition="start"
             />
             {userRole === 'admin' && (
               <Tab 
                 value="locations" 
-                label="Manage Locations" 
+                label="Locations"
                 icon={<LocationOn />}
                 iconPosition="start"
               />
@@ -219,7 +219,7 @@ export default function Home() {
             {userRole === 'admin' && (
               <Tab 
                 value="requests" 
-                label="Removal Requests" 
+                label="Requests"
                 icon={<Assignment />}
                 iconPosition="start"
               />
