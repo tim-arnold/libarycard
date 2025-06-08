@@ -563,7 +563,7 @@ export default function AddBooks() {
     <Container maxWidth="lg" sx={{ py: 2 }}>
       <Paper sx={{ p: 3 }}>
         <Typography variant="h4" component="h2" gutterBottom>
-          📚 Add Books to the Libary
+          📚 Add Books
         </Typography>
       
         {/* Contextual help text based on available options */}
