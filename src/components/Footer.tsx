@@ -33,7 +33,21 @@ export default function Footer() {
           }}
         >
           <Typography variant="body2" color="text.secondary">
-            &copy; 2025 tim52.io
+            &copy; 2025{' '}
+            <Link
+              href="https://tim52.io"
+              target="_blank"
+              rel="noopener noreferrer"
+              color="inherit"
+              sx={{
+                textDecoration: 'none',
+                '&:hover': {
+                  textDecoration: 'underline'
+                }
+              }}
+            >
+              tim52.io
+            </Link>
           </Typography>
           
           <Link
