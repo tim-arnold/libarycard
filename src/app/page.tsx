@@ -204,7 +204,7 @@ export default function Home() {
             />
             <Tab 
               value="scan" 
-              label="Books"
+              label="Add Books"
               icon={<QrCodeScanner />}
               iconPosition="start"
             />
