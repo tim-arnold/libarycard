@@ -224,6 +224,10 @@ libarycard/
 ├── workers/               # Backend code
 │   └── index.ts          # Worker API
 ├── docs/                  # Documentation
+│   ├── development/      # Technical documentation
+│   ├── deployment/       # Infrastructure guides
+│   ├── guides/           # User guides
+│   └── reference/        # Project tracking
 ├── .env.local            # Local environment variables
 ├── wrangler.toml         # Worker configuration
 └── schema.sql            # Database schema

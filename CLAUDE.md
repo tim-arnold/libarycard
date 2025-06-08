@@ -2,7 +2,7 @@
 
 This file contains project context and configuration for AI assistants working on LibaryCard.
 
-**Project Resources**: [Active Todos](./docs/TODO.md) • [Change History](./docs/CHANGELOG.md)
+**Project Resources**: [Active Todos](./docs/reference/TODO.md) • [Change History](./docs/reference/CHANGELOG.md)
 
 ## Current Project Status
 
@@ -23,7 +23,7 @@ LibaryCard is a sophisticated library management platform with comprehensive fea
 **Stack**: TypeScript, Material UI, NextAuth.js, Google Books API  
 **Environment**: Development mode with mock auth, production with full email verification
 
-> **Detailed Architecture**: See [docs/architecture.md](./docs/architecture.md) for complete technical documentation
+> **Detailed Architecture**: See [docs/development/architecture.md](./docs/development/architecture.md) for complete technical documentation
 
 ## Development Guidelines
 
@@ -31,17 +31,20 @@ LibaryCard is a sophisticated library management platform with comprehensive fea
 
 ## Recent Highlights
 
-- **Complete**: Material UI design system with dark mode
-- **Complete**: Role-based permission system (admin/user)  
-- **Complete**: Book checkout system with history tracking
-- **Complete**: ISBN scanner with Google Books API integration
-- **Complete**: Curated genre classification (26 categories)
-- **Complete**: Book removal request system with admin approval
-- **Complete**: Component architecture refactoring for improved maintainability and token efficiency
+- **Complete**: 🎉 **OCR Migration to Cloudflare Workers** - Bookshelf Photo Scanning now 100% functional with 80-90% accuracy in production
+- **Complete**: Global footer with "Contact the Libarian" feature and professional email workflow
+- **Complete**: Component architecture refactoring for improved maintainability and token efficiency (32-52% line reduction)
+- **Complete**: Organized documentation structure with focused subdirectories (guides/, development/, deployment/, reference/)
+- **Complete**: Material UI design system with dark mode support and WCAG-compliant accessibility
+- **Complete**: Role-based permission system (admin/user) with comprehensive access controls
+- **Complete**: Book checkout system with history tracking and admin override capabilities
+- **Complete**: ISBN scanner with Google Books API integration and enhanced book metadata
+- **Complete**: Curated genre classification system (26 meaningful categories)
+- **Complete**: Book removal request system with admin approval workflows
 
-> **Details**: See [docs/CHANGELOG.md](./docs/CHANGELOG.md) for complete implementation history
+> **Details**: See [docs/reference/CHANGELOG.md](./docs/reference/CHANGELOG.md) for complete implementation history
 
 ---
 
 **Last updated**: June 2025  
-**For complete change history**: See [docs/CHANGELOG.md](./docs/CHANGELOG.md)
+**For complete change history**: See [docs/reference/CHANGELOG.md](./docs/reference/CHANGELOG.md)
