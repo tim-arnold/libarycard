@@ -6,6 +6,7 @@ import {
   CardContent,
   CardActions,
   Typography,
+  Chip,
   Button,
 } from '@mui/material'
 import { Info } from '@mui/icons-material'
@@ -124,7 +125,17 @@ export default function BookGrid({
                     {book.seriesNumber && ` (#${book.seriesNumber})`}
                   </Typography>
                 )}
-                {/* Genre chip removed - filtering works well without visual tags */}
+                {/* Genre - only show for regular users */}
+                {userRole !== 'admin' && (book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
+                  <Box sx={{ mt: 1, mb: 1 }}>
+                    <Chip 
+                      label={book.enhancedGenres?.[0] || book.categories?.[0]} 
+                      size="small" 
+                      color={book.enhancedGenres ? 'primary' : 'default'}
+                      sx={{ mr: 0.5, mb: 0.5 }} 
+                    />
+                  </Box>
+                )}
                 {book.description && (
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                     {book.description.substring(0, 200)}...

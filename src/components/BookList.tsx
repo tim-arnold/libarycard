@@ -5,6 +5,7 @@ import {
   List,
   ListItem,
   Typography,
+  Chip,
   Button,
 } from '@mui/material'
 import { Info } from '@mui/icons-material'
@@ -203,9 +204,41 @@ export default function BookList({
                 </Box>
               )}
 
-              {/* Genre chip removed - filtering works well without visual tags */}
-              {/* More Details button */}
-              {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
+              {/* Genre - only show for regular users */}
+              {userRole !== 'admin' && (book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
+                <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Chip 
+                    label={book.enhancedGenres?.[0] || book.categories?.[0]} 
+                    size="small" 
+                    color={book.enhancedGenres ? 'primary' : 'default'}
+                    sx={{ 
+                      fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8125rem' },
+                      height: { xs: 20, sm: 24, md: 28 }
+                    }} 
+                  />
+                  {/* More Details button moved to right of genre */}
+                  {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
+                    <Button
+                      size="small"
+                      startIcon={<Info />}
+                      onClick={() => onMoreDetailsClick(book)}
+                      sx={{ 
+                        textTransform: 'none',
+                        fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                        color: 'primary.main',
+                        '&:hover': {
+                          backgroundColor: 'primary.50'
+                        }
+                      }}
+                    >
+                      More Details
+                    </Button>
+                  )}
+                </Box>
+              )}
+
+              {/* More Details button for when no genre is shown */}
+              {(userRole === 'admin' || (!book.enhancedGenres?.[0] && !book.categories?.[0])) && (book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
                 <Box sx={{ mb: 1.5 }}>
                   <Button
                     size="small"
