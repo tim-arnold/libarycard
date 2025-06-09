@@ -27,12 +27,14 @@ import {
   Build,
   DarkMode,
   LightMode,
+  Help,
 } from '@mui/icons-material'
 import AddBooks from '@/components/AddBooks'
 import BookLibrary from '@/components/BookLibrary'
 import LocationManager from '@/components/LocationManager'
 import RemovalRequestManager from '@/components/RemovalRequestManager'
 import Footer from '@/components/Footer'
+import HelpModal from '@/components/HelpModal'
 import { useTheme } from '@/lib/ThemeContext'
 
 export default function Home() {
@@ -51,6 +53,7 @@ export default function Home() {
   const [userFirstName, setUserFirstName] = useState<string | null>(null)
   const [userLocation, setUserLocation] = useState<string | null>(null)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const [helpModalOpen, setHelpModalOpen] = useState(false)
 
   useEffect(() => {
     if (session) {
@@ -125,6 +128,11 @@ export default function Home() {
     handleMenuClose()
   }
 
+  const handleHelpClick = () => {
+    setHelpModalOpen(true)
+    handleMenuClose()
+  }
+
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar position="static" color="primary">
@@ -172,6 +180,10 @@ export default function Home() {
             <MenuItem onClick={handleProfileClick}>
               <AccountCircle sx={{ mr: 1 }} />
               Profile
+            </MenuItem>
+            <MenuItem onClick={handleHelpClick}>
+              <Help sx={{ mr: 1 }} />
+              Help
             </MenuItem>
             <MenuItem onClick={handleSignOut}>
               <ExitToApp sx={{ mr: 1 }} />
@@ -234,6 +246,11 @@ export default function Home() {
       </Container>
       
       <Footer />
+      
+      <HelpModal 
+        open={helpModalOpen} 
+        onClose={() => setHelpModalOpen(false)} 
+      />
     </Box>
   )
 }
