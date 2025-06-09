@@ -29,6 +29,16 @@ LibaryCard is a sophisticated library management platform with comprehensive fea
 
 **Commit Messages**: Use clear, descriptive commit messages without AI tool attribution or co-authoring credits
 
+### Testing & Screenshots
+
+**Screenshot Generation**: Automated Puppeteer script available for UI testing and documentation
+- **Location**: `testing/screenshot.js`
+- **Setup**: Requires `SCREENSHOT_USER` and `SCREENSHOT_PASSWORD` in `.env.local`
+- **Usage**: `cd testing && node screenshot.js`
+- **Output**: Timestamped screenshots in `testing/screenshots/`
+- **Captures**: Login screen, signin page, and authenticated library view
+- **Authentication**: Supports email/password login with automatic form interaction
+
 ## Recent Highlights
 
 - **Complete**: 🎉 **OCR Migration to Cloudflare Workers** - Bookshelf Photo Scanning now 100% functional with 80-90% accuracy in production

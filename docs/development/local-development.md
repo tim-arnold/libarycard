@@ -126,6 +126,32 @@ preview_database_id = "local-database-id"
 
 ## Testing Features
 
+### Automated Screenshot Testing
+
+Puppeteer script for UI testing and documentation:
+
+```bash
+# Setup (first time only)
+# Add to .env.local:
+# SCREENSHOT_USER=your-email@domain.com
+# SCREENSHOT_PASSWORD=your-password
+
+# Run screenshots
+cd testing
+node screenshot.js
+```
+
+**Captures:**
+- Login screen (`testing/screenshots/login-screen_TIMESTAMP.png`)
+- Signin page (`testing/screenshots/signin-screen_TIMESTAMP.png`)
+- Authenticated library view (`testing/screenshots/library-screen_TIMESTAMP.png`)
+
+**Features:**
+- Timestamped filenames prevent conflicts
+- Automated email/password authentication
+- Full-page screenshots for documentation
+- Error debugging with failure screenshots
+
 ### Camera Scanning
 
 Camera scanning works on localhost:
@@ -223,6 +249,9 @@ libarycard/
 │   └── lib/              # Utility functions
 ├── workers/               # Backend code
 │   └── index.ts          # Worker API
+├── testing/               # Test utilities
+│   ├── screenshot.js     # Puppeteer screenshot script
+│   └── screenshots/      # Generated screenshots
 ├── docs/                  # Documentation
 │   ├── development/      # Technical documentation
 │   ├── deployment/       # Infrastructure guides
