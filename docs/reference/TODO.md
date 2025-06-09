@@ -20,6 +20,7 @@ This file tracks active development tasks and future enhancements for the Libary
 - [ ] **Admin Notification System**
   - [ ] Add admin notification system for user requests (removal requests, etc.)
   - [ ] Implement checkout notifications and due date reminders
+  - [ ] Due date reminders can just be monthly reminders if a book is still checked out, no actual due dates
   - [ ] Create notification center for pending admin actions
 
 ### Low Priority - Future Enhancements
