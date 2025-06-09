@@ -110,7 +110,8 @@ export async function fetchEnhancedBookData(isbn: string): Promise<EnhancedBook 
             // Use our curated genre classification system
             const classifiedGenres = classifyGenres(
               enhancedBook.categories, // Google Books categories
-              workData.subjects        // OpenLibrary subjects
+              workData.subjects,       // OpenLibrary subjects
+              process.env.NODE_ENV === 'development' // Enable debug in development
             )
             
             if (classifiedGenres.length > 0) {
@@ -146,7 +147,11 @@ export async function fetchEnhancedBookData(isbn: string): Promise<EnhancedBook 
 
     // If we don't have enhanced genres yet, try to classify from Google Books categories alone
     if (!enhancedBook.enhancedGenres && enhancedBook.categories) {
-      const classifiedGenres = classifyGenres(enhancedBook.categories)
+      const classifiedGenres = classifyGenres(
+        enhancedBook.categories,
+        undefined,
+        process.env.NODE_ENV === 'development' // Enable debug in development
+      )
       if (classifiedGenres.length > 0) {
         enhancedBook.enhancedGenres = classifiedGenres
       }
@@ -186,7 +191,11 @@ export async function fetchEnhancedBookFromSearch(googleBookItem: any): Promise<
 
   // Apply genre classification to the fallback data too
   if (enhancedBook.categories) {
-    const classifiedGenres = classifyGenres(enhancedBook.categories)
+    const classifiedGenres = classifyGenres(
+      enhancedBook.categories,
+      undefined,
+      process.env.NODE_ENV === 'development' // Enable debug in development
+    )
     if (classifiedGenres.length > 0) {
       enhancedBook.enhancedGenres = classifiedGenres
     }

@@ -80,22 +80,70 @@ function MoreDetailsModal({ book, isOpen, onClose }: MoreDetailsModalProps) {
             </Typography>
           </Box>
           
-          {/* Complete Genres List */}
-          {(book.enhancedGenres || book.categories) && (
+          {/* Curated Genres (Enhanced) */}
+          {book.enhancedGenres && book.enhancedGenres.length > 0 && (
             <Box sx={{ mb: 3 }}>
               <Typography variant="h6" gutterBottom>
-                All Genres
+                Curated Genres
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {(book.enhancedGenres || book.categories || []).map((genre, index) => (
+                {book.enhancedGenres.map((genre, index) => (
                   <Chip 
                     key={index} 
                     label={genre} 
                     size="small" 
-                    color={book.enhancedGenres ? 'primary' : 'default'}
+                    color="primary"
                   />
                 ))}
               </Box>
+            </Box>
+          )}
+
+          {/* Google Books Categories (Raw) */}
+          {book.categories && book.categories.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Google Books Categories
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {book.categories.map((category, index) => (
+                  <Chip 
+                    key={index} 
+                    label={category} 
+                    size="small" 
+                    variant="outlined"
+                  />
+                ))}
+              </Box>
+            </Box>
+          )}
+
+          {/* OpenLibrary Subjects */}
+          {book.subjects && book.subjects.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                OpenLibrary Subjects
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {book.subjects.slice(0, 10).map((subject, index) => (
+                  <Chip key={index} label={subject} size="small" variant="outlined" />
+                ))}
+                {book.subjects.length > 10 && (
+                  <Chip label={`+${book.subjects.length - 10} more`} size="small" variant="outlined" />
+                )}
+              </Box>
+            </Box>
+          )}
+          
+          {/* Basic Description */}
+          {book.description && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Description
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {book.description}
+              </Typography>
             </Box>
           )}
           
@@ -107,22 +155,6 @@ function MoreDetailsModal({ book, isOpen, onClose }: MoreDetailsModalProps) {
               <Typography variant="body2" color="text.secondary">
                 {book.extendedDescription}
               </Typography>
-            </Box>
-          )}
-          
-          {book.subjects && book.subjects.length > 0 && (
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Subjects & Topics
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {book.subjects.slice(0, 10).map((subject, index) => (
-                  <Chip key={index} label={subject} size="small" variant="outlined" />
-                ))}
-                {book.subjects.length > 10 && (
-                  <Chip label={`+${book.subjects.length - 10} more`} size="small" variant="outlined" />
-                )}
-              </Box>
             </Box>
           )}
           
