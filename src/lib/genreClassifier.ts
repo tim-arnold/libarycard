@@ -296,6 +296,52 @@ export function getPrimaryGenre(classifiedGenres: string[]): string | null {
 }
 
 /**
+ * Gets the best available genre for display, with special handling for "Fiction"
+ * If the primary genre would be "Fiction", looks for more specific fiction subgenres
+ * in all available data sources
+ */
+export function getDisplayGenre(book: {
+  enhancedGenres?: string[]
+  categories?: string[]  
+  subjects?: string[]
+}): string | null {
+  // Get the primary genre using existing logic
+  const primaryGenre = book.enhancedGenres?.[0] || book.categories?.[0]
+  
+  // If it's not "Fiction", return it as-is
+  if (primaryGenre !== 'Fiction') {
+    return primaryGenre || null
+  }
+  
+  // If it is "Fiction", look for compound fiction terms in all sources
+  const allSources = [
+    ...(book.enhancedGenres || []),
+    ...(book.categories || []),
+    ...(book.subjects || [])
+  ]
+  
+  // Look for "[word(s)] fiction" patterns (case insensitive)
+  const fictionPattern = /^(.+)\s+fiction$/i
+  
+  for (const term of allSources) {
+    const match = term.match(fictionPattern)
+    if (match && match[1]) {
+      // Ensure it's a compound term (2-3 words total)
+      const wordCount = term.trim().split(/\s+/).length
+      if (wordCount >= 2 && wordCount <= 3) {
+        // Return the properly capitalized version
+        return term.split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ')
+      }
+    }
+  }
+  
+  // Fallback to "Fiction" if no specific subgenre found
+  return 'Fiction'
+}
+
+/**
  * Example usage and testing function
  */
 export function testGenreClassification() {

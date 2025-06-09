@@ -12,6 +12,7 @@ import {
 import { Info } from '@mui/icons-material'
 import type { EnhancedBook } from '@/lib/types'
 import BookActions from './BookActions'
+import { getDisplayGenre } from '@/lib/genreClassifier'
 
 interface BookGridProps {
   books: EnhancedBook[]
@@ -126,16 +127,19 @@ export default function BookGrid({
                   </Typography>
                 )}
                 {/* Genre - only show for regular users */}
-                {userRole !== 'admin' && (book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
-                  <Box sx={{ mt: 1, mb: 1 }}>
-                    <Chip 
-                      label={book.enhancedGenres?.[0] || book.categories?.[0]} 
-                      size="small" 
-                      color={book.enhancedGenres ? 'primary' : 'default'}
-                      sx={{ mr: 0.5, mb: 0.5 }} 
-                    />
-                  </Box>
-                )}
+                {userRole !== 'admin' && (() => {
+                  const displayGenre = getDisplayGenre(book)
+                  return displayGenre && (
+                    <Box sx={{ mt: 1, mb: 1 }}>
+                      <Chip 
+                        label={displayGenre} 
+                        size="small" 
+                        color={book.enhancedGenres ? 'primary' : 'default'}
+                        sx={{ mr: 0.5, mb: 0.5 }} 
+                      />
+                    </Box>
+                  )
+                })()}
                 {book.description && (
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                     {book.description.substring(0, 200)}...

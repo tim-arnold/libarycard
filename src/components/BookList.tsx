@@ -11,6 +11,7 @@ import {
 import { Info } from '@mui/icons-material'
 import type { EnhancedBook } from '@/lib/types'
 import BookActions from './BookActions'
+import { getDisplayGenre } from '@/lib/genreClassifier'
 
 interface BookListProps {
   books: EnhancedBook[]
@@ -205,37 +206,40 @@ export default function BookList({
               )}
 
               {/* Genre - only show for regular users */}
-              {userRole !== 'admin' && (book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
-                <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Chip 
-                    label={book.enhancedGenres?.[0] || book.categories?.[0]} 
-                    size="small" 
-                    color={book.enhancedGenres ? 'primary' : 'default'}
-                    sx={{ 
-                      fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8125rem' },
-                      height: { xs: 20, sm: 24, md: 28 }
-                    }} 
-                  />
-                  {/* More Details button moved to right of genre */}
-                  {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
-                    <Button
-                      size="small"
-                      startIcon={<Info />}
-                      onClick={() => onMoreDetailsClick(book)}
+              {userRole !== 'admin' && (() => {
+                const displayGenre = getDisplayGenre(book)
+                return displayGenre && (
+                  <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip 
+                      label={displayGenre} 
+                      size="small" 
+                      color={book.enhancedGenres ? 'primary' : 'default'}
                       sx={{ 
-                        textTransform: 'none',
-                        fontSize: { xs: '0.75rem', sm: '0.8125rem' },
-                        color: 'primary.main',
-                        '&:hover': {
-                          backgroundColor: 'primary.50'
-                        }
-                      }}
-                    >
-                      More Details
-                    </Button>
-                  )}
-                </Box>
-              )}
+                        fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8125rem' },
+                        height: { xs: 20, sm: 24, md: 28 }
+                      }} 
+                    />
+                    {/* More Details button moved to right of genre */}
+                    {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
+                      <Button
+                        size="small"
+                        startIcon={<Info />}
+                        onClick={() => onMoreDetailsClick(book)}
+                        sx={{ 
+                          textTransform: 'none',
+                          fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                          color: 'primary.main',
+                          '&:hover': {
+                            backgroundColor: 'primary.50'
+                          }
+                        }}
+                      >
+                        More Details
+                      </Button>
+                    )}
+                  </Box>
+                )
+              })()}
 
               {/* Checkout status display */}
               {book.status === 'checked_out' && (
