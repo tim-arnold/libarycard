@@ -6,14 +6,15 @@ This directory contains comprehensive documentation for the LibaryCard project, 
 
 ### 📚 [Guides](./guides/) - User & Feature Documentation
 - **[Getting Started](./guides/getting-started.md)** - Quick start guide for new users
-- **[User Guide](./guides/user-guide.md)** - Complete user manual for LibaryCard features  
-- **[Bookshelf Photo Scanning](./guides/bookshelf-photo-scanning-plan.md)** - OCR feature implementation guide
+- **[Features Overview](./guides/features.md)** - Comprehensive feature documentation with recent highlights
+- **[User Guide](./guides/user-guide.md)** - Complete user manual for LibaryCard features
 
 ### 🛠️ [Development](./development/) - Technical Documentation
 - **[Architecture Overview](./development/architecture.md)** - System design and technology stack
 - **[Local Development](./development/local-development.md)** - Development environment setup
 - **[API Reference](./development/api-reference.md)** - Complete API documentation
 - **[Database Schema](./development/database-schema.md)** - Data model and relationships
+- **[Bookshelf Photo Scanning Plan](./development/bookshelf-photo-scanning-plan.md)** - OCR feature implementation guide
 - **[Troubleshooting](./development/troubleshooting.md)** - Common development issues and solutions
 
 ### 🚀 [Deployment](./deployment/) - Infrastructure & Setup

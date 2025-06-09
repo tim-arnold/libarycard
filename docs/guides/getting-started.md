@@ -47,31 +47,31 @@ Visit `http://localhost:3000` to see the app running locally.
 
 ## Core Features
 
-### 📱 ISBN Scanning
-- Use your phone's camera to scan book barcodes
-- Automatic book data retrieval from Google Books API
-- OpenLibrary fallback for better coverage
-- Manual ISBN entry option
+LibaryCard is a sophisticated library management platform with comprehensive features:
 
-### 📚 Book Management
-- Automatic title, author, and description fetching
-- Cover image display
-- Publication date and category information
-- Search and filter functionality
+### 📱 Book Scanning & Management
+- **ISBN Scanning**: Camera-based barcode scanning with Google Books API integration
+- **Bookshelf Photo Scanning**: OCR technology to scan entire bookshelves at once (80-90% accuracy)
+- **Manual Entry**: ISBN entry option with automatic book data retrieval
+- **Enhanced Metadata**: Title, author, description, cover images, publication dates, and categories
 
-### 🏠 Location Tracking
-Pre-configured locations:
-- basement
-- julie's room
-- tim's room
-- bench
-- julie's office
-- little library
+### 👥 Multi-User Support
+- **Authentication**: Google OAuth + email/password with email verification
+- **Role-Based Permissions**: Admin and user roles with appropriate access controls
+- **User Management**: Invitation system for shared libraries
+- **Book Checkout System**: Track who has borrowed books with history
 
-### 🏷️ Custom Tagging
-- Add your own tags (fiction, mystery, favorite, etc.)
-- Filter books by tags
-- Export library data
+### 🏠 Library Organization
+- **Multi-Location Support**: Organize books across different physical locations
+- **Shelf Management**: Create and manage shelves within locations
+- **Smart UX**: Simplified interface for single-shelf users
+- **Advanced Features**: Book removal requests, pagination, duplicate detection
+
+### 🎨 Modern Interface
+- **Material UI Design**: Professional, accessible interface with WCAG compliance
+- **Dark Mode Support**: Toggle between light and dark themes
+- **Responsive Design**: Mobile-first design that works on all devices
+- **Search & Filtering**: Advanced book discovery and organization tools
 
 ## Browser Requirements
 

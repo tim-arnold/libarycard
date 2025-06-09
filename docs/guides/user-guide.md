@@ -34,10 +34,8 @@ The app has three main sections accessible via the top navigation:
 
 LibaryCard has two types of users:
 
-- **Admin Users** (a): Can create, edit, and delete locations and shelves
-- **Regular Users** (u): Can add, edit, and remove books from existing locations
-
-Your role is displayed next to your name in the header: "Hello, Name! (a)" or "Hello, Name! (u)"
+- **Admin Users**: Can create, edit, and delete locations and shelves
+- **Regular Users**: Can add, edit, and remove books from existing locations
 
 ## Adding Books
 
