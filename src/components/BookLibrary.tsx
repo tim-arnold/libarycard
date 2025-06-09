@@ -494,8 +494,8 @@ export default function BookLibrary() {
       }
     }
     
-    // For raw categories, use flexible matching for compound genres
-    const rawGenres = book.categories || []
+    // For raw categories and subjects, use flexible matching for compound genres
+    const rawGenres = [...(book.categories || []), ...(book.subjects || [])]
     return rawGenres.some(rawGenre => {
       const rawLower = rawGenre.toLowerCase()
       const curatedLower = curatedGenre.toLowerCase()
