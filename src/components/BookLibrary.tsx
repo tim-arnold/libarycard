@@ -483,7 +483,66 @@ export default function BookLibrary() {
     }
   }
 
-  // Helper function to check if a book matches a curated genre filter
+  // Helper function for dropdown generation - only check enhanced genres and categories
+  const bookHasGenreForDropdown = (book: EnhancedBook, curatedGenre: string): boolean => {
+    // Check enhanced genres first (these are already curated) - use case-insensitive matching
+    if (book.enhancedGenres) {
+      const curatedLower = curatedGenre.toLowerCase()
+      const hasMatch = book.enhancedGenres.some(genre => genre.toLowerCase() === curatedLower)
+      if (hasMatch) {
+        return true
+      }
+    }
+    
+    // For raw categories only, use flexible matching for compound genres
+    const rawGenres = book.categories || []
+    return rawGenres.some(rawGenre => {
+      const rawLower = rawGenre.toLowerCase()
+      const curatedLower = curatedGenre.toLowerCase()
+      
+      // Handle special compound genres FIRST to prevent incorrect matches
+      if (curatedGenre === 'Historical Fiction') {
+        // Only match explicit historical fiction references, never horror/fantasy/sci-fi
+        if (rawLower.includes('horror') || rawLower.includes('fantasy') || rawLower.includes('science fiction')) {
+          return false
+        }
+        return rawLower.includes('historical fiction') || 
+               (rawLower.includes('fiction') && rawLower.includes('historical'))
+      }
+      
+      if (curatedGenre === 'Literary Fiction') {
+        // Only match explicit literary fiction references, never horror/fantasy/sci-fi
+        if (rawLower.includes('horror') || rawLower.includes('fantasy') || rawLower.includes('science fiction')) {
+          return false
+        }
+        return rawLower.includes('literary fiction') ||
+               (rawLower.includes('fiction') && rawLower.includes('literary'))
+      }
+      
+      if (curatedGenre === 'Young Adult') {
+        return rawLower.includes('young adult') || rawLower.includes('juvenile') || 
+               (rawLower.includes('young') && rawLower.includes('adult'))
+      }
+      
+      // Direct substring matching for single-word genres
+      if (rawLower.includes(curatedLower) || curatedLower.includes(rawLower)) {
+        return true
+      }
+      
+      // Word-based matching for partial matches (e.g., "Horror" matches "American horror tales")
+      const rawWords = rawLower.split(/\s+|[,&-]+/).filter(word => word.length > 0)
+      const curatedWords = curatedLower.split(/\s+/).filter(word => word.length > 0)
+      
+      // Check if all words from the curated genre appear in the raw genre
+      const allWordsMatch = curatedWords.every(curatedWord => 
+        rawWords.some(rawWord => rawWord.includes(curatedWord) || curatedWord.includes(rawWord))
+      )
+      
+      return allWordsMatch
+    })
+  }
+
+  // Helper function to check if a book matches a curated genre filter - includes subjects for comprehensive filtering
   const bookMatchesGenreFilter = (book: EnhancedBook, curatedGenre: string): boolean => {
     // Check enhanced genres first (these are already curated) - use case-insensitive matching
     if (book.enhancedGenres) {
@@ -1023,9 +1082,9 @@ export default function BookLibrary() {
 
 
 
-  // Use curated genres that actually have books mapped to them in the user's library
+  // Use curated genres that actually have books mapped to them in the user's library (categories only for dropdown)
   const allCategories = CURATED_GENRES.filter(curatedGenre => {
-    return books.some(book => bookMatchesGenreFilter(book, curatedGenre))
+    return books.some(book => bookHasGenreForDropdown(book, curatedGenre))
   }).sort()
 
   const booksByShelf = shelves.reduce((acc: Record<string, number>, shelf) => {
