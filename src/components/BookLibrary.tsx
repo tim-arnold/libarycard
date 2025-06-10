@@ -17,6 +17,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  CircularProgress,
 } from '@mui/material'
 import { 
   GridView,
@@ -26,7 +27,7 @@ import type { EnhancedBook } from '@/lib/types'
 import { getBooks, updateBook, deleteBook as deleteBookAPI } from '@/lib/api'
 import ConfirmationModal from './ConfirmationModal'
 import AlertModal from './AlertModal'
-import BookFilters from './BookFilters'
+import BookFilters, { SortField, SortDirection } from './BookFilters'
 import BookGrid from './BookGrid'
 import BookList from './BookList'
 import RemovalReasonModal from './RemovalReasonModal'
@@ -239,24 +240,51 @@ export default function BookLibrary() {
   const [selectedBookForRelocate, setSelectedBookForRelocate] = useState<EnhancedBook | null>(null)
   const [showRemovalReasonModal, setShowRemovalReasonModal] = useState(false)
   const [removalReasonCallback, setRemovalReasonCallback] = useState<((result: { value: string; label: string; details?: string } | null) => void) | null>(null)
+  const [sortField, setSortField] = useState<SortField>('title')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     if (session?.user) {
       loadUserData()
+    } else if (session === null) {
+      // Session loading is complete but user is not logged in
+      setIsLoading(false)
     }
   }, [session])
 
-  // Load saved view mode from localStorage
+  // Load saved view mode and sort settings from localStorage
   useEffect(() => {
     const savedViewMode = localStorage.getItem('library-view-mode') as 'card' | 'list'
     if (savedViewMode && (savedViewMode === 'card' || savedViewMode === 'list')) {
       setViewMode(savedViewMode)
+    }
+    
+    const savedSortField = localStorage.getItem('library-sort-field') as SortField
+    const savedSortDirection = localStorage.getItem('library-sort-direction') as SortDirection
+    
+    if (savedSortField && ['title', 'author', 'publishedDate', 'dateAdded'].includes(savedSortField)) {
+      setSortField(savedSortField)
+    }
+    
+    if (savedSortDirection && ['asc', 'desc'].includes(savedSortDirection)) {
+      setSortDirection(savedSortDirection)
     }
   }, [])
 
   const handleViewModeChange = (newViewMode: 'card' | 'list') => {
     setViewMode(newViewMode)
     localStorage.setItem('library-view-mode', newViewMode)
+  }
+
+  const handleSortFieldChange = (newSortField: SortField) => {
+    setSortField(newSortField)
+    localStorage.setItem('library-sort-field', newSortField)
+  }
+
+  const handleSortDirectionChange = (newSortDirection: SortDirection) => {
+    setSortDirection(newSortDirection)
+    localStorage.setItem('library-sort-direction', newSortDirection)
   }
 
   // Pagination functions
@@ -313,6 +341,8 @@ export default function BookLibrary() {
 
   const loadUserData = async () => {
     if (!session?.user?.email) return
+    
+    setIsLoading(true)
     
     // Load user role and ID first
     let currentUserRole = 'user'
@@ -393,6 +423,8 @@ export default function BookLibrary() {
     if (currentUserRole !== 'admin') {
       await loadPendingRemovalRequests()
     }
+    
+    setIsLoading(false)
   }
 
   const loadPendingRemovalRequests = async () => {
@@ -638,10 +670,64 @@ export default function BookLibrary() {
       })
     }
 
+    // Apply sorting
+    filtered = filtered.sort((a, b) => {
+      let comparison = 0
+      
+      switch (sortField) {
+        case 'title':
+          // Remove articles (a, an, the) for better alphabetical sorting
+          const titleA = a.title.replace(/^(the|a|an)\s+/i, '').trim()
+          const titleB = b.title.replace(/^(the|a|an)\s+/i, '').trim()
+          comparison = titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' })
+          break
+        case 'author':
+          // Sort by last name when possible (look for comma, otherwise use last word)
+          const getAuthorSortKey = (authors: string[]) => {
+            if (authors.length === 0) return 'zzz' // Put books without authors at the end
+            const firstAuthor = authors[0]
+            // If author is in "Last, First" format, use that directly
+            if (firstAuthor.includes(',')) {
+              return firstAuthor.toLowerCase()
+            }
+            // Otherwise, try to extract last name
+            const words = firstAuthor.trim().split(/\s+/)
+            const lastName = words[words.length - 1]
+            return lastName.toLowerCase()
+          }
+          const authorA = getAuthorSortKey(a.authors)
+          const authorB = getAuthorSortKey(b.authors)
+          comparison = authorA.localeCompare(authorB, undefined, { numeric: true, sensitivity: 'base' })
+          break
+        case 'publishedDate':
+          // Handle missing publication dates by treating them as very old dates for ascending, very new for descending
+          const getDateValue = (dateStr?: string) => {
+            if (!dateStr) return sortDirection === 'asc' ? -Infinity : Infinity
+            const date = new Date(dateStr)
+            return isNaN(date.getTime()) ? (sortDirection === 'asc' ? -Infinity : Infinity) : date.getTime()
+          }
+          const dateA = getDateValue(a.publishedDate)
+          const dateB = getDateValue(b.publishedDate)
+          comparison = dateA - dateB
+          break
+        case 'dateAdded':
+          // For now, use the book ID as a proxy for date added (since newer books typically have higher IDs)
+          // In a future enhancement, we could add an actual dateAdded field to the database
+          const idA = parseInt(a.id) || 0
+          const idB = parseInt(b.id) || 0
+          comparison = idA - idB
+          break
+        default:
+          comparison = 0
+      }
+      
+      return sortDirection === 'desc' ? -comparison : comparison
+    })
+
     setFilteredBooks(filtered)
-    // Reset to first page when filters change
+    // Reset to first page when filters or sorting change
     setCurrentPage(1)
-  }, [books, searchTerm, shelfFilter, categoryFilter, locationFilter, userRole, shelves, allLocations])
+  }, [books, searchTerm, shelfFilter, categoryFilter, locationFilter, userRole, shelves, allLocations, sortField, sortDirection])
 
   const deleteBook = async (bookId: string, bookTitle: string) => {
     const confirmed = await confirmAsync(
@@ -1047,6 +1133,25 @@ export default function BookLibrary() {
 
   const booksByLocation = getBooksByLocation()
 
+  // Show loading screen while data is being fetched
+  if (isLoading) {
+    return (
+      <Container maxWidth="xl" sx={{ py: 2 }}>
+        <Paper sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 8 }}>
+            <CircularProgress size={60} sx={{ mb: 3 }} />
+            <Typography variant="h5" component="h2" gutterBottom>
+              📚 Loading Your Library
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', maxWidth: 400 }}>
+              Please wait while we fetch your books, shelves, and settings...
+            </Typography>
+          </Box>
+        </Paper>
+      </Container>
+    )
+  }
+
   return (
     <Container maxWidth="xl" sx={{ py: 2 }}>
       <Paper sx={{ p: 3 }}>
@@ -1155,6 +1260,10 @@ export default function BookLibrary() {
           setCategoryFilter={setCategoryFilter}
           locationFilter={locationFilter}
           setLocationFilter={setLocationFilter}
+          sortField={sortField}
+          setSortField={handleSortFieldChange}
+          sortDirection={sortDirection}
+          setSortDirection={handleSortDirectionChange}
           userRole={userRole || ''}
           shelves={shelves}
           allLocations={allLocations}

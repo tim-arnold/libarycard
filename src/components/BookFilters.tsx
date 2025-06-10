@@ -7,8 +7,12 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  IconButton,
 } from '@mui/material'
-import { Search } from '@mui/icons-material'
+import { Search, Sort, ArrowUpward, ArrowDownward } from '@mui/icons-material'
+
+export type SortField = 'title' | 'author' | 'publishedDate' | 'dateAdded'
+export type SortDirection = 'asc' | 'desc'
 
 interface BookFiltersProps {
   searchTerm: string
@@ -19,6 +23,10 @@ interface BookFiltersProps {
   setCategoryFilter: (category: string) => void
   locationFilter: string
   setLocationFilter: (location: string) => void
+  sortField: SortField
+  setSortField: (field: SortField) => void
+  sortDirection: SortDirection
+  setSortDirection: (direction: SortDirection) => void
   userRole: string
   shelves: Array<{ id: number; name: string; location_id: number }>
   allLocations: Array<{ id: number; name: string }>
@@ -34,6 +42,10 @@ export default function BookFilters({
   setCategoryFilter,
   locationFilter,
   setLocationFilter,
+  sortField,
+  setSortField,
+  sortDirection,
+  setSortDirection,
   userRole,
   shelves,
   allLocations,
@@ -114,6 +126,43 @@ export default function BookFilters({
             ))}
           </Select>
         </FormControl>
+      </Box>
+
+      <Box sx={{ flex: '1 1 200px', minWidth: 200 }}>
+        <FormControl fullWidth size="small">
+          <InputLabel>Sort by</InputLabel>
+          <Select
+            value={sortField}
+            label="Sort by"
+            onChange={(e) => setSortField(e.target.value as SortField)}
+            startAdornment={<Sort sx={{ mr: 1, color: 'text.secondary' }} />}
+          >
+            <MenuItem value="title">Title</MenuItem>
+            <MenuItem value="author">Author</MenuItem>
+            <MenuItem value="publishedDate">Publication Date</MenuItem>
+            <MenuItem value="dateAdded">Date Added</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
+
+      <Box sx={{ flex: '0 0 auto', display: 'flex', alignItems: 'center' }}>
+        <IconButton
+          onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
+          size="small"
+          title={sortDirection === 'asc' ? 'Currently ascending - click for descending (Z-A, 9-1, newest first)' : 'Currently descending - click for ascending (A-Z, 1-9, oldest first)'}
+          sx={{ 
+            border: 1, 
+            borderColor: 'divider',
+            height: '40px',
+            width: '40px',
+            '&:hover': {
+              borderColor: 'primary.main',
+              backgroundColor: 'primary.lighter'
+            }
+          }}
+        >
+          {sortDirection === 'asc' ? <ArrowUpward /> : <ArrowDownward />}
+        </IconButton>
       </Box>
     </Box>
   )
