@@ -79,6 +79,10 @@ export default function AdminUserManager() {
   const [selectedOwners, setSelectedOwners] = useState<Record<string, string>>({})
   const [availableAdmins, setAvailableAdmins] = useState<any[]>([])
   const [userToDelete, setUserToDelete] = useState('')
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false)
+  const [emailSubject, setEmailSubject] = useState('')
+  const [emailMessage, setEmailMessage] = useState('')
+  const [emailRecipient, setEmailRecipient] = useState<AdminUser | null>(null)
 
   useEffect(() => {
     if (session?.user?.email) {
@@ -240,6 +244,116 @@ export default function AdminUserManager() {
     }
   }
 
+  const handleDeleteUser = async (user: AdminUser) => {
+    const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email
+
+    const confirmed = await confirmAsync(
+      {
+        title: 'Delete User Account',
+        message: `Are you sure you want to permanently delete ${userName} (${user.email})?\n\nThis will:\n• Delete the user account\n• Preserve all books they added (but remove author reference)\n• Remove them from all locations\n\nThis action cannot be undone!`,
+        confirmText: 'Delete User',
+        variant: 'danger'
+      },
+      async () => {
+        // The actual deletion logic moved to here
+      }
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      // First check if location ownership transfer is needed
+      const response = await fetch(`${API_BASE}/api/admin/cleanup-user`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.user?.email}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email_to_delete: user.email })
+      })
+
+      if (response.ok) {
+        // User deletion succeeded
+        const result = await response.json()
+        await loadUsers()
+        await alert({
+          title: 'User Deleted',
+          message: result.message,
+          variant: 'success'
+        })
+      } else {
+        const errorData = await response.json()
+        
+        if (errorData.requires_ownership_transfer) {
+          // User owns locations - need to transfer ownership
+          setOwnedLocations(errorData.owned_locations)
+          setUserToDelete(user.email)
+          setSelectedOwners({})
+          
+          // Load available admins
+          const adminsResponse = await fetch(`${API_BASE}/api/admin/available-admins`, {
+            headers: {
+              'Authorization': `Bearer ${session?.user?.email}`,
+              'Content-Type': 'application/json',
+            },
+          })
+          
+          if (adminsResponse.ok) {
+            const admins = await adminsResponse.json()
+            setAvailableAdmins(admins)
+            setOwnershipTransferDialogOpen(true)
+          } else {
+            throw new Error('Failed to load available admins')
+          }
+        } else {
+          throw new Error(errorData.error || 'Failed to delete user')
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error)
+      await alert({
+        title: 'Delete Failed',
+        message: error instanceof Error ? error.message : 'Failed to delete user. Please try again.',
+        variant: 'error'
+      })
+    }
+  }
+
+  const sendEmail = async () => {
+    if (!emailRecipient || !emailSubject.trim() || !emailMessage.trim()) {
+      await alert({
+        title: 'Missing Information',
+        message: 'Please fill in both subject and message fields.',
+        variant: 'warning'
+      })
+      return
+    }
+
+    try {
+      // For now, we'll simulate sending an email by showing the composed message
+      // In the future, this could integrate with a real email service
+      await alert({
+        title: 'Email Composed',
+        message: `Email would be sent to: ${emailRecipient.email}\nSubject: ${emailSubject}\n\nMessage: ${emailMessage}`,
+        variant: 'info'
+      })
+      
+      setEmailDialogOpen(false)
+      setEmailSubject('')
+      setEmailMessage('')
+      setEmailRecipient(null)
+    } catch (error) {
+      console.error('Error sending email:', error)
+      await alert({
+        title: 'Email Failed',
+        message: 'Failed to send email. Please try again.',
+        variant: 'error'
+      })
+    }
+  }
+
   const completeOwnershipTransfer = async () => {
     // Validate all locations have new owners assigned
     const unassignedLocations = ownedLocations.filter(loc => !selectedOwners[loc.id])
@@ -354,25 +468,14 @@ export default function AdminUserManager() {
         <Typography variant="h5" gutterBottom>
           👥 User Management
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button
-            variant="outlined"
-            color="error"
-            startIcon={<Delete />}
-            onClick={() => setCleanupDialogOpen(true)}
-            size="small"
-          >
-            Cleanup User
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<Refresh />}
-            onClick={loadUsers}
-            size="small"
-          >
-            Refresh
-          </Button>
-        </Box>
+        <Button
+          variant="outlined"
+          startIcon={<Refresh />}
+          onClick={loadUsers}
+          size="small"
+        >
+          Refresh
+        </Button>
       </Box>
 
       <Card>
@@ -489,6 +592,34 @@ export default function AdminUserManager() {
             Demote to User
           </MenuItem>
         )}
+        
+        {selectedUser && (
+          <MenuItem 
+            onClick={() => {
+              handleMenuClose()
+              setEmailRecipient(selectedUser)
+              setEmailSubject('')
+              setEmailMessage('')
+              setEmailDialogOpen(true)
+            }}
+          >
+            <Email sx={{ mr: 1 }} />
+            Email
+          </MenuItem>
+        )}
+        
+        {selectedUser && selectedUser.email !== session?.user?.email && (
+          <MenuItem 
+            onClick={() => {
+              handleMenuClose()
+              handleDeleteUser(selectedUser)
+            }}
+            sx={{ color: 'error.main' }}
+          >
+            <Delete sx={{ mr: 1 }} />
+            Delete User
+          </MenuItem>
+        )}
       </Menu>
 
       {/* User Cleanup Dialog */}
@@ -589,6 +720,50 @@ export default function AdminUserManager() {
             disabled={ownedLocations.some(loc => !selectedOwners[loc.id])}
           >
             Transfer Ownership & Delete User
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Email Dialog */}
+      <Dialog open={emailDialogOpen} onClose={() => setEmailDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>📧 Send Email</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Sending email to: <strong>{emailRecipient?.email}</strong>
+          </Typography>
+          
+          <TextField
+            autoFocus
+            label="Subject"
+            fullWidth
+            value={emailSubject}
+            onChange={(e) => setEmailSubject(e.target.value)}
+            placeholder="Enter email subject"
+            sx={{ mb: 2 }}
+          />
+          
+          <TextField
+            label="Message"
+            fullWidth
+            multiline
+            rows={6}
+            value={emailMessage}
+            onChange={(e) => setEmailMessage(e.target.value)}
+            placeholder="Enter your message"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEmailDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={sendEmail} 
+            color="primary" 
+            variant="contained"
+            disabled={!emailSubject.trim() || !emailMessage.trim()}
+            startIcon={<Email />}
+          >
+            Send Email
           </Button>
         </DialogActions>
       </Dialog>

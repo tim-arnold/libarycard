@@ -1249,24 +1249,33 @@ async function cleanupUser(request: Request, userId: string, env: Env, corsHeade
       UPDATE books SET added_by = NULL WHERE added_by = ?
     `).bind(userIdToDelete).run();
 
-    // 4. Shelves are kept as they belong to locations (no action needed)
+    // 4. Handle book removal requests - remove user references
+    await env.DB.prepare(`
+      UPDATE book_removal_requests SET requester_id = NULL WHERE requester_id = ?
+    `).bind(userIdToDelete).run();
 
-    // 5. Remove user from location memberships
+    await env.DB.prepare(`
+      UPDATE book_removal_requests SET reviewed_by = NULL WHERE reviewed_by = ?
+    `).bind(userIdToDelete).run();
+
+    // 5. Shelves are kept as they belong to locations (no action needed)
+
+    // 6. Remove user from location memberships
     await env.DB.prepare(`
       DELETE FROM location_members WHERE user_id = ?
     `).bind(userIdToDelete).run();
 
-    // 6. Delete invitations sent by this user
+    // 7. Delete invitations sent by this user
     await env.DB.prepare(`
       DELETE FROM location_invitations WHERE invited_by = ?
     `).bind(userIdToDelete).run();
 
-    // 7. Delete invitations sent to this user
+    // 8. Delete invitations sent to this user
     await env.DB.prepare(`
       DELETE FROM location_invitations WHERE invited_email = ?
     `).bind(email_to_delete).run();
 
-    // 8. Finally, delete the user
+    // 9. Finally, delete the user
     await env.DB.prepare(`
       DELETE FROM users WHERE id = ?
     `).bind(userIdToDelete).run();
