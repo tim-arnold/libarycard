@@ -45,7 +45,7 @@ export async function checkLocationPermission(
 // Location functions
 export async function getUserLocations(userId: string, env: Env, corsHeaders: Record<string, string>) {
   const stmt = env.DB.prepare(`
-    SELECT l.* FROM locations l
+    SELECT DISTINCT l.* FROM locations l
     LEFT JOIN location_members lm ON l.id = lm.location_id
     WHERE l.owner_id = ? OR lm.user_id = ?
     ORDER BY l.created_at DESC

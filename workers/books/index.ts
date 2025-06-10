@@ -3,7 +3,7 @@ import { Env, Book } from '../types';
 // Core Book Management Functions
 export async function getUserBooks(userId: string, env: Env, corsHeaders: Record<string, string>) {
   const stmt = env.DB.prepare(`
-    SELECT b.id, b.isbn, b.title, b.authors, b.description, b.thumbnail, b.published_date,
+    SELECT DISTINCT b.id, b.isbn, b.title, b.authors, b.description, b.thumbnail, b.published_date,
            b.categories, b.shelf_id, b.tags, b.added_by, b.created_at, b.status,
            b.checked_out_by, b.checked_out_date, b.due_date,
            b.extended_description, b.subjects, b.page_count, b.average_rating, b.ratings_count,

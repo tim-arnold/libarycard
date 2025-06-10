@@ -257,6 +257,26 @@ export default {
         return await debugListUsers(userId, env, corsHeaders);
       }
 
+      // Admin-only analytics endpoint
+      if (path === '/api/admin/analytics' && request.method === 'GET') {
+        return await getAdminAnalytics(userId, env, corsHeaders);
+      }
+
+      // Admin-only enhanced users endpoint
+      if (path === '/api/admin/users' && request.method === 'GET') {
+        return await getAdminUsers(userId, env, corsHeaders);
+      }
+
+      // Admin-only user role management endpoint
+      if (path.match(/^\/api\/admin\/users\/[^\/]+\/role$/) && request.method === 'PUT') {
+        const targetUserId = path.split('/')[4];
+        return await updateUserRole(request, targetUserId, userId, env, corsHeaders);
+      }
+
+      // Admin-only endpoint to get available admin users for ownership transfer
+      if (path === '/api/admin/available-admins' && request.method === 'GET') {
+        return await getAvailableAdmins(userId, env, corsHeaders);
+      }
 
       return new Response('Not Found', { 
         status: 404, 
@@ -1137,7 +1157,10 @@ async function cleanupUser(request: Request, userId: string, env: Env, corsHeade
     });
   }
 
-  const { email_to_delete }: { email_to_delete: string } = await request.json();
+  const { email_to_delete, new_location_owners }: { 
+    email_to_delete: string; 
+    new_location_owners?: Record<string, string>; 
+  } = await request.json();
 
   if (!email_to_delete) {
     return new Response(JSON.stringify({ error: 'email_to_delete required' }), {
@@ -1161,27 +1184,72 @@ async function cleanupUser(request: Request, userId: string, env: Env, corsHeade
 
     const userIdToDelete = userToDelete.id as string;
 
-    // 1. Delete all books added by this user
-    await env.DB.prepare(`
-      DELETE FROM books WHERE added_by = ?
-    `).bind(userIdToDelete).run();
-
-    // 2. Find locations owned by this user
+    // 1. Find locations owned by this user
     const ownedLocations = await env.DB.prepare(`
-      SELECT id FROM locations WHERE owner_id = ?
+      SELECT id, name FROM locations WHERE owner_id = ?
     `).bind(userIdToDelete).all();
 
-    // 3. Delete shelves in those locations
-    for (const location of ownedLocations.results) {
-      await env.DB.prepare(`
-        DELETE FROM shelves WHERE location_id = ?
-      `).bind((location as any).id).run();
+    // Check if user owns locations and we need new owners
+    if (ownedLocations.results.length > 0 && !new_location_owners) {
+      // Return locations that need new owners
+      return new Response(JSON.stringify({ 
+        error: 'Location ownership transfer required',
+        owned_locations: ownedLocations.results,
+        requires_ownership_transfer: true
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // 4. Delete the locations owned by this user
+    // 2. Transfer ownership of locations if specified
+    if (ownedLocations.results.length > 0 && new_location_owners) {
+      for (const location of ownedLocations.results) {
+        const locationId = (location as any).id;
+        const newOwnerId = new_location_owners[locationId];
+        
+        if (!newOwnerId) {
+          return new Response(JSON.stringify({ 
+            error: `New owner required for location: ${(location as any).name}` 
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // Verify new owner exists and is admin
+        const newOwner = await env.DB.prepare(`
+          SELECT id, user_role FROM users WHERE id = ?
+        `).bind(newOwnerId).first();
+
+        if (!newOwner || (newOwner as any).user_role !== 'admin') {
+          return new Response(JSON.stringify({ 
+            error: `New owner must be an admin user` 
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // Transfer location ownership
+        await env.DB.prepare(`
+          UPDATE locations SET owner_id = ? WHERE id = ?
+        `).bind(newOwnerId, locationId).run();
+
+        // Update location membership to make new owner an owner
+        await env.DB.prepare(`
+          INSERT OR REPLACE INTO location_members (location_id, user_id, role, invited_by, joined_at)
+          VALUES (?, ?, 'owner', ?, CURRENT_TIMESTAMP)
+        `).bind(locationId, newOwnerId, userId).run();
+      }
+    }
+
+    // 3. Keep books but remove user reference (books become property of location/shelf)
     await env.DB.prepare(`
-      DELETE FROM locations WHERE owner_id = ?
+      UPDATE books SET added_by = NULL WHERE added_by = ?
     `).bind(userIdToDelete).run();
+
+    // 4. Shelves are kept as they belong to locations (no action needed)
 
     // 5. Remove user from location memberships
     await env.DB.prepare(`
@@ -1204,9 +1272,11 @@ async function cleanupUser(request: Request, userId: string, env: Env, corsHeade
     `).bind(userIdToDelete).run();
 
     return new Response(JSON.stringify({ 
-      message: `User ${email_to_delete} and all associated data deleted successfully`,
+      message: `User ${email_to_delete} deleted successfully. Books and shelves preserved.`,
       deleted_user_id: userIdToDelete,
-      owned_locations_count: ownedLocations.results.length
+      transferred_locations_count: ownedLocations.results.length,
+      books_preserved: true,
+      shelves_preserved: true
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -1391,6 +1461,247 @@ async function sendContactEmail(request: Request, env: Env, corsHeaders: Record<
   } catch (error) {
     console.error('Contact form processing error:', error);
     return new Response(JSON.stringify({ error: 'Failed to process contact form' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+// Admin Analytics Functions
+async function getAdminAnalytics(userId: string, env: Env, corsHeaders: Record<string, string>) {
+  // Check if user is admin
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  try {
+    // Get total counts
+    const totalBooks = await env.DB.prepare('SELECT COUNT(*) as count FROM books').first();
+    const totalUsers = await env.DB.prepare('SELECT COUNT(*) as count FROM users').first();
+    const totalLocations = await env.DB.prepare('SELECT COUNT(*) as count FROM locations').first();
+    const pendingRequests = await env.DB.prepare('SELECT COUNT(*) as count FROM book_removal_requests WHERE status = "pending"').first();
+
+    // Books per location
+    const booksPerLocation = await env.DB.prepare(`
+      SELECT l.name, COUNT(b.id) as book_count
+      FROM locations l
+      LEFT JOIN shelves s ON l.id = s.location_id
+      LEFT JOIN books b ON s.id = b.shelf_id
+      GROUP BY l.id, l.name
+      ORDER BY book_count DESC
+    `).all();
+
+    // Recent activity (last 30 days)
+    const recentBooks = await env.DB.prepare(`
+      SELECT COUNT(*) as count
+      FROM books 
+      WHERE created_at >= datetime('now', '-30 days')
+    `).first();
+
+    // Most active users (by books added)
+    const activeUsers = await env.DB.prepare(`
+      SELECT u.first_name, u.last_name, u.email, COUNT(b.id) as books_added
+      FROM users u
+      LEFT JOIN books b ON u.id = b.added_by
+      GROUP BY u.id
+      HAVING books_added > 0
+      ORDER BY books_added DESC
+      LIMIT 10
+    `).all();
+
+    // Genre distribution
+    const genreStats = await env.DB.prepare(`
+      SELECT b.categories, b.enhanced_genres
+      FROM books b
+      WHERE b.categories IS NOT NULL OR b.enhanced_genres IS NOT NULL
+    `).all();
+
+    // Process genre statistics
+    const genreCounts: Record<string, number> = {};
+    genreStats.results.forEach((book: any) => {
+      const categories = book.categories ? JSON.parse(book.categories) : [];
+      const enhancedGenres = book.enhanced_genres ? JSON.parse(book.enhanced_genres) : [];
+      [...categories, ...enhancedGenres].forEach((genre: string) => {
+        if (genre && genre.trim()) {
+          genreCounts[genre] = (genreCounts[genre] || 0) + 1;
+        }
+      });
+    });
+
+    const topGenres = Object.entries(genreCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10)
+      .map(([genre, count]) => ({ genre, count }));
+
+    // Books without shelves
+    const unorganizedBooks = await env.DB.prepare(`
+      SELECT COUNT(*) as count
+      FROM books 
+      WHERE shelf_id IS NULL
+    `).first();
+
+    // Recent checkout activity
+    const recentCheckouts = await env.DB.prepare(`
+      SELECT COUNT(*) as count
+      FROM books 
+      WHERE checked_out_date >= datetime('now', '-30 days')
+    `).first();
+
+    return new Response(JSON.stringify({
+      overview: {
+        totalBooks: (totalBooks as any)?.count || 0,
+        totalUsers: (totalUsers as any)?.count || 0,
+        totalLocations: (totalLocations as any)?.count || 0,
+        pendingRequests: (pendingRequests as any)?.count || 0,
+        unorganizedBooks: (unorganizedBooks as any)?.count || 0,
+        recentBooks: (recentBooks as any)?.count || 0,
+        recentCheckouts: (recentCheckouts as any)?.count || 0,
+      },
+      booksPerLocation: booksPerLocation.results,
+      activeUsers: activeUsers.results,
+      topGenres,
+      generatedAt: new Date().toISOString()
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error generating admin analytics:', error);
+    return new Response(JSON.stringify({ error: 'Failed to generate analytics' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+async function getAdminUsers(userId: string, env: Env, corsHeaders: Record<string, string>) {
+  // Check if user is admin
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  try {
+    // Get all users with activity stats
+    const users = await env.DB.prepare(`
+      SELECT u.id, u.email, u.first_name, u.last_name, u.auth_provider, 
+             u.email_verified, u.user_role, u.created_at,
+             COUNT(DISTINCT b.id) as books_added,
+             COUNT(DISTINCT lm.location_id) as locations_joined,
+             MAX(b.created_at) as last_book_added
+      FROM users u
+      LEFT JOIN books b ON u.id = b.added_by
+      LEFT JOIN location_members lm ON u.id = lm.user_id
+      GROUP BY u.id
+      ORDER BY u.created_at DESC
+    `).all();
+
+    return new Response(JSON.stringify(users.results), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error fetching admin users:', error);
+    return new Response(JSON.stringify({ error: 'Failed to fetch users' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+async function updateUserRole(request: Request, targetUserId: string, adminUserId: string, env: Env, corsHeaders: Record<string, string>) {
+  // Check if user is admin
+  if (!(await isUserAdmin(adminUserId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  try {
+    const { role }: { role: 'admin' | 'user' } = await request.json();
+
+    if (!['admin', 'user'].includes(role)) {
+      return new Response(JSON.stringify({ error: 'Invalid role. Must be "admin" or "user"' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Check if target user exists
+    const targetUser = await env.DB.prepare(`
+      SELECT id, email, user_role FROM users WHERE id = ?
+    `).bind(targetUserId).first();
+
+    if (!targetUser) {
+      return new Response(JSON.stringify({ error: 'User not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Prevent admin from demoting themselves
+    if (targetUserId === adminUserId && role === 'user') {
+      return new Response(JSON.stringify({ error: 'Cannot demote yourself from admin' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Update user role
+    await env.DB.prepare(`
+      UPDATE users 
+      SET user_role = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `).bind(role, targetUserId).run();
+
+    return new Response(JSON.stringify({ 
+      message: `User role updated to ${role}`,
+      userId: targetUserId,
+      newRole: role
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    return new Response(JSON.stringify({ error: 'Failed to update user role' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+async function getAvailableAdmins(userId: string, env: Env, corsHeaders: Record<string, string>) {
+  // Check if user is admin
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  try {
+    // Get all admin users (for ownership transfer)
+    const admins = await env.DB.prepare(`
+      SELECT id, email, first_name, last_name
+      FROM users 
+      WHERE user_role = 'admin'
+      ORDER BY first_name, last_name, email
+    `).all();
+
+    return new Response(JSON.stringify(admins.results), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error fetching available admins:', error);
+    return new Response(JSON.stringify({ error: 'Failed to fetch admin users' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -1,0 +1,623 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import {
+  Typography,
+  Box,
+  Card,
+  CardContent,
+  CircularProgress,
+  Alert,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Chip,
+  Button,
+  IconButton,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  List,
+  ListItem,
+  ListItemText,
+} from '@mui/material'
+import {
+  MoreVert,
+  Edit,
+  Delete,
+  Security,
+  Person,
+  Email,
+  CheckCircle,
+  Cancel,
+  Refresh,
+} from '@mui/icons-material'
+import ConfirmationModal from './ConfirmationModal'
+import AlertModal from './AlertModal'
+import { useModal } from '@/hooks/useModal'
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
+
+interface AdminUser {
+  id: string
+  email: string
+  first_name: string
+  last_name: string
+  auth_provider: string
+  email_verified: boolean
+  user_role: 'admin' | 'user'
+  created_at: string
+  books_added: number
+  locations_joined: number
+  last_book_added: string | null
+}
+
+export default function AdminUserManager() {
+  const { data: session } = useSession()
+  const { modalState, confirmAsync, alert, closeModal } = useModal()
+  const [users, setUsers] = useState<AdminUser[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null)
+  const [cleanupDialogOpen, setCleanupDialogOpen] = useState(false)
+  const [cleanupEmail, setCleanupEmail] = useState('')
+  const [ownershipTransferDialogOpen, setOwnershipTransferDialogOpen] = useState(false)
+  const [ownedLocations, setOwnedLocations] = useState<any[]>([])
+  const [selectedOwners, setSelectedOwners] = useState<Record<string, string>>({})
+  const [availableAdmins, setAvailableAdmins] = useState<any[]>([])
+  const [userToDelete, setUserToDelete] = useState('')
+
+  useEffect(() => {
+    if (session?.user?.email) {
+      loadUsers()
+    }
+  }, [session])
+
+  const loadUsers = async () => {
+    if (!session?.user?.email) return
+
+    try {
+      setLoading(true)
+      const response = await fetch(`${API_BASE}/api/admin/users`, {
+        headers: {
+          'Authorization': `Bearer ${session.user.email}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setUsers(data)
+        setError('')
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to load users')
+      }
+    } catch (error) {
+      console.error('Error loading users:', error)
+      setError('Failed to load users')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, user: AdminUser) => {
+    setAnchorEl(event.currentTarget)
+    setSelectedUser(user)
+  }
+
+  const handleMenuClose = () => {
+    setAnchorEl(null)
+    setSelectedUser(null)
+  }
+
+  const updateUserRole = async (userId: string, newRole: 'admin' | 'user', userName: string) => {
+    const confirmed = await confirmAsync(
+      {
+        title: `Change User Role`,
+        message: `Are you sure you want to change ${userName}'s role to ${newRole}? ${
+          newRole === 'admin' 
+            ? 'This will give them full administrative privileges.' 
+            : 'This will remove their administrative privileges.'
+        }`,
+        confirmText: `Change to ${newRole}`,
+        variant: newRole === 'admin' ? 'warning' : 'primary'
+      },
+      async () => {
+        const response = await fetch(`${API_BASE}/api/admin/users/${userId}/role`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${session?.user?.email}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ role: newRole })
+        })
+
+        if (response.ok) {
+          await loadUsers() // Refresh the list
+          await alert({
+            title: 'Role Updated',
+            message: `${userName}'s role has been successfully changed to ${newRole}.`,
+            variant: 'success'
+          })
+        } else {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to update user role')
+        }
+      }
+    )
+
+    if (!confirmed) {
+      await alert({
+        title: 'Update Failed',
+        message: 'Failed to update user role. Please try again.',
+        variant: 'error'
+      })
+    }
+  }
+
+  const cleanupUser = async () => {
+    if (!cleanupEmail.trim()) {
+      await alert({
+        title: 'Email Required',
+        message: 'Please enter the email address of the user to clean up.',
+        variant: 'warning'
+      })
+      return
+    }
+
+    try {
+      // First check if location ownership transfer is needed
+      const response = await fetch(`${API_BASE}/api/admin/cleanup-user`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.user?.email}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email_to_delete: cleanupEmail.trim() })
+      })
+
+      if (response.ok) {
+        // User cleanup succeeded
+        const result = await response.json()
+        setCleanupDialogOpen(false)
+        setCleanupEmail('')
+        await loadUsers()
+        await alert({
+          title: 'User Cleaned Up',
+          message: result.message,
+          variant: 'success'
+        })
+      } else {
+        const errorData = await response.json()
+        
+        if (errorData.requires_ownership_transfer) {
+          // User owns locations - need to transfer ownership
+          setOwnedLocations(errorData.owned_locations)
+          setUserToDelete(cleanupEmail.trim())
+          setSelectedOwners({})
+          
+          // Load available admins
+          const adminsResponse = await fetch(`${API_BASE}/api/admin/available-admins`, {
+            headers: {
+              'Authorization': `Bearer ${session?.user?.email}`,
+              'Content-Type': 'application/json',
+            },
+          })
+          
+          if (adminsResponse.ok) {
+            const admins = await adminsResponse.json()
+            setAvailableAdmins(admins)
+            setCleanupDialogOpen(false)
+            setOwnershipTransferDialogOpen(true)
+          } else {
+            throw new Error('Failed to load available admins')
+          }
+        } else {
+          throw new Error(errorData.error || 'Failed to cleanup user')
+        }
+      }
+    } catch (error) {
+      console.error('Error cleaning up user:', error)
+      await alert({
+        title: 'Cleanup Failed',
+        message: error instanceof Error ? error.message : 'Failed to cleanup user. Please try again.',
+        variant: 'error'
+      })
+    }
+  }
+
+  const completeOwnershipTransfer = async () => {
+    // Validate all locations have new owners assigned
+    const unassignedLocations = ownedLocations.filter(loc => !selectedOwners[loc.id])
+    if (unassignedLocations.length > 0) {
+      await alert({
+        title: 'Missing Assignments',
+        message: `Please assign new owners for all locations: ${unassignedLocations.map(loc => loc.name).join(', ')}`,
+        variant: 'warning'
+      })
+      return
+    }
+
+    const confirmed = await confirmAsync(
+      {
+        title: 'Transfer Ownership & Delete User',
+        message: `This will:\n\n• Transfer ownership of ${ownedLocations.length} location(s) to selected admins\n• Preserve all books and shelves\n• Delete the user "${userToDelete}"\n\nBooks added by this user will remain but no longer show the original author. This action cannot be undone!`,
+        confirmText: 'Transfer & Delete User',
+        variant: 'danger'
+      },
+      async () => {
+        const response = await fetch(`${API_BASE}/api/admin/cleanup-user`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.user?.email}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            email_to_delete: userToDelete,
+            new_location_owners: selectedOwners
+          })
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          setOwnershipTransferDialogOpen(false)
+          setCleanupEmail('')
+          setUserToDelete('')
+          setOwnedLocations([])
+          setSelectedOwners({})
+          await loadUsers()
+          await alert({
+            title: 'User Cleaned Up',
+            message: result.message,
+            variant: 'success'
+          })
+        } else {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to complete ownership transfer')
+        }
+      }
+    )
+
+    if (!confirmed) {
+      await alert({
+        title: 'Transfer Failed',
+        message: 'Ownership transfer was cancelled.',
+        variant: 'error'
+      })
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'Never'
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  const getRoleChip = (role: string, verified: boolean) => {
+    if (role === 'admin') {
+      return <Chip icon={<Security />} label="Admin" color="primary" size="small" />
+    }
+    return (
+      <Chip 
+        icon={verified ? <CheckCircle /> : <Cancel />} 
+        label={verified ? "User" : "Unverified"} 
+        color={verified ? "success" : "warning"} 
+        size="small" 
+      />
+    )
+  }
+
+  const getProviderChip = (provider: string) => {
+    const color = provider === 'google' ? 'info' : 'default'
+    return <Chip label={provider} color={color} size="small" variant="outlined" />
+  }
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
+        <CircularProgress sx={{ mr: 2 }} />
+        <Typography color="text.secondary">
+          Loading users...
+        </Typography>
+      </Box>
+    )
+  }
+
+  if (error) {
+    return (
+      <Alert severity="error" sx={{ mt: 2 }}>
+        {error}
+      </Alert>
+    )
+  }
+
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h5" gutterBottom>
+          👥 User Management
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<Delete />}
+            onClick={() => setCleanupDialogOpen(true)}
+            size="small"
+          >
+            Cleanup User
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={loadUsers}
+            size="small"
+          >
+            Refresh
+          </Button>
+        </Box>
+      </Box>
+
+      <Card>
+        <CardContent sx={{ p: 0 }}>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>User</TableCell>
+                  <TableCell>Role & Status</TableCell>
+                  <TableCell>Provider</TableCell>
+                  <TableCell align="right">Activity</TableCell>
+                  <TableCell align="right">Joined</TableCell>
+                  <TableCell align="right">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {users.map((user) => {
+                  const displayName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'No name'
+                  const isCurrentUser = user.email === session?.user?.email
+                  
+                  return (
+                    <TableRow key={user.id} hover>
+                      <TableCell>
+                        <Box>
+                          <Typography variant="body1" fontWeight="medium">
+                            {displayName}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {user.email}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      
+                      <TableCell>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          {getRoleChip(user.user_role, user.email_verified)}
+                          {isCurrentUser && (
+                            <Chip label="You" color="secondary" size="small" variant="outlined" />
+                          )}
+                        </Box>
+                      </TableCell>
+
+                      <TableCell>
+                        {getProviderChip(user.auth_provider)}
+                      </TableCell>
+
+                      <TableCell align="right">
+                        <Box sx={{ textAlign: 'right' }}>
+                          <Typography variant="body2">
+                            📚 {user.books_added} books
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            📍 {user.locations_joined} locations
+                          </Typography>
+                          {user.last_book_added && (
+                            <Typography variant="caption" color="text.secondary">
+                              Last: {formatDate(user.last_book_added)}
+                            </Typography>
+                          )}
+                        </Box>
+                      </TableCell>
+
+                      <TableCell align="right">
+                        <Typography variant="body2">
+                          {formatDate(user.created_at)}
+                        </Typography>
+                      </TableCell>
+
+                      <TableCell align="right">
+                        <IconButton
+                          onClick={(e) => handleMenuClick(e, user)}
+                          size="small"
+                          disabled={isCurrentUser && user.user_role === 'admin'} // Prevent admin from changing their own role
+                        >
+                          <MoreVert />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+
+      {/* Action Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        {selectedUser && selectedUser.user_role === 'user' && (
+          <MenuItem 
+            onClick={() => {
+              handleMenuClose()
+              updateUserRole(selectedUser.id, 'admin', `${selectedUser.first_name || ''} ${selectedUser.last_name || ''}`.trim() || selectedUser.email)
+            }}
+          >
+            <Security sx={{ mr: 1 }} />
+            Promote to Admin
+          </MenuItem>
+        )}
+        
+        {selectedUser && selectedUser.user_role === 'admin' && selectedUser.email !== session?.user?.email && (
+          <MenuItem 
+            onClick={() => {
+              handleMenuClose()
+              updateUserRole(selectedUser.id, 'user', `${selectedUser.first_name || ''} ${selectedUser.last_name || ''}`.trim() || selectedUser.email)
+            }}
+          >
+            <Person sx={{ mr: 1 }} />
+            Demote to User
+          </MenuItem>
+        )}
+      </Menu>
+
+      {/* User Cleanup Dialog */}
+      <Dialog open={cleanupDialogOpen} onClose={() => setCleanupDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>⚠️ Cleanup User Account</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" paragraph>
+            This action will permanently delete a user and ALL their associated data. Use with extreme caution.
+          </Typography>
+          <TextField
+            autoFocus
+            label="User Email to Delete"
+            type="email"
+            fullWidth
+            value={cleanupEmail}
+            onChange={(e) => setCleanupEmail(e.target.value)}
+            placeholder="user@example.com"
+            sx={{ mt: 2 }}
+            helperText="Type the exact email address of the user you want to delete"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCleanupDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={cleanupUser} 
+            color="error" 
+            variant="contained"
+            disabled={!cleanupEmail.trim()}
+          >
+            Delete User & All Data
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Ownership Transfer Dialog */}
+      <Dialog 
+        open={ownershipTransferDialogOpen} 
+        onClose={() => setOwnershipTransferDialogOpen(false)} 
+        maxWidth="md" 
+        fullWidth
+      >
+        <DialogTitle>🏢 Transfer Location Ownership</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" paragraph>
+            The user "{userToDelete}" owns {ownedLocations.length} location(s). Before deleting the user, you must assign new admin owners for each location.
+          </Typography>
+          
+          <Alert severity="info" sx={{ mb: 3 }}>
+            Books and shelves will be preserved. Books added by this user will remain but no longer show the original author.
+          </Alert>
+
+          <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+            Location Ownership Assignments:
+          </Typography>
+          
+          <List>
+            {ownedLocations.map((location) => (
+              <ListItem key={location.id} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <ListItemText 
+                  primary={location.name}
+                  secondary={`Location ID: ${location.id}`}
+                  sx={{ flex: 1 }}
+                />
+                <FormControl sx={{ minWidth: 200 }}>
+                  <InputLabel>New Owner</InputLabel>
+                  <Select
+                    value={selectedOwners[location.id] || ''}
+                    onChange={(e) => setSelectedOwners(prev => ({
+                      ...prev,
+                      [location.id]: e.target.value
+                    }))}
+                    label="New Owner"
+                  >
+                    {availableAdmins.map((admin) => (
+                      <MenuItem key={admin.id} value={admin.id}>
+                        {admin.first_name && admin.last_name 
+                          ? `${admin.first_name} ${admin.last_name} (${admin.email})`
+                          : admin.email
+                        }
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </ListItem>
+            ))}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOwnershipTransferDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={completeOwnershipTransfer}
+            color="error" 
+            variant="contained"
+            disabled={ownedLocations.some(loc => !selectedOwners[loc.id])}
+          >
+            Transfer Ownership & Delete User
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal Components */}
+      {modalState.type === 'confirm' && (
+        <ConfirmationModal
+          isOpen={modalState.isOpen}
+          onClose={closeModal}
+          onConfirm={modalState.onConfirm!}
+          title={modalState.options.title}
+          message={modalState.options.message}
+          confirmText={modalState.options.confirmText}
+          cancelText={modalState.options.cancelText}
+          variant={modalState.options.variant}
+          loading={modalState.loading}
+        />
+      )}
+      
+      {modalState.type === 'alert' && (
+        <AlertModal
+          isOpen={modalState.isOpen}
+          onClose={closeModal}
+          title={modalState.options.title}
+          message={modalState.options.message}
+          variant={modalState.options.variant}
+          buttonText={modalState.options.buttonText}
+        />
+      )}
+    </Box>
+  )
+}

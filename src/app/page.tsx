@@ -28,11 +28,13 @@ import {
   DarkMode,
   LightMode,
   Help,
+  Dashboard,
 } from '@mui/icons-material'
 import AddBooks from '@/components/AddBooks'
 import BookLibrary from '@/components/BookLibrary'
 import LocationManager from '@/components/LocationManager'
 import RemovalRequestManager from '@/components/RemovalRequestManager'
+import AdminDashboard from '@/components/AdminDashboard'
 import Footer from '@/components/Footer'
 import HelpModal from '@/components/HelpModal'
 import { useTheme } from '@/lib/ThemeContext'
@@ -41,10 +43,10 @@ export default function Home() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const { isDarkMode, toggleTheme } = useTheme()
-  const [activeTab, setActiveTab] = useState<'scan' | 'library' | 'locations' | 'requests'>(() => {
+  const [activeTab, setActiveTab] = useState<'scan' | 'library' | 'locations' | 'requests' | 'admin'>(() => {
     // Try to restore the tab from current session
     if (typeof window !== 'undefined') {
-      const savedTab = sessionStorage.getItem('activeMainTab') as 'scan' | 'library' | 'locations' | 'requests'
+      const savedTab = sessionStorage.getItem('activeMainTab') as 'scan' | 'library' | 'locations' | 'requests' | 'admin'
       return savedTab || 'library'
     }
     return 'library'
@@ -236,11 +238,20 @@ export default function Home() {
                 iconPosition="start"
               />
             )}
+            {userRole === 'admin' && (
+              <Tab 
+                value="admin" 
+                label="Admin Dashboard"
+                icon={<Dashboard />}
+                iconPosition="start"
+              />
+            )}
           </Tabs>
         </Paper>
 
         {activeTab === 'locations' && <LocationManager />}
         {activeTab === 'requests' && <RemovalRequestManager />}
+        {activeTab === 'admin' && <AdminDashboard />}
         {activeTab === 'scan' && <AddBooks />}
         {activeTab === 'library' && <BookLibrary />}
       </Container>
