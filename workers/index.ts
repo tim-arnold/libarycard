@@ -153,6 +153,21 @@ export default {
         return await deleteShelf(request, userId, env, corsHeaders, id);
       }
 
+      // Signup approval endpoints (admin only)
+      if (path === '/api/signup-requests' && request.method === 'GET') {
+        return await getSignupRequests(userId, env, corsHeaders);
+      }
+
+      if (path.match(/^\/api\/signup-requests\/\d+\/approve$/) && request.method === 'POST') {
+        const requestId = parseInt(path.split('/')[3]);
+        return await approveSignupRequest(request, requestId, userId, env, corsHeaders);
+      }
+
+      if (path.match(/^\/api\/signup-requests\/\d+\/deny$/) && request.method === 'POST') {
+        const requestId = parseInt(path.split('/')[3]);
+        return await denySignupRequest(request, requestId, userId, env, corsHeaders);
+      }
+
       // Book endpoints
       if (path === '/api/books' && request.method === 'GET') {
         return await getUserBooks(userId, env, corsHeaders);
@@ -387,56 +402,108 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
+
+  // Check if there's already a pending signup request for this email
+  const existingRequest = await env.DB.prepare(`
+    SELECT email FROM signup_approval_requests WHERE email = ? AND status = 'pending'
+  `).bind(email).first();
   
-  // Hash password
+  if (existingRequest) {
+    return new Response(JSON.stringify({ error: 'A signup request for this email is already pending admin approval' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  
+  // Check if user has a valid invitation
+  const invitation = await env.DB.prepare(`
+    SELECT li.id, li.location_id, l.name as location_name
+    FROM location_invitations li
+    LEFT JOIN locations l ON li.location_id = l.id
+    WHERE li.invited_email = ? AND li.used_at IS NULL AND li.expires_at > datetime('now')
+  `).bind(email).first();
+
+  // Hash password for storage
   const passwordHash = await hashPassword(password);
   
-  // Generate verification token
-  const verificationToken = generateUUID();
-  const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
-  
-  // Generate user ID
-  const userId = generateUUID();
-  
-  // Always require email verification in production
-  const isProduction = env.ENVIRONMENT === 'production';
-  const emailVerified = false; // Always require verification for new accounts
-  
-  // Create user
-  const stmt = env.DB.prepare(`
-    INSERT INTO users (
-      id, email, first_name, last_name, password_hash, 
-      auth_provider, email_verified, email_verification_token, 
-      email_verification_expires, created_at, updated_at
-    )
-    VALUES (?, ?, ?, ?, ?, 'email', ?, ?, ?, datetime('now'), datetime('now'))
-  `);
+  if (invitation) {
+    // User has valid invitation - proceed with normal registration
+    // Generate verification token
+    const verificationToken = generateUUID();
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
+    
+    // Generate user ID
+    const userId = generateUUID();
+    
+    // Always require email verification in production
+    const isProduction = env.ENVIRONMENT === 'production';
+    const emailVerified = false; // Always require verification for new accounts
+    
+    // Create user
+    const stmt = env.DB.prepare(`
+      INSERT INTO users (
+        id, email, first_name, last_name, password_hash, 
+        auth_provider, email_verified, email_verification_token, 
+        email_verification_expires, created_at, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, 'email', ?, ?, ?, datetime('now'), datetime('now'))
+    `);
 
-  await stmt.bind(
-    userId,
-    email,
-    first_name,
-    last_name || '',
-    passwordHash,
-    emailVerified,
-    verificationToken,
-    verificationExpires
-  ).run();
+    await stmt.bind(
+      userId,
+      email,
+      first_name,
+      last_name || '',
+      passwordHash,
+      emailVerified,
+      verificationToken,
+      verificationExpires
+    ).run();
 
-  // Always send verification email for new accounts
-  await sendVerificationEmail(env, email, first_name, verificationToken);
+    // Always send verification email for new accounts
+    await sendVerificationEmail(env, email, first_name, verificationToken);
 
-  const message = isProduction 
-    ? 'Registration successful. Please check your email to verify your account before signing in.'
-    : 'Registration successful. Please check your email to verify your account. (Development mode: email simulation)';
+    const message = isProduction 
+      ? `Registration successful! You have been invited to join "${(invitation as any).location_name}". Please check your email to verify your account before signing in.`
+      : `Registration successful! You have been invited to join "${(invitation as any).location_name}". Please check your email to verify your account. (Development mode: email simulation)`;
 
-  return new Response(JSON.stringify({ 
-    message,
-    userId,
-    requires_verification: true
-  }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
+    return new Response(JSON.stringify({ 
+      message,
+      userId,
+      requires_verification: true,
+      has_invitation: true,
+      location_name: (invitation as any).location_name
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } else {
+    // No invitation - create signup approval request
+    const stmt = env.DB.prepare(`
+      INSERT INTO signup_approval_requests (
+        email, first_name, last_name, password_hash, auth_provider, 
+        status, requested_at
+      )
+      VALUES (?, ?, ?, ?, 'email', 'pending', datetime('now'))
+    `);
+
+    const result = await stmt.bind(
+      email,
+      first_name,
+      last_name || '',
+      passwordHash
+    ).run();
+
+    // Notify all admins about the signup request
+    await notifyAdminsOfSignupRequest(env, email, first_name, last_name);
+
+    return new Response(JSON.stringify({ 
+      message: 'Your signup request has been submitted for admin approval. You will receive an email notification once your request is reviewed.',
+      requires_approval: true,
+      request_id: result.meta.last_row_id
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 }
 
 async function verifyCredentials(request: Request, env: Env, corsHeaders: Record<string, string>) {
@@ -1167,6 +1234,417 @@ async function sendVerificationEmail(env: Env, email: string, firstName: string,
       Name: ${firstName}
       Verification URL: ${verificationUrl}
     `);
+  }
+}
+
+async function notifyAdminsOfSignupRequest(env: Env, email: string, firstName: string, lastName?: string) {
+  // Get all admin users
+  const admins = await env.DB.prepare(`
+    SELECT email, first_name FROM users WHERE user_role = 'admin'
+  `).all();
+
+  if (admins.results.length === 0) {
+    console.log('No admin users found to notify about signup request');
+    return;
+  }
+
+  // Send notification email to each admin
+  for (const admin of admins.results) {
+    const adminData = admin as any;
+    const adminEmail = adminData.email;
+    const adminFirstName = adminData.first_name;
+    
+    // Don't fail the signup if email notification fails
+    try {
+      if (env.POSTMARK_API_TOKEN) {
+        const response = await fetch('https://api.postmarkapp.com/email', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-Postmark-Server-Token': env.POSTMARK_API_TOKEN,
+          },
+          body: JSON.stringify({
+            From: env.FROM_EMAIL || 'noreply@libarycard.com',
+            To: adminEmail,
+            Subject: 'LibaryCard: New Signup Request Pending Approval',
+            HtmlBody: `
+              <html>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #673ab7;">📚 LibaryCard Signup Request</h2>
+                    
+                    <p>Hello ${adminFirstName},</p>
+                    
+                    <p>A new user has requested to join LibaryCard and is waiting for admin approval:</p>
+                    
+                    <div style="background-color: #f8f9fa; border-left: 4px solid #673ab7; padding: 15px; margin: 20px 0;">
+                      <p><strong>Email:</strong> ${email}</p>
+                      <p><strong>Name:</strong> ${firstName}${lastName ? ` ${lastName}` : ''}</p>
+                      <p><strong>Requested At:</strong> ${new Date().toLocaleString()}</p>
+                    </div>
+                    
+                    <p>Please log in to the LibaryCard admin panel to review and approve or deny this signup request.</p>
+                    
+                    <div style="margin: 30px 0; text-align: center;">
+                      <a href="${env.FRONTEND_URL || 'https://libarycard.com'}" 
+                         style="background-color: #673ab7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                        Review Signup Request
+                      </a>
+                    </div>
+                    
+                    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                    <p style="font-size: 12px; color: #666;">
+                      This is an automated message from LibaryCard. This user cannot access the system until approved by an admin.
+                    </p>
+                  </div>
+                </body>
+              </html>
+            `,
+            TextBody: `
+LibaryCard Signup Request
+
+Hello ${adminFirstName},
+
+A new user has requested to join LibaryCard and is waiting for admin approval:
+
+Email: ${email}
+Name: ${firstName}${lastName ? ` ${lastName}` : ''}
+Requested At: ${new Date().toLocaleString()}
+
+Please log in to the LibaryCard admin panel to review and approve or deny this signup request.
+
+Visit: ${env.FRONTEND_URL || 'https://libarycard.com'}
+
+This is an automated message from LibaryCard. This user cannot access the system until approved by an admin.
+            `
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          console.error(`Failed to send signup notification to admin ${adminEmail}:`, error);
+        } else {
+          const result = await response.json() as { id: string };
+          console.log(`Signup notification sent to admin ${adminEmail}:`, result.id);
+        }
+      } else {
+        // Fallback for development/staging without email service
+        console.log(`
+          Signup request notification would be sent to admin: ${adminEmail}
+          Admin Name: ${adminFirstName}
+          Requesting User: ${firstName}${lastName ? ` ${lastName}` : ''} (${email})
+        `);
+      }
+    } catch (error) {
+      console.error(`Error sending signup notification to admin ${adminEmail}:`, error);
+      // Continue to next admin - don't fail the signup process
+    }
+  }
+}
+
+// Signup approval functions
+async function getSignupRequests(userId: string, env: Env, corsHeaders: Record<string, string>) {
+  // Check if user is admin
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const requests = await env.DB.prepare(`
+    SELECT 
+      id, email, first_name, last_name, status, requested_at, 
+      reviewed_by, reviewed_at, review_comment
+    FROM signup_approval_requests 
+    ORDER BY requested_at DESC
+  `).all();
+
+  return new Response(JSON.stringify(requests.results), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function approveSignupRequest(request: Request, requestId: number, userId: string, env: Env, corsHeaders: Record<string, string>) {
+  // Check if user is admin
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const { comment }: { comment?: string } = await request.json();
+
+  // Get the signup request
+  const signupRequest = await env.DB.prepare(`
+    SELECT * FROM signup_approval_requests WHERE id = ? AND status = 'pending'
+  `).bind(requestId).first();
+
+  if (!signupRequest) {
+    return new Response(JSON.stringify({ error: 'Signup request not found or already processed' }), {
+      status: 404,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const requestData = signupRequest as any;
+
+  // Generate verification token for the new user
+  const verificationToken = generateUUID();
+  const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
+  
+  // Generate user ID
+  const newUserId = generateUUID();
+
+  try {
+    // Create the user account
+    const createUserStmt = env.DB.prepare(`
+      INSERT INTO users (
+        id, email, first_name, last_name, password_hash, 
+        auth_provider, email_verified, email_verification_token, 
+        email_verification_expires, created_at, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, 'email', ?, ?, ?, datetime('now'), datetime('now'))
+    `);
+
+    await createUserStmt.bind(
+      newUserId,
+      requestData.email,
+      requestData.first_name,
+      requestData.last_name || '',
+      requestData.password_hash,
+      false, // require email verification
+      verificationToken,
+      verificationExpires
+    ).run();
+
+    // Update the signup request as approved
+    const updateRequestStmt = env.DB.prepare(`
+      UPDATE signup_approval_requests 
+      SET status = 'approved', reviewed_by = ?, reviewed_at = datetime('now'), 
+          review_comment = ?, created_user_id = ?
+      WHERE id = ?
+    `);
+
+    await updateRequestStmt.bind(
+      userId,
+      comment || null,
+      newUserId,
+      requestId
+    ).run();
+
+    // Send approval email to the user
+    await sendSignupApprovalEmail(env, requestData.email, requestData.first_name, verificationToken, true);
+
+    return new Response(JSON.stringify({ 
+      message: 'Signup request approved successfully',
+      user_id: newUserId 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('Error approving signup request:', error);
+    return new Response(JSON.stringify({ error: 'Failed to approve signup request' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+async function denySignupRequest(request: Request, requestId: number, userId: string, env: Env, corsHeaders: Record<string, string>) {
+  // Check if user is admin
+  if (!(await isUserAdmin(userId, env))) {
+    return new Response(JSON.stringify({ error: 'Admin privileges required' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const { comment }: { comment?: string } = await request.json();
+
+  // Get the signup request
+  const signupRequest = await env.DB.prepare(`
+    SELECT * FROM signup_approval_requests WHERE id = ? AND status = 'pending'
+  `).bind(requestId).first();
+
+  if (!signupRequest) {
+    return new Response(JSON.stringify({ error: 'Signup request not found or already processed' }), {
+      status: 404,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const requestData = signupRequest as any;
+
+  // Update the signup request as denied
+  const updateRequestStmt = env.DB.prepare(`
+    UPDATE signup_approval_requests 
+    SET status = 'denied', reviewed_by = ?, reviewed_at = datetime('now'), review_comment = ?
+    WHERE id = ?
+  `);
+
+  await updateRequestStmt.bind(
+    userId,
+    comment || null,
+    requestId
+  ).run();
+
+  // Send denial email to the user
+  await sendSignupApprovalEmail(env, requestData.email, requestData.first_name, null, false, comment);
+
+  return new Response(JSON.stringify({ 
+    message: 'Signup request denied successfully' 
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function sendSignupApprovalEmail(env: Env, email: string, firstName: string, verificationToken: string | null, approved: boolean, comment?: string) {
+  try {
+    if (env.POSTMARK_API_TOKEN) {
+      const isProduction = env.ENVIRONMENT === 'production';
+      const baseUrl = env.FRONTEND_URL || 'https://libarycard.com';
+      
+      let subject: string;
+      let htmlBody: string;
+      let textBody: string;
+
+      if (approved && verificationToken) {
+        const verificationUrl = `${baseUrl}/auth/verify-email?token=${verificationToken}`;
+        subject = 'LibaryCard: Account Approved - Please Verify Your Email';
+        htmlBody = `
+          <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+              <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #673ab7;">📚 LibaryCard Account Approved!</h2>
+                
+                <p>Hello ${firstName},</p>
+                
+                <p>Great news! Your LibaryCard signup request has been approved by our administrator.</p>
+                
+                <div style="background-color: #e8f5e8; border-left: 4px solid #4caf50; padding: 15px; margin: 20px 0;">
+                  <p><strong>✅ Your account has been created!</strong></p>
+                  <p>Email: ${email}</p>
+                </div>
+                
+                <p>To complete your registration, please verify your email address by clicking the button below:</p>
+                
+                <div style="margin: 30px 0; text-align: center;">
+                  <a href="${verificationUrl}" 
+                     style="background-color: #4caf50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                    Verify Email Address
+                  </a>
+                </div>
+                
+                <p>Once verified, you can sign in and start managing your book collection!</p>
+                
+                <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                <p style="font-size: 12px; color: #666;">
+                  This verification link will expire in 24 hours. If you need assistance, please contact support.
+                </p>
+              </div>
+            </body>
+          </html>
+        `;
+        textBody = `
+LibaryCard Account Approved!
+
+Hello ${firstName},
+
+Great news! Your LibaryCard signup request has been approved by our administrator.
+
+Your account has been created for: ${email}
+
+To complete your registration, please verify your email address by visiting:
+${verificationUrl}
+
+Once verified, you can sign in and start managing your book collection!
+
+This verification link will expire in 24 hours. If you need assistance, please contact support.
+        `;
+      } else {
+        subject = 'LibaryCard: Signup Request Decision';
+        htmlBody = `
+          <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+              <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #673ab7;">📚 LibaryCard Signup Request Update</h2>
+                
+                <p>Hello ${firstName},</p>
+                
+                <p>Thank you for your interest in LibaryCard. After reviewing your signup request, we're unable to approve your account at this time.</p>
+                
+                <div style="background-color: #ffeaea; border-left: 4px solid #f44336; padding: 15px; margin: 20px 0;">
+                  <p><strong>❌ Request Status: Denied</strong></p>
+                  <p>Email: ${email}</p>
+                  ${comment ? `<p><strong>Admin Note:</strong> ${comment}</p>` : ''}
+                </div>
+                
+                <p>If you believe this is an error or have questions about this decision, please feel free to contact us.</p>
+                
+                <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                <p style="font-size: 12px; color: #666;">
+                  This is an automated message from LibaryCard.
+                </p>
+              </div>
+            </body>
+          </html>
+        `;
+        textBody = `
+LibaryCard Signup Request Update
+
+Hello ${firstName},
+
+Thank you for your interest in LibaryCard. After reviewing your signup request, we're unable to approve your account at this time.
+
+Request Status: Denied
+Email: ${email}
+${comment ? `Admin Note: ${comment}` : ''}
+
+If you believe this is an error or have questions about this decision, please feel free to contact us.
+
+This is an automated message from LibaryCard.
+        `;
+      }
+
+      const response = await fetch('https://api.postmarkapp.com/email', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Postmark-Server-Token': env.POSTMARK_API_TOKEN,
+        },
+        body: JSON.stringify({
+          From: env.FROM_EMAIL || 'noreply@libarycard.com',
+          To: email,
+          Subject: subject,
+          HtmlBody: htmlBody,
+          TextBody: textBody
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('Failed to send signup approval email:', error);
+      } else {
+        const result = await response.json() as { id: string };
+        console.log('Signup approval email sent successfully:', result.id);
+      }
+    } else {
+      // Fallback for development/staging without email service
+      console.log(`
+        Signup approval email would be sent to: ${email}
+        Name: ${firstName}
+        Approved: ${approved}
+        ${approved && verificationToken ? `Verification Token: ${verificationToken}` : ''}
+        ${comment ? `Comment: ${comment}` : ''}
+      `);
+    }
+  } catch (error) {
+    console.error('Error sending signup approval email:', error);
+    // Don't fail the approval process if email fails
   }
 }
 

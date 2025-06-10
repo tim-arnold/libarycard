@@ -241,8 +241,18 @@ function SignInForm() {
       const data = await response.json()
 
       if (response.ok) {
-        // Check if email verification is required
-        if (data.requires_verification) {
+        // Check if admin approval is required
+        if (data.requires_approval) {
+          // Admin approval required - show appropriate message
+          setMessage('Your signup request has been submitted for admin approval. You will receive an email notification once your request is reviewed. Thank you for your interest in LibaryCard!')
+          setShowRegisterForm(false)
+          setShowEmailForm(false)
+          // Clear form
+          setEmail('')
+          setPassword('')
+          setFirstName('')
+          setLastName('')
+        } else if (data.requires_verification) {
           // Email verification required - show appropriate message
           if (invitationToken) {
             setMessage('Account created successfully! Please check your email and click the verification link before you can sign in and accept the invitation.')

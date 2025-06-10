@@ -9,6 +9,8 @@ export interface Env {
   APP_URL: string;
   ENVIRONMENT?: string;
   RESEND_API_KEY?: string;
+  POSTMARK_API_TOKEN?: string;
+  FRONTEND_URL?: string;
   GOOGLE_CLOUD_PROJECT_ID?: string;
   GOOGLE_APPLICATION_CREDENTIALS_JSON?: string;
   GOOGLE_API_KEY?: string;
@@ -91,6 +93,21 @@ export interface BookRemovalRequest {
   review_comment?: string;
   created_at?: string;
   reviewed_at?: string;
+}
+
+export interface SignupApprovalRequest {
+  id?: number;
+  email: string;
+  first_name: string;
+  last_name?: string;
+  password_hash: string;
+  auth_provider: string;
+  status: string; // 'pending', 'approved', 'denied'
+  requested_at?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  review_comment?: string;
+  created_user_id?: string;
 }
 
 export const DEFAULT_SHELVES = [

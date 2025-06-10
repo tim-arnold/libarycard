@@ -23,10 +23,12 @@ import {
   Notifications,
   LocationOn,
   Refresh,
+  PersonAdd,
 } from '@mui/icons-material'
 import AdminAnalytics from './AdminAnalytics'
 import AdminUserManager from './AdminUserManager'
 import AdminNotificationCenter from './AdminNotificationCenter'
+import AdminSignupManager from './AdminSignupManager'
 import LocationManager from './LocationManager'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
@@ -272,6 +274,11 @@ export default function AdminDashboard() {
               iconPosition="start"
             />
             <Tab 
+              icon={<PersonAdd />} 
+              label="Signup Requests" 
+              iconPosition="start"
+            />
+            <Tab 
               icon={<Notifications />} 
               label={`Notifications ${overview?.pendingRequests ? `(${overview.pendingRequests})` : ''}`}
               iconPosition="start"
@@ -300,6 +307,9 @@ export default function AdminDashboard() {
                   <strong>Locations:</strong> Manage physical locations, shelves, and invitations
                 </Typography>
                 <Typography component="li" variant="body2" paragraph>
+                  <strong>Signup Requests:</strong> Review and approve or deny new user signup requests
+                </Typography>
+                <Typography component="li" variant="body2" paragraph>
                   <strong>Notifications:</strong> Review pending book removal requests and system notifications
                 </Typography>
               </Box>
@@ -309,7 +319,8 @@ export default function AdminDashboard() {
           {activeTab === 1 && <AdminAnalytics />}
           {activeTab === 2 && <AdminUserManager />}
           {activeTab === 3 && <LocationManager />}
-          {activeTab === 4 && <AdminNotificationCenter />}
+          {activeTab === 4 && <AdminSignupManager />}
+          {activeTab === 5 && <AdminNotificationCenter />}
         </Box>
       </Paper>
     </Container>
