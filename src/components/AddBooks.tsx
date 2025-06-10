@@ -550,17 +550,17 @@ export default function AddBooks() {
     }
   }
 
-  // Duplicate detection helper function for selected book
+  // Enhanced duplicate detection helper function for selected book
   const isSelectedBookDuplicate = (): boolean => {
     if (!selectedBook) return false
     
     return existingBooks.some(existingBook => {
-      // Check by ISBN
+      // Primary check: exact ISBN match (most reliable)
       if (existingBook.isbn === selectedBook.isbn) {
         return true
       }
       
-      // Check by title and author combination
+      // Secondary check: title and author combination
       const titleMatch = existingBook.title.toLowerCase() === selectedBook.title.toLowerCase()
       const authorMatch = selectedBook.authors.some(author => 
         existingBook.authors.some(existingAuthor => 
@@ -568,7 +568,24 @@ export default function AddBooks() {
         )
       )
       
-      return titleMatch && authorMatch
+      // If title and author match, check additional criteria for better accuracy
+      if (titleMatch && authorMatch) {
+        // If both books have publication dates, they should match for it to be a duplicate
+        if (selectedBook.publishedDate && existingBook.publishedDate) {
+          // Extract year from dates for comparison (handles different date formats)
+          const newBookYear = selectedBook.publishedDate.split('-')[0]
+          const existingBookYear = existingBook.publishedDate.split('-')[0]
+          
+          // Only consider it a duplicate if published in the same year
+          return newBookYear === existingBookYear
+        }
+        
+        // If one or both books lack publication date, be more conservative
+        // This reduces false positives for books with identical titles/authors but different editions
+        return false
+      }
+      
+      return false
     })
   }
 

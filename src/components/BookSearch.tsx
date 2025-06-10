@@ -13,12 +13,18 @@ import {
   CircularProgress,
   IconButton,
   InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
 } from '@mui/material'
 import {
   Search,
   Add,
   CheckCircle,
   Clear,
+  Warning,
 } from '@mui/icons-material'
 import type { EnhancedBook } from '@/lib/types'
 
@@ -66,6 +72,10 @@ export default function BookSearch({
 }: BookSearchProps) {
   const [searchResults, setSearchResults] = useState<GoogleBookItem[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [addAnywayDialog, setAddAnywayDialog] = useState<{
+    isOpen: boolean
+    book: GoogleBookItem | null
+  }>({ isOpen: false, book: null })
   const searchInputRef = useRef<HTMLInputElement>(null)
   const searchFormRef = useRef<HTMLDivElement>(null)
 
@@ -147,32 +157,84 @@ export default function BookSearch({
     searchInputRef.current?.focus()
   }
 
-  // Duplicate detection helper functions
-  const isBookDuplicate = (googleBookItem: GoogleBookItem): boolean => {
+  const handleAddAnyway = (book: GoogleBookItem) => {
+    setAddAnywayDialog({ isOpen: true, book })
+  }
+
+  const confirmAddAnyway = () => {
+    if (addAnywayDialog.book) {
+      onBookSelected(addAnywayDialog.book)
+      setAddAnywayDialog({ isOpen: false, book: null })
+    }
+  }
+
+  const cancelAddAnyway = () => {
+    setAddAnywayDialog({ isOpen: false, book: null })
+  }
+
+  // Enhanced duplicate detection helper functions
+  const getBookDuplicateInfo = (googleBookItem: GoogleBookItem): { isExactDuplicate: boolean; isPotentialDuplicate: boolean } => {
     const isbn = googleBookItem.volumeInfo.industryIdentifiers?.find(
       id => id.type === 'ISBN_13' || id.type === 'ISBN_10'
     )?.identifier
 
     const title = googleBookItem.volumeInfo.title
     const authors = googleBookItem.volumeInfo.authors || []
+    const publishedDate = googleBookItem.volumeInfo.publishedDate
 
-    return existingBooks.some(existingBook => {
-      // Check by ISBN if available
+    let isExactDuplicate = false
+    let isPotentialDuplicate = false
+
+
+    existingBooks.forEach(existingBook => {
+      // Primary check: exact ISBN match (definite duplicate)
       if (isbn && existingBook.isbn === isbn) {
-        return true
+        isExactDuplicate = true
+        return
       }
       
-      // Check by title and author combination
-      const titleMatch = existingBook.title.toLowerCase() === title.toLowerCase()
-      const authorMatch = authors.some(author => 
-        existingBook.authors.some(existingAuthor => 
-          existingAuthor.toLowerCase() === author.toLowerCase()
-        )
-      )
+      // Secondary check: exact title match (case-insensitive)
+      const titleMatch = existingBook.title.toLowerCase().trim() === title.toLowerCase().trim()
       
-      return titleMatch && authorMatch
+      if (titleMatch) {
+        // If titles match exactly, check authors
+        const authorMatch = authors.length === 0 || existingBook.authors.length === 0 || 
+          authors.some(author => 
+            existingBook.authors.some(existingAuthor => 
+              existingAuthor.toLowerCase().trim() === author.toLowerCase().trim()
+            )
+          )
+        
+        if (authorMatch) {
+          // If we have ISBNs for both books but they're different, this is NOT a duplicate
+          if (isbn && existingBook.isbn && isbn !== existingBook.isbn) {
+            // Different ISBNs = different books, even with same title/author
+            return
+          }
+          
+          // If both title and author match, check publication date for additional validation
+          if (publishedDate && existingBook.publishedDate) {
+            const newBookYear = publishedDate.split('-')[0]
+            const existingBookYear = existingBook.publishedDate.split('-')[0]
+            
+            if (newBookYear === existingBookYear) {
+              isExactDuplicate = true
+            } else {
+              // Different years, but same title/author - potential duplicate (different edition)
+              isPotentialDuplicate = true
+            }
+          } else {
+            // No publication date info available for comparison
+            // For identical title + author, assume exact duplicate unless we have conflicting evidence
+            isExactDuplicate = true
+          }
+        }
+      }
     })
+
+    return { isExactDuplicate, isPotentialDuplicate }
   }
+
 
   const wasBookJustAdded = (googleBookItem: GoogleBookItem): boolean => {
     const isbn = googleBookItem.volumeInfo.industryIdentifiers?.find(
@@ -271,42 +333,144 @@ export default function BookSearch({
                     >
                       Book Added!
                     </Button>
-                  ) : isBookDuplicate(item) ? (
-                    <Button 
-                      variant="outlined"
-                      size="small"
-                      startIcon={<CheckCircle />}
-                      disabled
-                      fullWidth
-                      sx={{ 
-                        color: 'text.secondary',
-                        borderColor: 'grey.400',
-                        '&.Mui-disabled': {
-                          color: 'text.secondary',
-                          borderColor: 'grey.400'
-                        }
-                      }}
-                    >
-                      Already in Your Library
-                    </Button>
-                  ) : (
-                    <Button 
-                      variant="contained"
-                      size="small"
-                      startIcon={<Add />}
-                      onClick={() => handleBookSelect(item)}
-                      disabled={disabled}
-                      fullWidth
-                    >
-                      Add This Book
-                    </Button>
-                  )}
+                  ) : (() => {
+                    const { isExactDuplicate, isPotentialDuplicate } = getBookDuplicateInfo(item)
+                    
+                    if (isExactDuplicate) {
+                      // Exact duplicate - only show "Already in Your Library"
+                      return (
+                        <Button 
+                          variant="outlined"
+                          size="small"
+                          startIcon={<CheckCircle />}
+                          disabled
+                          fullWidth
+                          sx={{ 
+                            color: 'text.secondary',
+                            borderColor: 'grey.400',
+                            '&.Mui-disabled': {
+                              color: 'text.secondary',
+                              borderColor: 'grey.400'
+                            }
+                          }}
+                        >
+                          Already in Your Library
+                        </Button>
+                      )
+                    } else if (isPotentialDuplicate) {
+                      // Potential duplicate - show both buttons
+                      return (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}>
+                          <Button 
+                            variant="outlined"
+                            size="small"
+                            startIcon={<CheckCircle />}
+                            disabled
+                            fullWidth
+                            sx={{ 
+                              color: 'warning.main',
+                              borderColor: 'warning.main',
+                              '&.Mui-disabled': {
+                                color: 'warning.main',
+                                borderColor: 'warning.main'
+                              }
+                            }}
+                          >
+                            Similar Book in Library
+                          </Button>
+                          <Button 
+                            variant="text"
+                            size="small"
+                            startIcon={<Warning />}
+                            onClick={() => handleAddAnyway(item)}
+                            disabled={disabled}
+                            fullWidth
+                            sx={{ 
+                              color: 'warning.main',
+                              fontSize: '0.75rem',
+                              minHeight: '32px'
+                            }}
+                          >
+                            Add Anyway
+                          </Button>
+                        </Box>
+                      )
+                    } else {
+                      // Not a duplicate - normal add button
+                      return (
+                        <Button 
+                          variant="contained"
+                          size="small"
+                          startIcon={<Add />}
+                          onClick={() => handleBookSelect(item)}
+                          disabled={disabled}
+                          fullWidth
+                        >
+                          Add This Book
+                        </Button>
+                      )
+                    }
+                  })()}
                 </CardActions>
               </Card>
             ))}
           </Box>
         </Box>
       )}
+
+      {/* Add Anyway Confirmation Dialog */}
+      <Dialog 
+        open={addAnywayDialog.isOpen} 
+        onClose={cancelAddAnyway}
+        maxWidth="sm" 
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Warning color="warning" />
+          Potential Duplicate Book
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            This book appears to be similar to one already in your library. Adding it may create duplicates.
+          </Alert>
+          
+          {addAnywayDialog.book && (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Book to Add:
+              </Typography>
+              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                {addAnywayDialog.book.volumeInfo.title}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                by {addAnywayDialog.book.volumeInfo.authors?.join(', ') || 'Unknown Author'}
+              </Typography>
+              {addAnywayDialog.book.volumeInfo.publishedDate && (
+                <Typography variant="body2" color="text.secondary">
+                  Published: {addAnywayDialog.book.volumeInfo.publishedDate}
+                </Typography>
+              )}
+              
+              <Typography variant="body2" sx={{ mt: 2 }}>
+                Are you sure you want to add this book anyway? This might be a different edition or you may have accidentally deleted it earlier.
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelAddAnyway}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={confirmAddAnyway} 
+            variant="contained" 
+            color="warning"
+            startIcon={<Add />}
+          >
+            Add Anyway
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
