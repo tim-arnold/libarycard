@@ -168,7 +168,9 @@ function SignInForm() {
   const handleGoogleSignIn = async () => {
     setLoading(true)
     try {
-      await signIn('google', { callbackUrl: '/' })
+      // Include invitation token in callback URL if present
+      const callbackUrl = invitationToken ? `/?invitation=${invitationToken}` : '/'
+      await signIn('google', { callbackUrl })
     } catch (error) {
       console.error('Sign in error:', error)
       setLoading(false)
@@ -384,7 +386,7 @@ function SignInForm() {
                 }
               }}
             >
-              {loading ? 'Signing in...' : 'Continue with Google'}
+              {loading ? 'Signing in...' : (invitationToken ? 'Continue with Google and Accept Invitation' : 'Continue with Google')}
             </Button>
 
             <Divider sx={{ my: 2 }}>

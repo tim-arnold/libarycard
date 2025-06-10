@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Container,
   Paper,
@@ -42,6 +42,7 @@ import { useTheme } from '@/lib/ThemeContext'
 export default function Home() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { isDarkMode, toggleTheme } = useTheme()
   const [activeTab, setActiveTab] = useState<'scan' | 'library' | 'locations' | 'requests' | 'admin'>(() => {
     // Try to restore the tab from current session
@@ -59,6 +60,12 @@ export default function Home() {
 
   useEffect(() => {
     if (session) {
+      // Check for invitation token from Google OAuth redirect
+      const invitationToken = searchParams.get('invitation')
+      if (invitationToken) {
+        handleInvitationAcceptance(invitationToken)
+      }
+
       // Fetch user profile data
       fetch('/api/profile')
         .then(res => res.json())
@@ -95,7 +102,52 @@ export default function Home() {
         })
         .catch(err => console.error('Failed to fetch user locations:', err))
     }
-  }, [session])
+  }, [session, searchParams])
+
+  const handleInvitationAcceptance = async (token: string) => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
+    
+    try {
+      const response = await fetch(`${API_BASE}/api/invitations/accept`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.user?.email}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          invitation_token: token,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // Clear the invitation token from URL
+        const url = new URL(window.location.href)
+        url.searchParams.delete('invitation')
+        window.history.replaceState({}, '', url.toString())
+        
+        // Show success message or refresh location data
+        console.log(`Successfully joined ${data.location_name}!`)
+        
+        // Refresh location data to show the new location
+        const locationsResponse = await fetch(`${API_BASE}/api/locations`, {
+          headers: {
+            'Authorization': `Bearer ${session?.user?.email}`,
+            'Content-Type': 'application/json',
+          },
+        })
+        const locations = await locationsResponse.json()
+        if (locations && locations.length > 0) {
+          setUserLocation(locations[0].name)
+        }
+      } else {
+        console.error('Failed to accept invitation:', data.error)
+      }
+    } catch (error) {
+      console.error('Invitation acceptance error:', error)
+    }
+  }
 
   if (status === 'loading') {
     return (

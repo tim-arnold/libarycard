@@ -937,7 +937,28 @@ async function revokeLocationInvitation(invitationId: number, userId: string, en
     DELETE FROM location_invitations WHERE id = ?
   `);
   
-  await deleteStmt.bind(invitationId).run();
+  const deleteResult = await deleteStmt.bind(invitationId).run();
+
+  // Verify the deletion was successful
+  if (deleteResult.changes === 0) {
+    return new Response(JSON.stringify({ error: 'Failed to revoke invitation - invitation may have already been removed' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Double-check the invitation was actually deleted
+  const verifyStmt = env.DB.prepare(`
+    SELECT id FROM location_invitations WHERE id = ?
+  `);
+  const stillExists = await verifyStmt.bind(invitationId).first();
+  
+  if (stillExists) {
+    return new Response(JSON.stringify({ error: 'Failed to revoke invitation - database deletion incomplete' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 
   return new Response(JSON.stringify({ 
     message: 'Invitation revoked successfully',
