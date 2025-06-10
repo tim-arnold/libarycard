@@ -404,15 +404,21 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
   }
 
   // Check if there's already a pending signup request for this email
-  const existingRequest = await env.DB.prepare(`
-    SELECT email FROM signup_approval_requests WHERE email = ? AND status = 'pending'
-  `).bind(email).first();
-  
-  if (existingRequest) {
-    return new Response(JSON.stringify({ error: 'A signup request for this email is already pending admin approval' }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+  let existingRequest = null;
+  try {
+    existingRequest = await env.DB.prepare(`
+      SELECT email FROM signup_approval_requests WHERE email = ? AND status = 'pending'
+    `).bind(email).first();
+    
+    if (existingRequest) {
+      return new Response(JSON.stringify({ error: 'A signup request for this email is already pending admin approval' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  } catch (error) {
+    console.log('Signup approval table not found - proceeding with legacy registration');
+    // Table doesn't exist yet, proceed with legacy flow
   }
   
   // Check if user has a valid invitation
@@ -477,32 +483,84 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } else {
-    // No invitation - create signup approval request
-    const stmt = env.DB.prepare(`
-      INSERT INTO signup_approval_requests (
-        email, first_name, last_name, password_hash, auth_provider, 
-        status, requested_at
-      )
-      VALUES (?, ?, ?, ?, 'email', 'pending', datetime('now'))
-    `);
+    // No invitation - create signup approval request (if table exists)
+    try {
+      const stmt = env.DB.prepare(`
+        INSERT INTO signup_approval_requests (
+          email, first_name, last_name, password_hash, auth_provider, 
+          status, requested_at
+        )
+        VALUES (?, ?, ?, ?, 'email', 'pending', datetime('now'))
+      `);
 
-    const result = await stmt.bind(
-      email,
-      first_name,
-      last_name || '',
-      passwordHash
-    ).run();
+      const result = await stmt.bind(
+        email,
+        first_name,
+        last_name || '',
+        passwordHash
+      ).run();
 
-    // Notify all admins about the signup request
-    await notifyAdminsOfSignupRequest(env, email, first_name, last_name);
+      // Notify all admins about the signup request
+      await notifyAdminsOfSignupRequest(env, email, first_name, last_name);
 
-    return new Response(JSON.stringify({ 
-      message: 'Your signup request has been submitted for admin approval. You will receive an email notification once your request is reviewed.',
-      requires_approval: true,
-      request_id: result.meta.last_row_id
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      return new Response(JSON.stringify({ 
+        message: 'Your signup request has been submitted for admin approval. You will receive an email notification once your request is reviewed.',
+        requires_approval: true,
+        request_id: result.meta.last_row_id
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      console.log('Signup approval table not found - proceeding with legacy registration');
+      
+      // Fall back to legacy registration if approval table doesn't exist
+      // Generate verification token
+      const verificationToken = generateUUID();
+      const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
+      
+      // Generate user ID
+      const userId = generateUUID();
+      
+      // Always require email verification in production
+      const isProduction = env.ENVIRONMENT === 'production';
+      const emailVerified = false; // Always require verification for new accounts
+      
+      // Create user
+      const stmt = env.DB.prepare(`
+        INSERT INTO users (
+          id, email, first_name, last_name, password_hash, 
+          auth_provider, email_verified, email_verification_token, 
+          email_verification_expires, created_at, updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, 'email', ?, ?, ?, datetime('now'), datetime('now'))
+      `);
+
+      await stmt.bind(
+        userId,
+        email,
+        first_name,
+        last_name || '',
+        passwordHash,
+        emailVerified,
+        verificationToken,
+        verificationExpires
+      ).run();
+
+      // Always send verification email for new accounts
+      await sendVerificationEmail(env, email, first_name, verificationToken);
+
+      const message = isProduction 
+        ? 'Registration successful. Please check your email to verify your account before signing in.'
+        : 'Registration successful. Please check your email to verify your account. (Development mode: email simulation)';
+
+      return new Response(JSON.stringify({ 
+        message,
+        userId,
+        requires_verification: true
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
   }
 }
 
@@ -1353,17 +1411,27 @@ async function getSignupRequests(userId: string, env: Env, corsHeaders: Record<s
     });
   }
 
-  const requests = await env.DB.prepare(`
-    SELECT 
-      id, email, first_name, last_name, status, requested_at, 
-      reviewed_by, reviewed_at, review_comment
-    FROM signup_approval_requests 
-    ORDER BY requested_at DESC
-  `).all();
+  try {
+    const requests = await env.DB.prepare(`
+      SELECT 
+        id, email, first_name, last_name, status, requested_at, 
+        reviewed_by, reviewed_at, review_comment
+      FROM signup_approval_requests 
+      ORDER BY requested_at DESC
+    `).all();
 
-  return new Response(JSON.stringify(requests.results), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
+    return new Response(JSON.stringify(requests.results), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('Error loading signup requests:', error);
+    return new Response(JSON.stringify({ 
+      error: 'Database table not found. Please run the signup approval migration first.' 
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 }
 
 async function approveSignupRequest(request: Request, requestId: number, userId: string, env: Env, corsHeaders: Record<string, string>) {
