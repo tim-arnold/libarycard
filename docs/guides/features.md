@@ -5,6 +5,7 @@ A comprehensive overview of LibaryCard's capabilities and functionality.
 ## Recent Highlights
 
 ### ✅ Recently Completed
+- **🎯 Enhanced Duplicate Detection**: Sophisticated three-tier algorithm with publication date comparison and "Add Anyway" override
 - **🎉 OCR Migration to Cloudflare Workers**: Bookshelf Photo Scanning now 100% functional with 80-90% accuracy in production
 - **Global Footer**: "Contact the Librarian" feature with professional email workflow
 - **Component Architecture Refactoring**: Improved maintainability and token efficiency (32-52% line reduction)
@@ -64,7 +65,7 @@ A comprehensive overview of LibaryCard's capabilities and functionality.
 - **Advanced Search**: Full-text search across titles, authors, and descriptions
 - **Smart Filtering**: Filter by location, shelf, tags, categories, and checkout status
 - **Custom Tagging**: User-defined tags for personal organization (fiction, favorites, to-read, etc.)
-- **Duplicate Detection**: Prevents accidental re-addition of existing books
+- **Enhanced Duplicate Detection**: Sophisticated three-tier system (exact, potential, non-duplicate) with publication date comparison and user override capabilities
 - **Bulk Operations**: Select and manage multiple books simultaneously
 
 ### 📚 Book Management System
