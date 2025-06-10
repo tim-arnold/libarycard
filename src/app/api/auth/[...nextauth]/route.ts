@@ -101,8 +101,8 @@ const handler = NextAuth({
 
 async function storeUser(user: any, userId: string) {
   try {
-    const baseUrl = process.env.NEXTAUTH_URL || 'https://libarycard.tim52.io'
-    const response = await fetch(`${baseUrl}/api/users`, {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
+    const response = await fetch(`${apiUrl}/api/users`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
