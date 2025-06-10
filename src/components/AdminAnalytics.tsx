@@ -5,7 +5,6 @@ import { useSession } from 'next-auth/react'
 import {
   Typography,
   Box,
-  Grid,
   Card,
   CardContent,
   CardHeader,
@@ -17,7 +16,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Chip,
   List,
   ListItem,

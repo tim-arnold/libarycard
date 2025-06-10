@@ -307,7 +307,7 @@ export default function AddBooks() {
       // Load existing books for duplicate detection
       const savedBooks = await getBooks()
       setExistingBooks(savedBooks)
-    } catch (error) {
+    } catch {
       // Handle error silently
     } finally {
       setLoadingData(false)
@@ -328,7 +328,7 @@ export default function AddBooks() {
           variant: 'warning'
         })
       }
-    } catch (err) {
+    } catch {
       await alert({
         title: 'Lookup Error',
         message: 'Failed to fetch book data. Please check your internet connection and try again.',
@@ -344,7 +344,6 @@ export default function AddBooks() {
   const [isBulkSearching, setIsBulkSearching] = useState(false)
   const [preserveOcrResults, setPreserveOcrResults] = useState(false)
   const [autoSearchAfterAdd, setAutoSearchAfterAdd] = useState(false)
-  const [scannerResetKey, setScannerResetKey] = useState(0)
 
   const handleImageCaptured = () => {
     // Clear previous search results when starting a new scan
@@ -441,7 +440,7 @@ export default function AddBooks() {
         setSelectedBook(book)
         // Keep search results populated - don't clear them
       }
-    } catch (error) {
+    } catch {
       await alert({
         title: 'Selection Error',
         message: 'Failed to select book. Please try again.',
@@ -704,7 +703,7 @@ export default function AddBooks() {
                               setActiveTab('search')
                             }}
                           >
-                            "{searchTerm}"
+                            &quot;{searchTerm}&quot;
                           </Typography> ({results.length} results{results.length === 3 ? ' - click for more' : ''})
                         </Typography>
                         
