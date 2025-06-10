@@ -669,7 +669,7 @@ export default function AddBooks() {
             {(detectedTitles.length > 0 || isBulkSearching) && (
               <Box sx={{ mt: 3 }}>
                 <Paper sx={{ p: 3 }}>
-                  <Box sx={{ display: 'fcommilex', alignItems: 'center', gap: 2, mb: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
                     <Typography variant="h6" ref={bookSearchResultsRef}>
                       📚 Book Search Results
                     </Typography>

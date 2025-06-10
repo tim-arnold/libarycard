@@ -5,10 +5,8 @@ import { useSession } from 'next-auth/react'
 import {
   Typography,
   Box,
-  Grid,
   Card,
   CardContent,
-  CardHeader,
   Tabs,
   Tab,
   Badge,
@@ -41,7 +39,6 @@ export default function AdminNotificationCenter() {
     monthlyReminders: 0,
     pendingInvitations: 0
   })
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (session?.user?.email) {
@@ -53,7 +50,6 @@ export default function AdminNotificationCenter() {
     if (!session?.user?.email) return
 
     try {
-      setLoading(true)
       // Load analytics data to get pending requests count
       const analyticsResponse = await fetch(`${API_BASE}/api/admin/analytics`, {
         headers: {
@@ -77,16 +73,12 @@ export default function AdminNotificationCenter() {
 
     } catch (error) {
       console.error('Error loading notification counts:', error)
-    } finally {
-      setLoading(false)
     }
   }
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue)
   }
-
-  const totalNotifications = Object.values(counts).reduce((sum, count) => sum + count, 0)
 
   return (
     <Box>

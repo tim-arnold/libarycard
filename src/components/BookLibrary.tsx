@@ -1232,7 +1232,6 @@ export default function BookLibrary() {
                     <BookList
                       books={location.books}
                       userRole={userRole}
-                      currentUserEmail={session?.user?.email || null}
                       currentUserId={currentUserId}
                       shelves={shelves}
                       pendingRemovalRequests={pendingRemovalRequests}
@@ -1254,7 +1253,6 @@ export default function BookLibrary() {
               <BookList
                 books={getPaginatedBooks(filteredBooks)}
                 userRole={userRole}
-                currentUserEmail={session?.user?.email || null}
                 currentUserId={currentUserId}
                 shelves={shelves}
                 pendingRemovalRequests={pendingRemovalRequests}
@@ -1303,7 +1301,6 @@ export default function BookLibrary() {
                     <BookGrid
                       books={location.books}
                       userRole={userRole}
-                      currentUserEmail={session?.user?.email || null}
                       currentUserId={currentUserId}
                       shelves={shelves}
                       pendingRemovalRequests={pendingRemovalRequests}
@@ -1325,7 +1322,6 @@ export default function BookLibrary() {
               <BookGrid
                 books={getPaginatedBooks(filteredBooks)}
                 userRole={userRole}
-                currentUserEmail={session?.user?.email || null}
                 currentUserId={currentUserId}
                 shelves={shelves}
                 pendingRemovalRequests={pendingRemovalRequests}
