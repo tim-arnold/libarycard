@@ -29,6 +29,7 @@ import AlertModal from './AlertModal'
 import BookFilters from './BookFilters'
 import BookGrid from './BookGrid'
 import BookList from './BookList'
+import RemovalReasonModal from './RemovalReasonModal'
 import { useModal } from '@/hooks/useModal'
 import { CURATED_GENRES } from '@/lib/genreClassifier'
 import {
@@ -235,6 +236,8 @@ export default function BookLibrary() {
   const [booksPerPage] = useState(10)
   const [showRelocateModal, setShowRelocateModal] = useState(false)
   const [selectedBookForRelocate, setSelectedBookForRelocate] = useState<EnhancedBook | null>(null)
+  const [showRemovalReasonModal, setShowRemovalReasonModal] = useState(false)
+  const [removalReasonCallback, setRemovalReasonCallback] = useState<((result: { value: string; label: string; details?: string } | null) => void) | null>(null)
 
   useEffect(() => {
     if (session?.user) {
@@ -767,128 +770,17 @@ export default function BookLibrary() {
 
   const selectRemovalReason = async (): Promise<{ value: string; label: string; details?: string } | null> => {
     return new Promise((resolve) => {
-      const modal = document.createElement('div')
-      modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-      `
-
-      const modalContent = document.createElement('div')
-      modalContent.style.cssText = `
-        background: white;
-        padding: 1.5rem;
-        border-radius: 8px;
-        width: 90%;
-        max-width: 400px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      `
-
-      modalContent.innerHTML = `
-        <h3 style="margin: 0 0 1rem 0;">Notify the Libarian</h3>
-        <div style="margin-bottom: 1rem;">
-          <label style="display: block; margin-bottom: 0.5rem;">
-            <input type="radio" name="reason" value="lost" style="margin-right: 0.5rem;">
-            Book is lost
-          </label>
-          <label style="display: block; margin-bottom: 0.5rem;">
-            <input type="radio" name="reason" value="damaged" style="margin-right: 0.5rem;">
-            Book is damaged beyond repair
-          </label>
-          <label style="display: block; margin-bottom: 0.5rem;">
-            <input type="radio" name="reason" value="missing" style="margin-right: 0.5rem;">
-            Book is missing from its location
-          </label>
-          <label style="display: block; margin-bottom: 0.5rem;">
-            <input type="radio" name="reason" value="delicious" style="margin-right: 0.5rem;">
-            Book was delicious
-          </label>
-          <label style="display: block; margin-bottom: 1rem;">
-            <input type="radio" name="reason" value="other" style="margin-right: 0.5rem;">
-            Other reason
-          </label>
-        </div>
-        <div style="margin-bottom: 1rem;">
-          <label for="details" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">
-            Additional Details (optional):
-          </label>
-          <textarea 
-            id="details" 
-            placeholder="Provide any additional information about the reason for removal..."
-            style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; resize: vertical; min-height: 60px;"
-          ></textarea>
-        </div>
-        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-          <button id="cancel" style="padding: 0.5rem 1rem; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer;">
-            Cancel
-          </button>
-          <button id="submit" style="padding: 0.5rem 1rem; border: none; background: #fd7e14; color: white; border-radius: 4px; cursor: pointer;">
-            Continue
-          </button>
-        </div>
-      `
-
-      modal.appendChild(modalContent)
-      document.body.appendChild(modal)
-
-      const reasonLabels: Record<string, string> = {
-        lost: 'Book is lost',
-        damaged: 'Book is damaged beyond repair',
-        missing: 'Book is missing from its location',
-        delicious: 'Book was delicious',
-        other: 'Other reason'
-      }
-
-      const handleSubmit = () => {
-        const selectedRadio = modalContent.querySelector('input[name="reason"]:checked') as HTMLInputElement
-        const detailsTextarea = modalContent.querySelector('#details') as HTMLTextAreaElement
-        
-        if (!selectedRadio) {
-          // Show inline validation message
-          let errorMsg = modalContent.querySelector('.error-message') as HTMLDivElement
-          if (!errorMsg) {
-            errorMsg = document.createElement('div')
-            errorMsg.className = 'error-message'
-            errorMsg.style.cssText = 'color: #dc3545; font-size: 0.9em; margin-bottom: 1rem; text-align: center;'
-            modalContent.insertBefore(errorMsg, modalContent.querySelector('div:last-child')!)
-          }
-          errorMsg.textContent = 'Please select a reason for removal.'
-          return
-        }
-
-        const reason = selectedRadio.value
-        const details = detailsTextarea.value.trim()
-
-        document.body.removeChild(modal)
-        resolve({
-          value: reason,
-          label: reasonLabels[reason],
-          details: details || undefined
-        })
-      }
-
-      const handleCancel = () => {
-        document.body.removeChild(modal)
-        resolve(null)
-      }
-
-      modalContent.querySelector('#submit')?.addEventListener('click', handleSubmit)
-      modalContent.querySelector('#cancel')?.addEventListener('click', handleCancel)
-
-      // Close on backdrop click
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-          handleCancel()
-        }
-      })
+      setRemovalReasonCallback(() => resolve)
+      setShowRemovalReasonModal(true)
     })
+  }
+
+  const handleRemovalReasonModalClose = (result: { value: string; label: string; details?: string } | null) => {
+    setShowRemovalReasonModal(false)
+    if (removalReasonCallback) {
+      removalReasonCallback(result)
+      setRemovalReasonCallback(null)
+    }
   }
 
   const updateBookShelf = async (bookId: string, newShelfId: number) => {
@@ -1536,6 +1428,12 @@ export default function BookLibrary() {
           </DialogActions>
         </Dialog>
       )}
+
+      {/* Removal Reason Modal */}
+      <RemovalReasonModal
+        open={showRemovalReasonModal}
+        onClose={handleRemovalReasonModalClose}
+      />
       </Paper>
     </Container>
   )

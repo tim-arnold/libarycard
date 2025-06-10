@@ -204,6 +204,28 @@ const darkThemeOptions: ThemeOptions = {
         },
       },
     },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: '#1e1e1e', // Ensure dialog has proper dark background
+          color: 'rgba(255, 255, 255, 0.95)', // Ensure text is white in dark mode
+        },
+      },
+    },
+    MuiDialogTitle: {
+      styleOverrides: {
+        root: {
+          color: 'rgba(255, 255, 255, 0.95)', // Ensure title text is white
+        },
+      },
+    },
+    MuiDialogContent: {
+      styleOverrides: {
+        root: {
+          color: 'rgba(255, 255, 255, 0.95)', // Ensure content text is white
+        },
+      },
+    },
   },
 }
 
