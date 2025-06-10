@@ -278,9 +278,17 @@ books (
 - `GET /api/auth/verify-email` - Verify email address
 
 #### User Management
-- `POST /api/users` - Create/update user (OAuth)
+- `POST /api/users` - Create/update user (OAuth and email/password)
+- `GET /api/users/check` - Check if user exists (used in invitation flow)
 - `GET /api/profile` - Get current user profile
 - `PUT /api/profile` - Update user profile
+
+#### Invitation System
+- `GET /api/invitations/details` - Get invitation details (public)
+- `POST /api/invitations/accept` - Accept location invitation
+- `POST /api/locations/{id}/invite` - Create location invitation (admin)
+- `GET /api/locations/{id}/invitations` - List location invitations (admin)
+- `DELETE /api/invitations/{id}/revoke` - Revoke invitation (admin)
 
 #### Location Management (Admin Only)
 - `GET /api/locations` - List accessible locations

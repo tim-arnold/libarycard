@@ -37,6 +37,34 @@ LibaryCard has two types of users:
 - **Admin Users**: Can create, edit, and delete locations and shelves
 - **Regular Users**: Can add, edit, and remove books from existing locations
 
+## Accepting Invitations
+
+If someone has invited you to join their library location, you'll receive an email with an invitation link.
+
+### Accepting an Invitation with Google OAuth (Recommended)
+
+1. Click the invitation link in your email
+2. You'll see the sign-in page with invitation details
+3. Click **"Continue with Google and Accept Invitation"**
+4. Sign in with your Google account
+5. You'll be automatically added to the location and can see the books immediately
+
+### Accepting an Invitation with Email/Password
+
+1. Click the invitation link in your email
+2. Choose one of these options:
+   - **If you have an existing account**: Click **"Sign in with Email"** and enter your credentials
+   - **If you need to create an account**: Click **"Create one here"** and follow the registration process
+3. After signing in, the invitation will be automatically accepted
+4. You'll be added to the location and can access the shared library
+
+### What Happens After Accepting
+
+- You'll be added as a member of the location
+- You can view and add books to the shared library
+- You'll see the location name in your library view
+- Your account will be marked as verified (no email verification needed when accepting invitations)
+
 ## Adding Books
 
 ### Method 1: Camera Scanning

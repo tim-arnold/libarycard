@@ -2,6 +2,38 @@
 
 This file documents all completed features, fixes, and improvements to the LibaryCard project.
 
+## June 10, 2025 - Google OAuth Invitation Support & Authentication Improvements
+
+### Google OAuth Invitation Acceptance
+- **IMPLEMENTED**: Complete Google OAuth support for invitation acceptance workflow
+- **ENHANCED**: Sign-in page to display all authentication options (Google OAuth, email, register) for invited users
+- **ADDED**: Automatic invitation token handling in Google OAuth callback URLs
+- **CREATED**: Seamless invitation acceptance flow for Google OAuth users without requiring email/password registration
+- **INTEGRATED**: Google OAuth invitation acceptance with existing backend invitation system
+- **OPTIMIZED**: User experience by allowing invited users to choose their preferred authentication method
+
+### Authentication System Reliability Improvements  
+- **FIXED**: Critical user creation bug where NextAuth was calling wrong API URL for Google OAuth users
+- **RESOLVED**: Issue where Google OAuth users weren't being properly created in database during sign-in
+- **ENHANCED**: Invitation revocation system with robust verification checks to prevent stuck invitations
+- **ADDED**: Double-verification after invitation deletion to ensure database consistency
+- **IMPLEMENTED**: Proper error handling and rollback for failed invitation revocations
+
+### User Verification Status Management
+- **CORRECTED**: Google OAuth users now properly marked as verified upon account creation
+- **FIXED**: Issue where user verification status was being reset on subsequent requests
+- **ENHANCED**: User creation endpoint to properly handle auth_provider and email_verified fields from NextAuth
+- **RESOLVED**: NextAuth session callback overwriting existing user data on every request
+- **IMPLEMENTED**: Smart user creation that only creates new users, preserving existing user verification status
+- **OPTIMIZED**: Authentication flow to maintain user verification state consistently across all operations
+
+### Technical Infrastructure Improvements
+- **UPDATED**: NextAuth configuration to use correct worker API URLs for user creation
+- **ENHANCED**: createOrUpdateUser function to properly handle Google OAuth user data
+- **IMPLEMENTED**: storeUserIfNotExists logic to prevent overwriting existing user records
+- **FIXED**: Database field mapping issues between frontend and backend user creation
+- **IMPROVED**: Error handling and logging for authentication-related operations
+
 ## June 9, 2025 - Admin Interface & Enhanced Duplicate Detection
 
 ### Enhanced Duplicate Book Detection System
