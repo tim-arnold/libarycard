@@ -2,7 +2,21 @@
 
 This file documents all completed features, fixes, and improvements to the LibaryCard project.
 
-## June 10, 2025 - Google OAuth Invitation Support & Authentication Improvements
+## June 10, 2025 - Admin Signup Approval System & Authentication Enhancements
+
+### Admin Signup Approval System Implementation
+- **IMPLEMENTED**: Complete admin approval workflow for uninvited user signups while preserving invitation-based registration
+- **CREATED**: Database schema with signup_approval_requests table for tracking approval status, timestamps, and admin decisions
+- **BUILT**: AdminSignupManager.tsx component with comprehensive table-based interface for reviewing and managing signup requests
+- **ADDED**: Dual registration workflow logic that checks for valid invitations before requiring admin approval
+- **ENHANCED**: Signup form to display pending approval messages and prevent multiple requests for same email
+- **IMPLEMENTED**: Email notification system for both admin alerts about new requests and user notifications about approval decisions
+- **CREATED**: RESTful API endpoints for complete approval workflow (GET /api/signup-requests, POST /api/signup-requests/{id}/approve, POST /api/signup-requests/{id}/deny)
+- **INTEGRATED**: Admin approval interface into existing admin dashboard with dedicated "Signup Requests" tab
+- **ADDED**: Role-based access control ensuring only admin users can view and manage signup approval requests
+- **ENHANCED**: Error handling with graceful email notification failures to prevent approval workflow disruption
+
+### Authentication System Reliability Improvements
 
 ### Google OAuth Invitation Acceptance
 - **IMPLEMENTED**: Complete Google OAuth support for invitation acceptance workflow

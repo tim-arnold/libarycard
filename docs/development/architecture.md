@@ -258,11 +258,29 @@ books (
   FOREIGN KEY (shelf_id) REFERENCES shelves(id),
   FOREIGN KEY (added_by) REFERENCES users(id)
 )
+
+-- Signup approval requests for uninvited users
+signup_approval_requests (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  email           TEXT UNIQUE NOT NULL,
+  first_name      TEXT NOT NULL,
+  last_name       TEXT,
+  password_hash   TEXT NOT NULL,
+  auth_provider   TEXT DEFAULT 'email',
+  status          TEXT DEFAULT 'pending',  -- 'pending', 'approved', 'denied'
+  requested_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  reviewed_by     TEXT,                    -- Admin who reviewed
+  reviewed_at     DATETIME,                -- When reviewed
+  review_comment  TEXT,                    -- Admin's comment
+  created_user_id TEXT,                    -- User ID after approval
+  FOREIGN KEY (reviewed_by) REFERENCES users(id)
+)
 ```
 
 ### Design Decisions
 - **Role-based access**: Admin users control locations/shelves, all users can manage books
 - **Hierarchical structure**: Users → Locations → Shelves → Books
+- **Dual registration workflow**: Users with valid invitations proceed directly, uninvited users require admin approval
 - **JSON columns**: SQLite supports JSON for arrays (authors, categories, tags)
 - **Text storage**: ISBN as text to preserve leading zeros
 - **User isolation**: Foreign key relationships ensure data ownership
@@ -273,9 +291,14 @@ books (
 ### RESTful Endpoints
 
 #### Authentication
-- `POST /api/auth/register` - Register new user with email/password
+- `POST /api/auth/register` - Register new user with email/password (supports dual workflow: invitation-based or approval-based)
 - `POST /api/auth/verify` - Verify user credentials
 - `GET /api/auth/verify-email` - Verify email address
+
+#### Signup Approval System (Admin Only)
+- `GET /api/signup-requests` - List pending signup approval requests
+- `POST /api/signup-requests/{id}/approve` - Approve signup request and create user account
+- `POST /api/signup-requests/{id}/deny` - Deny signup request with optional comment
 
 #### User Management
 - `POST /api/users` - Create/update user (OAuth and email/password)
