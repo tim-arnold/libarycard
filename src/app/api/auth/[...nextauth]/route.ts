@@ -84,7 +84,7 @@ const handler = NextAuth({
       if (session.user && token.userId) {
         // Store user in database on first login (Google OAuth only)
         if (token.authProvider === 'google') {
-          await storeUser(session.user, token.userId as string)
+          await storeUserIfNotExists(session.user, token.userId as string)
         }
         
         session.user.id = token.userId as string
@@ -99,9 +99,21 @@ const handler = NextAuth({
   },
 })
 
-async function storeUser(user: any, userId: string) {
+async function storeUserIfNotExists(user: any, userId: string) {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
+    
+    // First check if user exists
+    const checkResponse = await fetch(`${apiUrl}/api/users/check?email=${encodeURIComponent(user.email)}`)
+    if (checkResponse.ok) {
+      const checkData = await checkResponse.json()
+      if (checkData.exists) {
+        // User already exists, don't overwrite
+        return
+      }
+    }
+    
+    // User doesn't exist, create them
     const response = await fetch(`${apiUrl}/api/users`, {
       method: 'POST',
       headers: {
