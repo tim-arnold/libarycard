@@ -2,7 +2,21 @@
 
 This file documents all completed features, fixes, and improvements to the LibaryCard project.
 
-## June 10, 2025 - Admin Signup Approval System & Authentication Enhancements
+## June 10, 2025 - Book Checkout System Fixes & Admin Signup Approval System
+
+### Book Checkout System & Return Button Fixes
+- **FIXED**: Missing return button after book checkout due to UUID vs email comparison in user identification logic
+- **RESOLVED**: Core issue where `book.checked_out_by` (UUID) was being compared with `currentUserEmail` (email address)
+- **IMPLEMENTED**: Proper user ID fetching from `/api/profile` endpoint and UUID-based user identification throughout checkout system
+- **ENHANCED**: Book checkout status display with personalized text showing "you" instead of username for current user
+- **IMPROVED**: Checkout status formatting to consolidate date and time information on single line with days calculation
+- **ADDED**: Automatic days calculation showing format "since 6/9/2025 (2 days)" for better user awareness of checkout duration
+- **FIXED**: Accessibility contrast issues by removing poor-contrast background colors from checkout status display
+- **UPDATED**: Both BookList.tsx and BookGrid.tsx components to maintain consistency between card and list views
+- **ENHANCED**: User experience with immediate function execution in JSX for real-time date calculations
+- **VALIDATED**: Return button functionality working correctly for both regular users (own books) and admin users (any book)
+
+### Admin Signup Approval System & Authentication Enhancements
 
 ### Admin Signup Approval System Implementation
 - **IMPLEMENTED**: Complete admin approval workflow for uninvited user signups while preserving invitation-based registration

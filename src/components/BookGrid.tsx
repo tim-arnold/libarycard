@@ -17,6 +17,7 @@ interface BookGridProps {
   books: EnhancedBook[]
   userRole: string | null
   currentUserEmail: string | null
+  currentUserId: string | null
   shelves: Array<{ id: number; name: string; location_id: number; created_at: string }>
   pendingRemovalRequests: Record<string, number>
   onCheckout: (bookId: string, bookTitle: string) => Promise<void>
@@ -34,6 +35,7 @@ export default function BookGrid({
   books,
   userRole,
   currentUserEmail,
+  currentUserId,
   shelves,
   pendingRemovalRequests,
   onCheckout,
@@ -175,15 +177,17 @@ export default function BookGrid({
             
             {/* Checkout status display */}
             {book.status === 'checked_out' && (
-              <Box sx={{ mt: 2, p: 1, backgroundColor: 'warning.light', borderRadius: 1 }}>
-                <Typography variant="body2" color="text.primary">
-                  📖 <strong>Checked out</strong> by {book.checked_out_by_name || 'Unknown'}
+              <Box sx={{ mt: 2, p: 1, border: 1, borderColor: 'warning.main', borderRadius: 1 }}>
+                <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
+                  📖 Checked out by {book.checked_out_by === currentUserId ? 'you' : (book.checked_out_by_name || 'Unknown')}
+                  {book.checked_out_date && (() => {
+                    const checkoutDate = new Date(book.checked_out_date)
+                    const today = new Date()
+                    const diffTime = Math.abs(today.getTime() - checkoutDate.getTime())
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                    return ` since ${checkoutDate.toLocaleDateString()} (${diffDays} day${diffDays !== 1 ? 's' : ''})`
+                  })()}
                 </Typography>
-                {book.checked_out_date && (
-                  <Typography variant="caption" color="text.secondary">
-                    Since: {new Date(book.checked_out_date).toLocaleDateString()}
-                  </Typography>
-                )}
               </Box>
             )}
           </CardContent>
@@ -193,6 +197,7 @@ export default function BookGrid({
               book={book}
               userRole={userRole}
               currentUserEmail={currentUserEmail}
+              currentUserId={currentUserId}
               shelves={shelves}
               pendingRemovalRequests={pendingRemovalRequests}
               viewMode="card"

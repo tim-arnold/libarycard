@@ -226,6 +226,7 @@ export default function BookLibrary() {
   const [locationFilter, setLocationFilter] = useState('')
   const [shelves, setShelves] = useState<Shelf[]>([])
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null)
   const [allLocations, setAllLocations] = useState<Location[]>([])
   const [pendingRemovalRequests, setPendingRemovalRequests] = useState<Record<string, number>>({})
@@ -313,7 +314,7 @@ export default function BookLibrary() {
   const loadUserData = async () => {
     if (!session?.user?.email) return
     
-    // Load user role first
+    // Load user role and ID first
     let currentUserRole = 'user'
     try {
       const response = await fetch('/api/profile')
@@ -321,10 +322,12 @@ export default function BookLibrary() {
         const data = await response.json()
         currentUserRole = data.user_role || 'user'
         setUserRole(currentUserRole)
+        setCurrentUserId(data.id || null)
       }
     } catch (error) {
-      console.error('Failed to fetch user role:', error)
+      console.error('Failed to fetch user profile:', error)
       setUserRole('user')
+      setCurrentUserId(null)
     }
 
     // Load books
@@ -1230,6 +1233,7 @@ export default function BookLibrary() {
                       books={location.books}
                       userRole={userRole}
                       currentUserEmail={session?.user?.email || null}
+                      currentUserId={currentUserId}
                       shelves={shelves}
                       pendingRemovalRequests={pendingRemovalRequests}
                       onCheckout={checkoutBook}
@@ -1251,6 +1255,7 @@ export default function BookLibrary() {
                 books={getPaginatedBooks(filteredBooks)}
                 userRole={userRole}
                 currentUserEmail={session?.user?.email || null}
+                currentUserId={currentUserId}
                 shelves={shelves}
                 pendingRemovalRequests={pendingRemovalRequests}
                 onCheckout={checkoutBook}
@@ -1299,6 +1304,7 @@ export default function BookLibrary() {
                       books={location.books}
                       userRole={userRole}
                       currentUserEmail={session?.user?.email || null}
+                      currentUserId={currentUserId}
                       shelves={shelves}
                       pendingRemovalRequests={pendingRemovalRequests}
                       onCheckout={checkoutBook}
@@ -1320,6 +1326,7 @@ export default function BookLibrary() {
                 books={getPaginatedBooks(filteredBooks)}
                 userRole={userRole}
                 currentUserEmail={session?.user?.email || null}
+                currentUserId={currentUserId}
                 shelves={shelves}
                 pendingRemovalRequests={pendingRemovalRequests}
                 onCheckout={checkoutBook}

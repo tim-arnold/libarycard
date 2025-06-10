@@ -15,6 +15,7 @@ export interface BookActionsProps {
   book: EnhancedBook
   userRole: string | null
   currentUserEmail: string | null
+  currentUserId: string | null
   shelves: Array<{ id: number; name: string; location_id: number; created_at: string }>
   pendingRemovalRequests: Record<string, number>
   viewMode: 'card' | 'list'
@@ -30,6 +31,7 @@ export default function BookActions({
   book,
   userRole,
   currentUserEmail,
+  currentUserId,
   shelves,
   pendingRemovalRequests,
   viewMode,
@@ -45,7 +47,7 @@ export default function BookActions({
   const hasMultipleShelves = shelves.length > 1
   
   // Only show return button if user checked out the book OR user is admin
-  const canReturn = isCheckedOut && (userRole === 'admin' || book.checked_out_by === currentUserEmail)
+  const canReturn = isCheckedOut && (userRole === 'admin' || book.checked_out_by === currentUserId)
   
   // Don't show relocate button if book is checked out
   const canRelocate = !isCheckedOut && hasMultipleShelves

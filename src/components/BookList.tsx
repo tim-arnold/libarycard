@@ -16,6 +16,7 @@ interface BookListProps {
   books: EnhancedBook[]
   userRole: string | null
   currentUserEmail: string | null
+  currentUserId: string | null
   shelves: Array<{ id: number; name: string; location_id: number; created_at: string }>
   pendingRemovalRequests: Record<string, number>
   onCheckout: (bookId: string, bookTitle: string) => Promise<void>
@@ -33,6 +34,7 @@ export default function BookList({
   books,
   userRole,
   currentUserEmail,
+  currentUserId,
   shelves,
   pendingRemovalRequests,
   onCheckout,
@@ -265,23 +267,24 @@ export default function BookList({
                 <Box sx={{ 
                   mt: 1.5, 
                   p: { xs: 1, sm: 1.5 }, 
-                  backgroundColor: 'warning.light', 
                   borderRadius: 1,
-                  border: '1px solid',
+                  border: 1,
                   borderColor: 'warning.main'
                 }}>
                   <Typography 
                     variant="body2" 
                     color="text.primary"
-                    sx={{ fontWeight: 500, mb: 0.5, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+                    sx={{ fontWeight: 500, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
                   >
-                    📖 Checked out by {book.checked_out_by_name || 'Unknown'}
+                    📖 Checked out by {book.checked_out_by === currentUserId ? 'you' : (book.checked_out_by_name || 'Unknown')}
+                    {book.checked_out_date && (() => {
+                      const checkoutDate = new Date(book.checked_out_date)
+                      const today = new Date()
+                      const diffTime = Math.abs(today.getTime() - checkoutDate.getTime())
+                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                      return ` since ${checkoutDate.toLocaleDateString()} (${diffDays} day${diffDays !== 1 ? 's' : ''})`
+                    })()}
                   </Typography>
-                  {book.checked_out_date && (
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
-                      Since: {new Date(book.checked_out_date).toLocaleDateString()}
-                    </Typography>
-                  )}
                 </Box>
               )}
 
@@ -300,6 +303,7 @@ export default function BookList({
             book={book}
             userRole={userRole}
             currentUserEmail={currentUserEmail}
+            currentUserId={currentUserId}
             shelves={shelves}
             pendingRemovalRequests={pendingRemovalRequests}
             viewMode="list"
