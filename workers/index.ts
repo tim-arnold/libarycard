@@ -500,8 +500,12 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
         passwordHash
       ).run();
 
-      // Notify all admins about the signup request
-      await notifyAdminsOfSignupRequest(env, email, first_name, last_name);
+      // Notify all admins about the signup request (don't let email failures break the approval flow)
+      try {
+        await notifyAdminsOfSignupRequest(env, email, first_name, last_name);
+      } catch (emailError) {
+        console.error('Failed to send admin notification emails, but signup request was created:', emailError);
+      }
 
       return new Response(JSON.stringify({ 
         message: 'Your signup request has been submitted for admin approval. You will receive an email notification once your request is reviewed.',
