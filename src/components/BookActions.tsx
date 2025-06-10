@@ -14,7 +14,6 @@ import type { EnhancedBook } from '@/lib/types'
 export interface BookActionsProps {
   book: EnhancedBook
   userRole: string | null
-  currentUserEmail: string | null
   currentUserId: string | null
   shelves: Array<{ id: number; name: string; location_id: number; created_at: string }>
   pendingRemovalRequests: Record<string, number>
@@ -30,7 +29,6 @@ export interface BookActionsProps {
 export default function BookActions({
   book,
   userRole,
-  currentUserEmail,
   currentUserId,
   shelves,
   pendingRemovalRequests,

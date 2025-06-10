@@ -35,7 +35,6 @@ function SignInForm() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [invitationToken, setInvitationToken] = useState<string | null>(null)
-  const [invitationLoading, setInvitationLoading] = useState(false)
   const [invitationDetails, setInvitationDetails] = useState<{invited_email: string, location_name: string} | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -97,7 +96,6 @@ function SignInForm() {
   }
 
   const handleInvitationAcceptance = async (token: string) => {
-    setInvitationLoading(true)
     setError('')
     
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
@@ -106,7 +104,6 @@ function SignInForm() {
       const session = await getSession()
       if (!session?.user?.email) {
         setError('Please sign in first to accept the invitation')
-        setInvitationLoading(false)
         return
       }
 
@@ -138,8 +135,6 @@ function SignInForm() {
     } catch (error) {
       console.error('Invitation acceptance error:', error)
       setError('Failed to accept invitation. Please try again.')
-    } finally {
-      setInvitationLoading(false)
     }
   }
 
@@ -392,7 +387,7 @@ function SignInForm() {
             </Button>
 
             <Typography variant="body2" color="text.secondary">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link
                 component="button"
                 onClick={() => setShowRegisterForm(true)}

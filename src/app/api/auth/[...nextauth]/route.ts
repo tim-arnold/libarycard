@@ -1,7 +1,6 @@
 import NextAuth from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import bcrypt from 'bcryptjs'
 
 declare module 'next-auth' {
   interface Session {
@@ -76,15 +75,15 @@ const handler = NextAuth({
       if (account && user) {
         token.accessToken = account.access_token
         token.userId = user.id
-        token.authProvider = (user as any).authProvider || 'google'
+        token.authProvider = (user as { authProvider?: string }).authProvider || 'google'
       }
       return token
     },
     async session({ session, token }) {
       if (session.user && token.userId) {
         // Store user in database on first login (Google OAuth only)
-        if (token.authProvider === 'google') {
-          await storeUserIfNotExists(session.user, token.userId as string)
+        if (token.authProvider === 'google' && session.user.email) {
+          await storeUserIfNotExists(session.user as { email: string; name?: string | null }, token.userId as string)
         }
         
         session.user.id = token.userId as string
@@ -99,7 +98,7 @@ const handler = NextAuth({
   },
 })
 
-async function storeUserIfNotExists(user: any, userId: string) {
+async function storeUserIfNotExists(user: { email: string; name?: string | null }, userId: string) {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
     

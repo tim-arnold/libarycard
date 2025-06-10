@@ -83,11 +83,11 @@ export async function POST(request: NextRequest) {
         try {
           const error = JSON.parse(responseText)
           errorMessage = error.error || 'Unknown error from API'
-        } catch (jsonError) {
+        } catch {
           // If not JSON, use the raw text
           errorMessage = `API error: ${responseText}`
         }
-      } catch (textError) {
+      } catch {
         errorMessage = `API returned ${response.status}: ${response.statusText}`
       }
       return NextResponse.json({ error: errorMessage }, { status: response.status })

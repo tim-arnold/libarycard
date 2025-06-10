@@ -109,7 +109,7 @@ export default function ProfilePage() {
       } else {
         setError('Failed to load profile data')
       }
-    } catch (err) {
+    } catch {
       setError('Failed to load profile data')
     } finally {
       setLoading(false)
@@ -130,8 +130,8 @@ export default function ProfilePage() {
         const locationsData = await response.json()
         setLocations(locationsData)
       }
-    } catch (err) {
-      console.error('Failed to load locations:', err)
+    } catch (error) {
+      console.error('Failed to load locations:', error)
     }
   }
 
@@ -204,7 +204,11 @@ export default function ProfilePage() {
     setSuccess('')
 
     try {
-      const updateData: any = {
+      const updateData: {
+        first_name: string
+        last_name: string
+        email?: string
+      } = {
         first_name: formData.first_name,
         last_name: formData.last_name
       }
@@ -229,7 +233,7 @@ export default function ProfilePage() {
         const errorData = await response.json()
         setError(errorData.error || 'Failed to update profile')
       }
-    } catch (err) {
+    } catch {
       setError('Failed to update profile')
     } finally {
       setSaving(false)
@@ -348,7 +352,7 @@ export default function ProfilePage() {
         {locations.length === 0 ? (
           <Paper variant="outlined" sx={{ p: 3, textAlign: 'center', backgroundColor: 'grey.50' }}>
             <Typography color="text.secondary">
-              You don't have access to any library locations yet. Contact an administrator to get invited.
+              You don&apos;t have access to any library locations yet. Contact an administrator to get invited.
             </Typography>
           </Paper>
         ) : (
@@ -394,7 +398,7 @@ export default function ProfilePage() {
             {locations.length === 1 && profile?.user_role !== 'admin' && (
               <Alert severity="warning" sx={{ mt: 2 }}>
                 <Typography variant="body2">
-                  You can't leave your last location. You need access to at least one library.
+                  You can&apos;t leave your last location. You need access to at least one library.
                 </Typography>
               </Alert>
             )}
