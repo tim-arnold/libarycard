@@ -73,20 +73,6 @@ function SignInForm() {
     }
   }, [router, searchParams])
 
-  const checkUserExists = async (email: string) => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
-    
-    try {
-      const response = await fetch(`${API_BASE}/api/users/check?email=${encodeURIComponent(email)}`)
-      if (response.ok) {
-        const data = await response.json()
-        return data.exists
-      }
-    } catch (error) {
-      console.error('Failed to check user existence:', error)
-    }
-    return false
-  }
 
   const fetchInvitationDetails = async (token: string) => {
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
@@ -99,16 +85,8 @@ function SignInForm() {
         setInvitationDetails(data)
         setEmail(data.invited_email)
         
-        // Check if user already exists
-        const userExists = await checkUserExists(data.invited_email)
-        
-        if (userExists) {
-          setMessage(`You have been invited to join "${data.location_name}"! Please sign in with your existing password to accept the invitation.`)
-          setShowEmailForm(true)
-        } else {
-          setMessage(`You have been invited to join "${data.location_name}"! Please create your account to get started.`)
-          setShowRegisterForm(true)
-        }
+        // Show invitation message but keep all sign-in options available
+        setMessage(`You have been invited to join "${data.location_name}"! Sign in with Google or create an account to accept the invitation.`)
       } else {
         setError('Invalid or expired invitation link')
       }
