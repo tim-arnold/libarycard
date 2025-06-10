@@ -15,6 +15,7 @@ import BookActions from './BookActions'
 interface BookListProps {
   books: EnhancedBook[]
   userRole: string | null
+  currentUserEmail: string | null
   shelves: Array<{ id: number; name: string; location_id: number; created_at: string }>
   pendingRemovalRequests: Record<string, number>
   onCheckout: (bookId: string, bookTitle: string) => Promise<void>
@@ -31,6 +32,7 @@ interface BookListProps {
 export default function BookList({
   books,
   userRole,
+  currentUserEmail,
   shelves,
   pendingRemovalRequests,
   onCheckout,
@@ -297,6 +299,7 @@ export default function BookList({
           <BookActions
             book={book}
             userRole={userRole}
+            currentUserEmail={currentUserEmail}
             shelves={shelves}
             pendingRemovalRequests={pendingRemovalRequests}
             viewMode="list"

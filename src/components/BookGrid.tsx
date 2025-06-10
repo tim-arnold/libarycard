@@ -16,6 +16,7 @@ import BookActions from './BookActions'
 interface BookGridProps {
   books: EnhancedBook[]
   userRole: string | null
+  currentUserEmail: string | null
   shelves: Array<{ id: number; name: string; location_id: number; created_at: string }>
   pendingRemovalRequests: Record<string, number>
   onCheckout: (bookId: string, bookTitle: string) => Promise<void>
@@ -32,6 +33,7 @@ interface BookGridProps {
 export default function BookGrid({
   books,
   userRole,
+  currentUserEmail,
   shelves,
   pendingRemovalRequests,
   onCheckout,
@@ -190,6 +192,7 @@ export default function BookGrid({
             <BookActions
               book={book}
               userRole={userRole}
+              currentUserEmail={currentUserEmail}
               shelves={shelves}
               pendingRemovalRequests={pendingRemovalRequests}
               viewMode="card"

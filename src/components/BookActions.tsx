@@ -14,6 +14,7 @@ import type { EnhancedBook } from '@/lib/types'
 export interface BookActionsProps {
   book: EnhancedBook
   userRole: string | null
+  currentUserEmail: string | null
   shelves: Array<{ id: number; name: string; location_id: number; created_at: string }>
   pendingRemovalRequests: Record<string, number>
   viewMode: 'card' | 'list'
@@ -28,6 +29,7 @@ export interface BookActionsProps {
 export default function BookActions({
   book,
   userRole,
+  currentUserEmail,
   shelves,
   pendingRemovalRequests,
   viewMode,
@@ -41,6 +43,12 @@ export default function BookActions({
   const isCheckedOut = book.checked_out_by && book.checked_out_by !== ''
   const hasPendingRemovalRequest = pendingRemovalRequests[book.id]
   const hasMultipleShelves = shelves.length > 1
+  
+  // Only show return button if user checked out the book OR user is admin
+  const canReturn = isCheckedOut && (userRole === 'admin' || book.checked_out_by === currentUserEmail)
+  
+  // Don't show relocate button if book is checked out
+  const canRelocate = !isCheckedOut && hasMultipleShelves
 
   if (viewMode === 'list') {
     return (
@@ -58,7 +66,7 @@ export default function BookActions({
                 >
                   Check Out
                 </Button>
-              ) : (
+              ) : canReturn ? (
                 <Button
                   size="small"
                   variant="outlined"
@@ -68,7 +76,7 @@ export default function BookActions({
                 >
                   Return
                 </Button>
-              )}
+              ) : null}
             </>
           )}
         </Box>
@@ -86,7 +94,7 @@ export default function BookActions({
             </Button>
           ) : (
             <>
-              {hasMultipleShelves && (
+              {canRelocate && (
                 <Button
                   size="small"
                   variant="outlined"
@@ -149,7 +157,7 @@ export default function BookActions({
               >
                 Check Out
               </Button>
-            ) : (
+            ) : canReturn ? (
               <Button
                 size="small"
                 variant="outlined"
@@ -159,9 +167,9 @@ export default function BookActions({
               >
                 Return
               </Button>
-            )}
+            ) : null}
             
-            {hasMultipleShelves && (
+            {canRelocate && (
               <Button
                 size="small"
                 variant="outlined"
