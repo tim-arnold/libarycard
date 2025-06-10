@@ -330,18 +330,20 @@ async function isUserAdmin(userId: string, env: Env): Promise<boolean> {
 
 // User functions
 async function createOrUpdateUser(request: Request, env: Env, corsHeaders: Record<string, string>) {
-  const user: User = await request.json();
+  const user: any = await request.json();
   
   const stmt = env.DB.prepare(`
-    INSERT OR REPLACE INTO users (id, email, first_name, last_name, updated_at)
-    VALUES (?, ?, ?, ?, datetime('now'))
+    INSERT OR REPLACE INTO users (id, email, first_name, last_name, auth_provider, email_verified, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
   `);
 
   await stmt.bind(
     user.id,
     user.email,
     user.first_name || null,
-    user.last_name || null
+    user.last_name || null,
+    user.auth_provider || 'email',
+    user.email_verified ? 1 : 0
   ).run();
 
   return new Response(JSON.stringify({ success: true }), {
