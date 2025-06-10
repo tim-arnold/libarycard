@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import {
   Container,
@@ -253,22 +253,11 @@ export default function BookLibrary() {
     }
   }, [session])
 
-  // Load saved view mode and sort settings from localStorage
+  // Load saved view mode from localStorage
   useEffect(() => {
     const savedViewMode = localStorage.getItem('library-view-mode') as 'card' | 'list'
     if (savedViewMode && (savedViewMode === 'card' || savedViewMode === 'list')) {
       setViewMode(savedViewMode)
-    }
-    
-    const savedSortField = localStorage.getItem('library-sort-field') as SortField
-    const savedSortDirection = localStorage.getItem('library-sort-direction') as SortDirection
-    
-    if (savedSortField && ['title', 'author', 'publishedDate', 'dateAdded'].includes(savedSortField)) {
-      setSortField(savedSortField)
-    }
-    
-    if (savedSortDirection && ['asc', 'desc'].includes(savedSortDirection)) {
-      setSortDirection(savedSortDirection)
     }
   }, [])
 
@@ -279,15 +268,13 @@ export default function BookLibrary() {
 
   const handleSortFieldChange = (newSortField: SortField) => {
     setSortField(newSortField)
-    localStorage.setItem('library-sort-field', newSortField)
   }
 
   const handleSortDirectionChange = (newSortDirection: SortDirection) => {
     setSortDirection(newSortDirection)
-    localStorage.setItem('library-sort-direction', newSortDirection)
   }
 
-  // Pagination functions
+  // Pagination functions (for admin view only now)
   const getPaginatedBooks = (books: EnhancedBook[]) => {
     const startIndex = (currentPage - 1) * booksPerPage
     const endIndex = startIndex + booksPerPage
@@ -303,6 +290,13 @@ export default function BookLibrary() {
     // Scroll to top when changing pages
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+
+  // Memoized paginated books to prevent stale renders
+  const paginatedBooks = useMemo(() => {
+    const startIndex = (currentPage - 1) * booksPerPage
+    const endIndex = startIndex + booksPerPage
+    return filteredBooks.slice(startIndex, endIndex)
+  }, [filteredBooks, currentPage, booksPerPage])
 
   // Get paginated books for current view
   const getPaginatedBooksForView = () => {
@@ -335,7 +329,7 @@ export default function BookLibrary() {
       return Array.from(locationMap.values()).filter(location => location.books.length > 0)
     } else {
       // For regular users, simple pagination
-      return getPaginatedBooks(filteredBooks)
+      return paginatedBooks
     }
   }
 
@@ -363,7 +357,6 @@ export default function BookLibrary() {
     // Load books
     const savedBooks = await getBooks()
     setBooks(savedBooks)
-    setFilteredBooks(savedBooks)
 
     // Load locations and shelves
     try {
@@ -670,8 +663,8 @@ export default function BookLibrary() {
       })
     }
 
-    // Apply sorting
-    filtered = filtered.sort((a, b) => {
+    // Apply sorting (create new array to ensure React detects the change)
+    filtered = [...filtered].sort((a, b) => {
       let comparison = 0
       
       switch (sortField) {
@@ -1360,7 +1353,7 @@ export default function BookLibrary() {
             ) : (
               // Regular user list view (paginated)
               <BookList
-                books={getPaginatedBooks(filteredBooks)}
+                books={paginatedBooks}
                 userRole={userRole}
                 currentUserId={currentUserId}
                 shelves={shelves}
@@ -1429,7 +1422,7 @@ export default function BookLibrary() {
             ) : (
               // Regular user card view (paginated)
               <BookGrid
-                books={getPaginatedBooks(filteredBooks)}
+                books={paginatedBooks}
                 userRole={userRole}
                 currentUserId={currentUserId}
                 shelves={shelves}

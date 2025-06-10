@@ -149,7 +149,7 @@ export default function BookFilters({
         <IconButton
           onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
           size="small"
-          title={sortDirection === 'asc' ? 'Currently ascending - click for descending (Z-A, 9-1, newest first)' : 'Currently descending - click for ascending (A-Z, 1-9, oldest first)'}
+          title={sortDirection === 'asc' ? 'Currently A-Z (ascending) - click to reverse' : 'Currently Z-A (descending) - click to reverse'}
           sx={{ 
             border: 1, 
             borderColor: 'divider',
