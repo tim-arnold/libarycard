@@ -67,6 +67,9 @@ This file tracks active development tasks and future enhancements for the Libary
   - [ ] Add configurable notification preferences for admin users
   - [ ] Expand notification system with more detailed reporting features
 
+- [ ] **General Enhancements**
+  - [ ] Add popup "We value your privacy" cookie notice similar to what is seen on https://strongindustries.net/
+
 ### Low Priority - Future Enhancements
 
 - [ ] **Additional Admin Features**
