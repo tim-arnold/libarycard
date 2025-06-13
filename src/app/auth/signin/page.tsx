@@ -230,6 +230,7 @@ function SignInForm() {
           password,
           firstName,
           lastName,
+          invitationToken,
         }),
       })
 

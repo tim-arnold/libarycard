@@ -375,11 +375,12 @@ async function createOrUpdateUser(request: Request, env: Env, corsHeaders: Recor
 
 // Authentication functions
 async function registerUser(request: Request, env: Env, corsHeaders: Record<string, string>) {
-  const { email, password, first_name, last_name }: {
+  const { email, password, first_name, last_name, invitation_token }: {
     email: string;
     password: string;
     first_name: string;
     last_name?: string;
+    invitation_token?: string;
   } = await request.json();
   
   // Validate password strength
@@ -422,12 +423,25 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
   }
   
   // Check if user has a valid invitation
-  const invitation = await env.DB.prepare(`
-    SELECT li.id, li.location_id, l.name as location_name
-    FROM location_invitations li
-    LEFT JOIN locations l ON li.location_id = l.id
-    WHERE li.invited_email = ? AND li.used_at IS NULL AND li.expires_at > datetime('now')
-  `).bind(email).first();
+  let invitation = null;
+  
+  if (invitation_token) {
+    // If invitation token is provided, look up by token
+    invitation = await env.DB.prepare(`
+      SELECT li.id, li.location_id, l.name as location_name
+      FROM location_invitations li
+      LEFT JOIN locations l ON li.location_id = l.id
+      WHERE li.invitation_token = ? AND li.used_at IS NULL AND li.expires_at > datetime('now')
+    `).bind(invitation_token).first();
+  } else {
+    // Fall back to email lookup
+    invitation = await env.DB.prepare(`
+      SELECT li.id, li.location_id, l.name as location_name
+      FROM location_invitations li
+      LEFT JOIN locations l ON li.location_id = l.id
+      WHERE li.invited_email = ? AND li.used_at IS NULL AND li.expires_at > datetime('now')
+    `).bind(email).first();
+  }
 
   // Hash password for storage
   const passwordHash = await hashPassword(password);

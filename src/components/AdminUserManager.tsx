@@ -593,7 +593,8 @@ export default function AdminUserManager() {
           message: `Invitation successfully sent to ${inviteEmail}`,
           variant: 'success'
         })
-        // Reload invitations to get updated data with location names
+        // Force refresh invitations list
+        setInvitations([]) // Clear first to force re-render
         await loadInvitations()
       } else {
         const errorData = await response.json()
@@ -678,6 +679,7 @@ export default function AdminUserManager() {
         message: `Successfully sent ${successCount} invitation(s)!`,
         variant: 'success'
       })
+      setInvitations([]) // Clear first to force re-render
       await loadInvitations()
     } else {
       await alert({
@@ -687,6 +689,7 @@ export default function AdminUserManager() {
       })
       // Don't close dialog so user can see results and retry failed ones
       if (successCount > 0) {
+        setInvitations([]) // Clear first to force re-render
         await loadInvitations()
       }
     }
@@ -717,7 +720,8 @@ export default function AdminUserManager() {
             message: `Invitation for ${invitedEmail} has been successfully revoked.`,
             variant: 'success'
           })
-          // Reload invitations to get updated data
+          // Force refresh invitations list
+          setInvitations([]) // Clear first to force re-render
           await loadInvitations()
         } else {
           const errorData = await response.json()

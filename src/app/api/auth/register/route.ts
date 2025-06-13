@@ -29,7 +29,7 @@ function validatePasswordStrength(password: string): { isValid: boolean; error?:
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, firstName, lastName } = await request.json()
+    const { email, password, firstName, lastName, invitationToken } = await request.json()
 
     if (!email || !password || !firstName) {
       return NextResponse.json({ 
@@ -66,7 +66,8 @@ export async function POST(request: NextRequest) {
         email, 
         password, 
         first_name: firstName, 
-        last_name: lastName || '' 
+        last_name: lastName || '',
+        invitation_token: invitationToken
       }),
     })
 
