@@ -592,7 +592,7 @@ export default function AdminUserManager() {
           variant: 'success'
         })
         // Reload invitations to get updated data with location names
-        loadInvitations()
+        await loadInvitations()
       } else {
         const errorData = await response.json()
         await alert({
@@ -676,7 +676,7 @@ export default function AdminUserManager() {
         message: `Successfully sent ${successCount} invitation(s)!`,
         variant: 'success'
       })
-      loadInvitations()
+      await loadInvitations()
     } else {
       await alert({
         title: 'Bulk Invitation Results',
@@ -685,7 +685,7 @@ export default function AdminUserManager() {
       })
       // Don't close dialog so user can see results and retry failed ones
       if (successCount > 0) {
-        loadInvitations()
+        await loadInvitations()
       }
     }
   }
@@ -716,7 +716,7 @@ export default function AdminUserManager() {
             variant: 'success'
           })
           // Reload invitations to get updated data
-          loadInvitations()
+          await loadInvitations()
         } else {
           const errorData = await response.json()
           throw new Error(errorData.error || 'Failed to revoke invitation')
