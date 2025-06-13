@@ -441,9 +441,8 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
     // Generate user ID
     const userId = generateUUID();
     
-    // Always require email verification in production
-    const isProduction = env.ENVIRONMENT === 'production';
-    const emailVerified = false; // Always require verification for new accounts
+    // For invited users, skip email verification since they were already verified by receiving the invitation
+    const emailVerified = true; // Invited users are pre-verified
     
     // Create user
     const stmt = env.DB.prepare(`
@@ -466,17 +465,15 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
       verificationExpires
     ).run();
 
-    // Always send verification email for new accounts
-    await sendVerificationEmail(env, email, first_name, verificationToken);
+    // No verification email needed for invited users since they're pre-verified
+    // await sendVerificationEmail(env, email, first_name, verificationToken);
 
-    const message = isProduction 
-      ? `Registration successful! You have been invited to join "${(invitation as any).location_name}". Please check your email to verify your account before signing in.`
-      : `Registration successful! You have been invited to join "${(invitation as any).location_name}". Please check your email to verify your account. (Development mode: email simulation)`;
+    const message = `Registration successful! You have been invited to join "${(invitation as any).location_name}". You can now sign in with your new account.`;
 
     return new Response(JSON.stringify({ 
       message,
       userId,
-      requires_verification: true,
+      requires_verification: false,
       has_invitation: true,
       location_name: (invitation as any).location_name
     }), {
