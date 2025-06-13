@@ -70,6 +70,18 @@ This file tracks active development tasks and future enhancements for the Libary
 
 ### High Priority - Next Session Focus
 
+- [ ] **Admin Tab Consolidation & UI Simplification**
+  - [ ] Remove redundant main tabs (Locations, Requests) for admin users that duplicate admin dashboard functionality
+  - [ ] Simplify admin main navigation to: Libraries, Add Books, Admin Dashboard
+  - [ ] Update session storage handling for removed tabs
+  - [ ] Ensure all location/request management remains accessible through centralized admin dashboard
+
+- [ ] **User Invitation System Refactoring** (See [detailed plan](../development/user-invitation-refactor-plan.md))
+  - [ ] **Phase 1**: Move invitation management from LocationManager to AdminUserManager component
+  - [ ] **Phase 2**: Implement global invitation overview across all locations with filtering and search
+  - [ ] **Phase 3**: Add enhanced features (bulk invitations, location selection, improved status tracking)
+  - [ ] **Phase 4**: Create new API endpoints for admin-level invitation management and analytics
+
 - [ ] **Future Admin Enhancements**
   - [ ] Implement automated email notifications for admin actions
   - [ ] Add configurable notification preferences for admin users

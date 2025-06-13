@@ -21,8 +21,6 @@ import {
 import {
   QrCodeScanner,
   LibraryBooks,
-  LocationOn,
-  Assignment,
   AccountCircle,
   ExitToApp,
   Build,
@@ -33,8 +31,6 @@ import {
 } from '@mui/icons-material'
 import AddBooks from '@/components/AddBooks'
 import BookLibrary from '@/components/BookLibrary'
-import LocationManager from '@/components/LocationManager'
-import RemovalRequestManager from '@/components/RemovalRequestManager'
 import AdminDashboard from '@/components/AdminDashboard'
 import Footer from '@/components/Footer'
 import HelpModal from '@/components/HelpModal'
@@ -45,10 +41,18 @@ export default function Home() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { isDarkMode, toggleTheme } = useTheme()
-  const [activeTab, setActiveTab] = useState<'scan' | 'library' | 'locations' | 'requests' | 'admin'>(() => {
+  const [activeTab, setActiveTab] = useState<'scan' | 'library' | 'admin'>(() => {
     // Try to restore the tab from current session
-    const savedTab = getSessionItem('activeMainTab') as 'scan' | 'library' | 'locations' | 'requests' | 'admin'
-    return savedTab || 'library'
+    const savedTab = getSessionItem('activeMainTab') as string
+    // Handle legacy tabs that no longer exist for admins (locations, requests)
+    if (savedTab === 'locations' || savedTab === 'requests') {
+      return 'admin'
+    }
+    // Return valid tab or default
+    if (savedTab === 'scan' || savedTab === 'library' || savedTab === 'admin') {
+      return savedTab
+    }
+    return 'library'
   })
   const [userRole, setUserRole] = useState<string | null>(null)
   const [userFirstName, setUserFirstName] = useState<string | null>(null)
@@ -272,22 +276,6 @@ export default function Home() {
             />
             {userRole === 'admin' && (
               <Tab 
-                value="locations" 
-                label="Locations"
-                icon={<LocationOn />}
-                iconPosition="start"
-              />
-            )}
-            {userRole === 'admin' && (
-              <Tab 
-                value="requests" 
-                label="Requests"
-                icon={<Assignment />}
-                iconPosition="start"
-              />
-            )}
-            {userRole === 'admin' && (
-              <Tab 
                 value="admin" 
                 label="Admin Dashboard"
                 icon={<Dashboard />}
@@ -297,8 +285,6 @@ export default function Home() {
           </Tabs>
         </Paper>
 
-        {activeTab === 'locations' && <LocationManager />}
-        {activeTab === 'requests' && <RemovalRequestManager />}
         {activeTab === 'admin' && <AdminDashboard />}
         {activeTab === 'scan' && <AddBooks />}
         {activeTab === 'library' && <BookLibrary />}
