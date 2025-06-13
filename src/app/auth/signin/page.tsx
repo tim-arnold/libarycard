@@ -377,24 +377,47 @@ function SignInForm() {
             </Divider>
 
             <Button
-              onClick={() => setShowEmailForm(true)}
+              onClick={() => {
+                if (invitationToken && invitationDetails) {
+                  // For invited users, go directly to registration
+                  setShowRegisterForm(true)
+                } else {
+                  // For existing users, show email signin
+                  setShowEmailForm(true)
+                }
+              }}
               variant="outlined"
               fullWidth
               startIcon={<Email />}
               sx={{ py: 1.5, mb: 2 }}
             >
-              Sign in with Email
+              {invitationToken && invitationDetails ? 'Create Account with Email' : 'Sign in with Email'}
             </Button>
 
             <Typography variant="body2" color="text.secondary">
-              Don&apos;t have an account?{' '}
-              <Link
-                component="button"
-                onClick={() => setShowRegisterForm(true)}
-                sx={{ cursor: 'pointer' }}
-              >
-                Create one here
-              </Link>
+              {invitationToken && invitationDetails ? (
+                <>
+                  Already have an account?{' '}
+                  <Link
+                    component="button"
+                    onClick={() => setShowEmailForm(true)}
+                    sx={{ cursor: 'pointer' }}
+                  >
+                    Sign in here
+                  </Link>
+                </>
+              ) : (
+                <>
+                  Don&apos;t have an account?{' '}
+                  <Link
+                    component="button"
+                    onClick={() => setShowRegisterForm(true)}
+                    sx={{ cursor: 'pointer' }}
+                  >
+                    Create one here
+                  </Link>
+                </>
+              )}
             </Typography>
           </Box>
         )}
