@@ -73,7 +73,7 @@ This file tracks active development tasks and future enhancements for the Libary
 ### Low Priority - Future Enhancements
 
 - [ ] **Additional Admin Features**
-  - [ ] User permission granularity (allow users to delete books, add shelves, etc.)
+  - [ ] User permission granularity (allow users to delete books, add/delete shelves, etc.)
   - [ ] Add bulk actions for admin users (bulk book approval, multi-user invitations, etc.)
 
 - [ ] **Enhanced Book Features**
