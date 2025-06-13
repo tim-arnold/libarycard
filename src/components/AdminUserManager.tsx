@@ -107,11 +107,18 @@ export default function AdminUserManager() {
   // Invitation management state
   const [showInvitations, setShowInvitations] = useState(false)
   const [invitations, setInvitations] = useState<LocationInvitation[]>([])
+  const [invitationSearchTerm, setInvitationSearchTerm] = useState('')
   const [invitationDialogOpen, setInvitationDialogOpen] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null)
   const [availableLocations, setAvailableLocations] = useState<Location[]>([])
   const [invitationsLoading, setInvitationsLoading] = useState(false)
+  
+  // Bulk invitation state
+  const [bulkInviteMode, setBulkInviteMode] = useState(false)
+  const [bulkEmails, setBulkEmails] = useState('')
+  const [bulkInviteResults, setBulkInviteResults] = useState<{email: string, success: boolean, error?: string}[]>([])
+  const [bulkInviteLoading, setBulkInviteLoading] = useState(false)
 
   useEffect(() => {
     if (session?.user?.email) {
@@ -478,21 +485,50 @@ export default function AdminUserManager() {
     
     try {
       setInvitationsLoading(true)
-      const response = await fetch(`${API_BASE}/api/admin/invitations`, {
+      
+      // First, get all locations the user has access to
+      const locationsResponse = await fetch(`${API_BASE}/api/locations`, {
         headers: {
           'Authorization': `Bearer ${session.user.email}`,
           'Content-Type': 'application/json',
         },
       })
       
-      if (response.ok) {
-        const data = await response.json()
-        setInvitations(data)
-        setError('')
-      } else {
-        const errorData = await response.json()
-        setError(errorData.error || 'Failed to load invitations')
+      if (!locationsResponse.ok) {
+        throw new Error('Failed to load locations')
       }
+      
+      const locations = await locationsResponse.json()
+      
+      // Then fetch invitations for each location
+      const allInvitations: LocationInvitation[] = []
+      
+      for (const location of locations) {
+        try {
+          const invitationsResponse = await fetch(`${API_BASE}/api/locations/${location.id}/invitations`, {
+            headers: {
+              'Authorization': `Bearer ${session.user.email}`,
+              'Content-Type': 'application/json',
+            },
+          })
+          
+          if (invitationsResponse.ok) {
+            const locationInvitations = await invitationsResponse.json()
+            // Add location name to each invitation
+            const enrichedInvitations = locationInvitations.map((inv: any) => ({
+              ...inv,
+              location_name: location.name
+            }))
+            allInvitations.push(...enrichedInvitations)
+          }
+        } catch (error) {
+          console.error(`Error loading invitations for location ${location.name}:`, error)
+          // Continue with other locations even if one fails
+        }
+      }
+      
+      setInvitations(allInvitations)
+      setError('')
     } catch (error) {
       console.error('Error loading invitations:', error)
       setError('Failed to load invitations')
@@ -523,8 +559,15 @@ export default function AdminUserManager() {
 
   const sendInvitation = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!inviteEmail.trim() || !selectedLocationId) return
+    if (bulkInviteMode) {
+      await sendBulkInvitations()
+    } else {
+      await sendSingleInvitation()
+    }
+  }
 
+  const sendSingleInvitation = async () => {
+    if (!inviteEmail.trim() || !selectedLocationId) return
     if (!session?.user?.email) return
     
     try {
@@ -540,8 +583,6 @@ export default function AdminUserManager() {
       })
 
       if (response.ok) {
-        const newInvitation = await response.json()
-        setInvitations([...invitations, newInvitation])
         setInviteEmail('')
         setSelectedLocationId(null)
         setInvitationDialogOpen(false)
@@ -550,7 +591,7 @@ export default function AdminUserManager() {
           message: `Invitation successfully sent to ${inviteEmail}`,
           variant: 'success'
         })
-        // Reload invitations to get updated data
+        // Reload invitations to get updated data with location names
         loadInvitations()
       } else {
         const errorData = await response.json()
@@ -567,6 +608,85 @@ export default function AdminUserManager() {
         message: 'Failed to send invitation. Please try again.',
         variant: 'error'
       })
+    }
+  }
+
+  const sendBulkInvitations = async () => {
+    if (!bulkEmails.trim() || !selectedLocationId) return
+    if (!session?.user?.email) return
+
+    setBulkInviteLoading(true)
+    setBulkInviteResults([])
+
+    // Parse emails - support comma, semicolon, and newline separation
+    const emailList = bulkEmails
+      .split(/[,;\n]/)
+      .map(email => email.trim())
+      .filter(email => email.length > 0)
+
+    if (emailList.length === 0) {
+      setBulkInviteLoading(false)
+      await alert({
+        title: 'No Emails',
+        message: 'Please enter at least one email address.',
+        variant: 'warning'
+      })
+      return
+    }
+
+    const results: {email: string, success: boolean, error?: string}[] = []
+
+    // Send invitations one by one to get individual results
+    for (const email of emailList) {
+      try {
+        const response = await fetch(`${API_BASE}/api/locations/${selectedLocationId}/invite`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.user.email}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            invited_email: email,
+          }),
+        })
+
+        if (response.ok) {
+          results.push({ email, success: true })
+        } else {
+          const errorData = await response.json()
+          results.push({ email, success: false, error: errorData.error || 'Failed to send' })
+        }
+      } catch (error) {
+        results.push({ email, success: false, error: 'Network error' })
+      }
+    }
+
+    setBulkInviteResults(results)
+    setBulkInviteLoading(false)
+
+    const successCount = results.filter(r => r.success).length
+    const failCount = results.length - successCount
+
+    if (failCount === 0) {
+      setBulkEmails('')
+      setSelectedLocationId(null)
+      setInvitationDialogOpen(false)
+      await alert({
+        title: 'All Invitations Sent',
+        message: `Successfully sent ${successCount} invitation(s)!`,
+        variant: 'success'
+      })
+      loadInvitations()
+    } else {
+      await alert({
+        title: 'Bulk Invitation Results',
+        message: `${successCount} succeeded, ${failCount} failed. See details below.`,
+        variant: successCount > 0 ? 'warning' : 'error'
+      })
+      // Don't close dialog so user can see results and retry failed ones
+      if (successCount > 0) {
+        loadInvitations()
+      }
     }
   }
 
@@ -590,12 +710,13 @@ export default function AdminUserManager() {
         })
 
         if (response.ok) {
-          setInvitations(invitations.filter(inv => inv.id !== invitationId))
           await alert({
             title: 'Invitation Revoked',
             message: `Invitation for ${invitedEmail} has been successfully revoked.`,
             variant: 'success'
           })
+          // Reload invitations to get updated data
+          loadInvitations()
         } else {
           const errorData = await response.json()
           throw new Error(errorData.error || 'Failed to revoke invitation')
@@ -619,6 +740,42 @@ export default function AdminUserManager() {
       day: 'numeric',
     })
   }
+
+  const getInvitationStatus = (invitation: LocationInvitation) => {
+    const now = new Date()
+    const expiresAt = new Date(invitation.expires_at)
+    
+    if (invitation.used_at) {
+      return { status: 'accepted', color: 'success' as const, label: 'Accepted' }
+    } else if (expiresAt < now) {
+      return { status: 'expired', color: 'error' as const, label: 'Expired' }
+    } else {
+      const daysLeft = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      if (daysLeft <= 1) {
+        return { status: 'expiring', color: 'warning' as const, label: 'Expires Soon' }
+      }
+      return { status: 'pending', color: 'info' as const, label: 'Pending' }
+    }
+  }
+
+  const getInvitationAnalytics = () => {
+    const total = invitations.length
+    const accepted = invitations.filter(inv => inv.used_at).length
+    const pending = invitations.filter(inv => !inv.used_at && new Date(inv.expires_at) > new Date()).length
+    const expired = invitations.filter(inv => !inv.used_at && new Date(inv.expires_at) <= new Date()).length
+    
+    return { total, accepted, pending, expired }
+  }
+
+  const filteredInvitations = invitations.filter(invitation => {
+    if (!invitationSearchTerm) return true
+    const searchLower = invitationSearchTerm.toLowerCase()
+    return (
+      invitation.invited_email.toLowerCase().includes(searchLower) ||
+      invitation.location_name?.toLowerCase().includes(searchLower) ||
+      invitation.invited_by_name?.toLowerCase().includes(searchLower)
+    )
+  })
 
   if (loading) {
     return (
@@ -774,6 +931,36 @@ export default function AdminUserManager() {
               </Button>
             </Box>
 
+            {invitations.length > 0 && (
+              <>
+                <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+                  {(() => {
+                    const analytics = getInvitationAnalytics()
+                    return (
+                      <>
+                        <Chip label={`Total: ${analytics.total}`} variant="outlined" />
+                        <Chip label={`Accepted: ${analytics.accepted}`} color="success" variant="outlined" />
+                        <Chip label={`Pending: ${analytics.pending}`} color="info" variant="outlined" />
+                        {analytics.expired > 0 && (
+                          <Chip label={`Expired: ${analytics.expired}`} color="error" variant="outlined" />
+                        )}
+                      </>
+                    )
+                  })()}
+                </Box>
+                <Box sx={{ mb: 2 }}>
+                  <TextField
+                    size="small"
+                    placeholder="Search invitations by email, location, or sender..."
+                    value={invitationSearchTerm}
+                    onChange={(e) => setInvitationSearchTerm(e.target.value)}
+                    fullWidth
+                    sx={{ maxWidth: 400 }}
+                  />
+                </Box>
+              </>
+            )}
+
             {invitationsLoading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
                 <CircularProgress size={32} />
@@ -784,6 +971,10 @@ export default function AdminUserManager() {
             ) : invitations.length === 0 ? (
               <Alert severity="info">
                 No pending invitations found. Send invitations to add new users to locations.
+              </Alert>
+            ) : filteredInvitations.length === 0 ? (
+              <Alert severity="info">
+                No invitations match your search criteria. Try a different search term.
               </Alert>
             ) : (
               <TableContainer>
@@ -800,7 +991,7 @@ export default function AdminUserManager() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {invitations.map((invitation) => (
+                    {filteredInvitations.map((invitation) => (
                       <TableRow key={invitation.id} hover>
                         <TableCell>
                           <Typography variant="body2" fontWeight="medium">
@@ -828,23 +1019,33 @@ export default function AdminUserManager() {
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          <Chip
-                            label={invitation.used_at ? "Accepted" : "Pending"}
-                            color={invitation.used_at ? "success" : "warning"}
-                            size="small"
-                          />
+                          {(() => {
+                            const statusInfo = getInvitationStatus(invitation)
+                            return (
+                              <Chip
+                                label={statusInfo.label}
+                                color={statusInfo.color}
+                                size="small"
+                              />
+                            )
+                          })()}
                         </TableCell>
                         <TableCell align="right">
-                          {!invitation.used_at && (
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => revokeInvitation(invitation.id, invitation.invited_email)}
-                              title="Revoke invitation"
-                            >
-                              <Cancel />
-                            </IconButton>
-                          )}
+                          {(() => {
+                            const statusInfo = getInvitationStatus(invitation)
+                            const canRevoke = statusInfo.status === 'pending' || statusInfo.status === 'expiring'
+                            
+                            return canRevoke ? (
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => revokeInvitation(invitation.id, invitation.invited_email)}
+                                title="Revoke invitation"
+                              >
+                                <Cancel />
+                              </IconButton>
+                            ) : null
+                          })()}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -1067,30 +1268,67 @@ export default function AdminUserManager() {
         onClose={() => {
           setInvitationDialogOpen(false)
           setInviteEmail('')
+          setBulkEmails('')
           setSelectedLocationId(null)
+          setBulkInviteMode(false)
+          setBulkInviteResults([])
         }}
-        maxWidth="sm"
+        maxWidth="md"
         fullWidth
       >
-        <DialogTitle>📧 Send Location Invitation</DialogTitle>
+        <DialogTitle>
+          📧 Send Location Invitation{bulkInviteMode ? 's (Bulk Mode)' : ''}
+        </DialogTitle>
         <form onSubmit={sendInvitation}>
           <DialogContent>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Send an invitation to add a new user to a specific location.
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                {bulkInviteMode 
+                  ? 'Send invitations to multiple users at once.'
+                  : 'Send an invitation to add a new user to a specific location.'
+                }
+              </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => {
+                  setBulkInviteMode(!bulkInviteMode)
+                  setInviteEmail('')
+                  setBulkEmails('')
+                  setBulkInviteResults([])
+                }}
+              >
+                {bulkInviteMode ? 'Single Mode' : 'Bulk Mode'}
+              </Button>
+            </Box>
             
-            <TextField
-              label="Email Address"
-              type="email"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              fullWidth
-              required
-              sx={{ mb: 3 }}
-              placeholder="user@example.com"
-            />
+            {bulkInviteMode ? (
+              <TextField
+                label="Email Addresses"
+                multiline
+                rows={6}
+                value={bulkEmails}
+                onChange={(e) => setBulkEmails(e.target.value)}
+                fullWidth
+                required
+                sx={{ mb: 3 }}
+                placeholder="user1@example.com, user2@example.com&#10;user3@example.com&#10;user4@example.com"
+                helperText="Separate multiple emails with commas, semicolons, or new lines"
+              />
+            ) : (
+              <TextField
+                label="Email Address"
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                fullWidth
+                required
+                sx={{ mb: 3 }}
+                placeholder="user@example.com"
+              />
+            )}
 
-            <FormControl fullWidth required>
+            <FormControl fullWidth required sx={{ mb: 2 }}>
               <InputLabel>Select Location</InputLabel>
               <Select
                 value={selectedLocationId || ''}
@@ -1099,23 +1337,52 @@ export default function AdminUserManager() {
               >
                 {availableLocations.map((location) => (
                   <MenuItem key={location.id} value={location.id}>
-                    {location.name}
-                    {location.description && (
-                      <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-                        - {location.description}
+                    <Box>
+                      <Typography variant="body1" fontWeight="medium">
+                        {location.name}
                       </Typography>
-                    )}
+                      {location.description && (
+                        <Typography variant="body2" color="text.secondary">
+                          {location.description}
+                        </Typography>
+                      )}
+                    </Box>
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
+
+            {/* Bulk invitation results */}
+            {bulkInviteResults.length > 0 && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="h6" gutterBottom>
+                  Results:
+                </Typography>
+                <List dense>
+                  {bulkInviteResults.map((result, index) => (
+                    <ListItem key={index} sx={{ py: 0.5 }}>
+                      <ListItemText
+                        primary={result.email}
+                        secondary={result.success ? '✅ Sent successfully' : `❌ ${result.error}`}
+                        secondaryTypographyProps={{
+                          color: result.success ? 'success.main' : 'error.main'
+                        }}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              </Box>
+            )}
           </DialogContent>
           <DialogActions>
             <Button 
               onClick={() => {
                 setInvitationDialogOpen(false)
                 setInviteEmail('')
+                setBulkEmails('')
                 setSelectedLocationId(null)
+                setBulkInviteMode(false)
+                setBulkInviteResults([])
               }}
             >
               Cancel
@@ -1123,9 +1390,19 @@ export default function AdminUserManager() {
             <Button 
               type="submit" 
               variant="contained"
-              disabled={!inviteEmail.trim() || !selectedLocationId}
+              disabled={
+                bulkInviteLoading ||
+                !selectedLocationId ||
+                (bulkInviteMode ? !bulkEmails.trim() : !inviteEmail.trim())
+              }
+              startIcon={bulkInviteLoading ? <CircularProgress size={16} /> : undefined}
             >
-              Send Invitation
+              {bulkInviteLoading 
+                ? 'Sending...' 
+                : bulkInviteMode 
+                  ? 'Send Bulk Invitations' 
+                  : 'Send Invitation'
+              }
             </Button>
           </DialogActions>
         </form>
