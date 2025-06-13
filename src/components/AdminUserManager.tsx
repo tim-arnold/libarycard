@@ -492,6 +492,7 @@ export default function AdminUserManager() {
           'Authorization': `Bearer ${session.user.email}`,
           'Content-Type': 'application/json',
         },
+        cache: 'no-cache'
       })
       
       if (!locationsResponse.ok) {
@@ -510,6 +511,7 @@ export default function AdminUserManager() {
               'Authorization': `Bearer ${session.user.email}`,
               'Content-Type': 'application/json',
             },
+            cache: 'no-cache'
           })
           
           if (invitationsResponse.ok) {
@@ -806,11 +808,11 @@ export default function AdminUserManager() {
           <Button
             variant={showInvitations ? "contained" : "outlined"}
             startIcon={<Email />}
-            onClick={() => {
+            onClick={async () => {
               setShowInvitations(!showInvitations)
               if (!showInvitations) {
-                loadInvitations()
-                loadAvailableLocations()
+                await loadInvitations()
+                await loadAvailableLocations()
               }
             }}
             size="small"
