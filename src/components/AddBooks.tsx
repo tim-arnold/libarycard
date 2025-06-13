@@ -36,6 +36,7 @@ import BookSearch from './BookSearch'
 import BookPreview from './BookPreview'
 import BookshelfScanner from './BookshelfScanner'
 import { useModal } from '@/hooks/useModal'
+import { getStorageItem, setStorageItem } from '@/lib/storage'
 import {
   Dialog,
   DialogTitle,
@@ -183,11 +184,8 @@ export default function AddBooks() {
   const { modalState, alert, closeModal } = useModal()
   const [activeTab, setActiveTab] = useState<'scan' | 'search' | 'bookshelf'>(() => {
     // Remember user's preferred tab choice
-    if (typeof window !== 'undefined') {
-      const savedTab = localStorage.getItem('addBooks_preferredTab') as 'scan' | 'search' | 'bookshelf'
-      return savedTab || 'search'
-    }
-    return 'search'
+    const savedTab = getStorageItem('addBooks_preferredTab', 'functional') as 'scan' | 'search' | 'bookshelf'
+    return savedTab || 'search'
   })
   
   // Search state
@@ -293,7 +291,7 @@ export default function AddBooks() {
           setSelectedShelfId(allShelvesData[0].id)
         } else {
           // For multi-shelf users, restore the last selected shelf if it still exists
-          const lastSelectedShelfId = localStorage.getItem('lastSelectedShelfId')
+          const lastSelectedShelfId = getStorageItem('lastSelectedShelfId', 'functional')
           if (lastSelectedShelfId) {
             const shelfId = parseInt(lastSelectedShelfId)
             const shelfExists = allShelvesData.some(shelf => shelf.id === shelfId)
@@ -470,7 +468,7 @@ export default function AddBooks() {
       
       // Persist the selected shelf for future use, but don't clear it
       if (selectedShelfId) {
-        localStorage.setItem('lastSelectedShelfId', selectedShelfId.toString())
+        setStorageItem('lastSelectedShelfId', selectedShelfId.toString(), 'functional')
       }
       
       // Update existing books list to include the newly added book for accurate duplicate detection
@@ -526,9 +524,7 @@ export default function AddBooks() {
     setActiveTab(newValue)
     
     // Save user's preferred tab choice
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('addBooks_preferredTab', newValue)
-    }
+    setStorageItem('addBooks_preferredTab', newValue, 'functional')
     
     // Clear search query when switching away from search
     // BUT don't clear it if we're preserving OCR results (user clicked an OCR term)

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { setStorageItem } from '@/lib/storage'
 import {
   FormControl,
   InputLabel,
@@ -60,8 +61,8 @@ export default function ShelfSelector({
   // Persist shelf selection to localStorage
   const handleShelfChange = (shelfId: number | null) => {
     onShelfChange(shelfId)
-    if (shelfId && typeof window !== 'undefined') {
-      localStorage.setItem('lastSelectedShelfId', shelfId.toString())
+    if (shelfId) {
+      setStorageItem('lastSelectedShelfId', shelfId.toString(), 'functional')
     }
   }
 

@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { createAppTheme } from './theme'
+import { getStorageItem, setStorageItem } from './storage'
 
 interface ThemeContextType {
   isDarkMode: boolean
@@ -30,7 +31,7 @@ export function ThemeContextProvider({ children }: ThemeContextProviderProps) {
 
   // Load theme preference from localStorage on mount
   useEffect(() => {
-    const savedTheme = localStorage.getItem('libarycard-theme')
+    const savedTheme = getStorageItem('libarycard-theme', 'functional')
     if (savedTheme === 'dark') {
       setIsDarkMode(true)
     }
@@ -40,7 +41,7 @@ export function ThemeContextProvider({ children }: ThemeContextProviderProps) {
   // Save theme preference to localStorage when it changes
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem('libarycard-theme', isDarkMode ? 'dark' : 'light')
+      setStorageItem('libarycard-theme', isDarkMode ? 'dark' : 'light', 'functional')
     }
   }, [isDarkMode, isLoaded])
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { getSessionItem, setSessionItem } from '@/lib/storage'
 import {
   Container,
   Paper,
@@ -46,11 +47,8 @@ export default function Home() {
   const { isDarkMode, toggleTheme } = useTheme()
   const [activeTab, setActiveTab] = useState<'scan' | 'library' | 'locations' | 'requests' | 'admin'>(() => {
     // Try to restore the tab from current session
-    if (typeof window !== 'undefined') {
-      const savedTab = sessionStorage.getItem('activeMainTab') as 'scan' | 'library' | 'locations' | 'requests' | 'admin'
-      return savedTab || 'library'
-    }
-    return 'library'
+    const savedTab = getSessionItem('activeMainTab') as 'scan' | 'library' | 'locations' | 'requests' | 'admin'
+    return savedTab || 'library'
   })
   const [userRole, setUserRole] = useState<string | null>(null)
   const [userFirstName, setUserFirstName] = useState<string | null>(null)
@@ -73,9 +71,9 @@ export default function Home() {
           if (data.user_role) {
             setUserRole(data.user_role)
             // Only set default tab if no tab is saved in session (first login)
-            if (typeof window !== 'undefined' && !sessionStorage.getItem('activeMainTab')) {
+            if (!getSessionItem('activeMainTab')) {
               setActiveTab('library')
-              sessionStorage.setItem('activeMainTab', 'library')
+              setSessionItem('activeMainTab', 'library')
             }
           }
           // Store the user's first name from profile data
@@ -255,9 +253,7 @@ export default function Home() {
             onChange={(_, newValue) => {
               setActiveTab(newValue)
               // Persist the tab selection in session storage
-              if (typeof window !== 'undefined') {
-                sessionStorage.setItem('activeMainTab', newValue)
-              }
+              setSessionItem('activeMainTab', newValue)
             }}
             variant="scrollable"
             scrollButtons="auto"

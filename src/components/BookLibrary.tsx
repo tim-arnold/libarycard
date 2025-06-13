@@ -33,6 +33,7 @@ import BookList from './BookList'
 import RemovalReasonModal from './RemovalReasonModal'
 import { useModal } from '@/hooks/useModal'
 import { CURATED_GENRES } from '@/lib/genreClassifier'
+import { getStorageItem, setStorageItem } from '@/lib/storage'
 import {
   Dialog,
   DialogTitle,
@@ -255,7 +256,7 @@ export default function BookLibrary() {
 
   // Load saved view mode from localStorage
   useEffect(() => {
-    const savedViewMode = localStorage.getItem('library-view-mode') as 'card' | 'list'
+    const savedViewMode = getStorageItem('library-view-mode', 'functional') as 'card' | 'list'
     if (savedViewMode && (savedViewMode === 'card' || savedViewMode === 'list')) {
       setViewMode(savedViewMode)
     }
@@ -263,7 +264,7 @@ export default function BookLibrary() {
 
   const handleViewModeChange = (newViewMode: 'card' | 'list') => {
     setViewMode(newViewMode)
-    localStorage.setItem('library-view-mode', newViewMode)
+    setStorageItem('library-view-mode', newViewMode, 'functional')
   }
 
   const handleSortFieldChange = (newSortField: SortField) => {

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { Providers } from './providers'
+import CookieNotice from '@/components/CookieNotice'
 
 export const metadata: Metadata = {
   title: 'LibaryCard - Personal Book Collection',
@@ -17,6 +18,7 @@ export default function RootLayout({
       <body>
         <Providers>
           {children}
+          <CookieNotice />
         </Providers>
       </body>
     </html>
