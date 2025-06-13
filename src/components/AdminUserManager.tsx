@@ -39,6 +39,7 @@ import {
   Delete,
   Security,
   Person,
+  PersonAdd,
   Email,
   CheckCircle,
   Cancel,
@@ -64,6 +65,25 @@ interface AdminUser {
   last_book_added: string | null
 }
 
+interface LocationInvitation {
+  id: number
+  location_id: number
+  location_name?: string
+  invited_email: string
+  invitation_token: string
+  invited_by: string
+  invited_by_name?: string
+  expires_at: string
+  used_at?: string
+  created_at: string
+}
+
+interface Location {
+  id: number
+  name: string
+  description?: string
+}
+
 export default function AdminUserManager() {
   const { data: session } = useSession()
   const { modalState, confirmAsync, alert, closeModal } = useModal()
@@ -83,6 +103,15 @@ export default function AdminUserManager() {
   const [emailSubject, setEmailSubject] = useState('')
   const [emailMessage, setEmailMessage] = useState('')
   const [emailRecipient, setEmailRecipient] = useState<AdminUser | null>(null)
+  
+  // Invitation management state
+  const [showInvitations, setShowInvitations] = useState(false)
+  const [invitations, setInvitations] = useState<LocationInvitation[]>([])
+  const [invitationDialogOpen, setInvitationDialogOpen] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null)
+  const [availableLocations, setAvailableLocations] = useState<Location[]>([])
+  const [invitationsLoading, setInvitationsLoading] = useState(false)
 
   useEffect(() => {
     if (session?.user?.email) {
@@ -443,6 +472,154 @@ export default function AdminUserManager() {
     return <Chip label={provider} color={color} size="small" variant="outlined" />
   }
 
+  // Invitation Management Functions
+  const loadInvitations = async () => {
+    if (!session?.user?.email) return
+    
+    try {
+      setInvitationsLoading(true)
+      const response = await fetch(`${API_BASE}/api/admin/invitations`, {
+        headers: {
+          'Authorization': `Bearer ${session.user.email}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setInvitations(data)
+        setError('')
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to load invitations')
+      }
+    } catch (error) {
+      console.error('Error loading invitations:', error)
+      setError('Failed to load invitations')
+    } finally {
+      setInvitationsLoading(false)
+    }
+  }
+
+  const loadAvailableLocations = async () => {
+    if (!session?.user?.email) return
+    
+    try {
+      const response = await fetch(`${API_BASE}/api/locations`, {
+        headers: {
+          'Authorization': `Bearer ${session.user.email}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setAvailableLocations(data)
+      }
+    } catch (error) {
+      console.error('Error loading locations:', error)
+    }
+  }
+
+  const sendInvitation = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!inviteEmail.trim() || !selectedLocationId) return
+
+    if (!session?.user?.email) return
+    
+    try {
+      const response = await fetch(`${API_BASE}/api/locations/${selectedLocationId}/invite`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.user.email}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          invited_email: inviteEmail.trim(),
+        }),
+      })
+
+      if (response.ok) {
+        const newInvitation = await response.json()
+        setInvitations([...invitations, newInvitation])
+        setInviteEmail('')
+        setSelectedLocationId(null)
+        setInvitationDialogOpen(false)
+        await alert({
+          title: 'Invitation Sent',
+          message: `Invitation successfully sent to ${inviteEmail}`,
+          variant: 'success'
+        })
+        // Reload invitations to get updated data
+        loadInvitations()
+      } else {
+        const errorData = await response.json()
+        await alert({
+          title: 'Invitation Failed',
+          message: errorData.error || 'Failed to send invitation',
+          variant: 'error'
+        })
+      }
+    } catch (error) {
+      console.error('Error sending invitation:', error)
+      await alert({
+        title: 'Invitation Failed',
+        message: 'Failed to send invitation. Please try again.',
+        variant: 'error'
+      })
+    }
+  }
+
+  const revokeInvitation = async (invitationId: number, invitedEmail: string) => {
+    const confirmed = await confirmAsync(
+      {
+        title: 'Revoke Invitation',
+        message: `Are you sure you want to revoke the invitation for ${invitedEmail}? This action cannot be undone.`,
+        confirmText: 'Revoke Invitation',
+        variant: 'warning'
+      },
+      async () => {
+        if (!session?.user?.email) throw new Error('Not authenticated')
+        
+        const response = await fetch(`${API_BASE}/api/invitations/${invitationId}/revoke`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${session.user.email}`,
+            'Content-Type': 'application/json',
+          },
+        })
+
+        if (response.ok) {
+          setInvitations(invitations.filter(inv => inv.id !== invitationId))
+          await alert({
+            title: 'Invitation Revoked',
+            message: `Invitation for ${invitedEmail} has been successfully revoked.`,
+            variant: 'success'
+          })
+        } else {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to revoke invitation')
+        }
+      }
+    )
+
+    if (!confirmed) {
+      await alert({
+        title: 'Revoke Failed',
+        message: 'Failed to revoke the invitation. Please try again.',
+        variant: 'error'
+      })
+    }
+  }
+
+  const formatInvitationDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  }
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
@@ -468,14 +645,30 @@ export default function AdminUserManager() {
         <Typography variant="h5" gutterBottom>
           👥 User Management
         </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<Refresh />}
-          onClick={loadUsers}
-          size="small"
-        >
-          Refresh
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant={showInvitations ? "contained" : "outlined"}
+            startIcon={<Email />}
+            onClick={() => {
+              setShowInvitations(!showInvitations)
+              if (!showInvitations) {
+                loadInvitations()
+                loadAvailableLocations()
+              }
+            }}
+            size="small"
+          >
+            Invitations
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={loadUsers}
+            size="small"
+          >
+            Refresh
+          </Button>
+        </Box>
       </Box>
 
       <Card>
@@ -562,6 +755,106 @@ export default function AdminUserManager() {
           </TableContainer>
         </CardContent>
       </Card>
+
+      {/* Invitations Section */}
+      {showInvitations && (
+        <Card sx={{ mt: 3 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6">
+                📧 Invitation Management
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<PersonAdd />}
+                onClick={() => setInvitationDialogOpen(true)}
+                size="small"
+              >
+                Send Invitation
+              </Button>
+            </Box>
+
+            {invitationsLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                <CircularProgress size={32} />
+                <Typography sx={{ ml: 2 }} color="text.secondary">
+                  Loading invitations...
+                </Typography>
+              </Box>
+            ) : invitations.length === 0 ? (
+              <Alert severity="info">
+                No pending invitations found. Send invitations to add new users to locations.
+              </Alert>
+            ) : (
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Email</TableCell>
+                      <TableCell>Location</TableCell>
+                      <TableCell>Invited By</TableCell>
+                      <TableCell>Sent</TableCell>
+                      <TableCell>Expires</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell align="right">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {invitations.map((invitation) => (
+                      <TableRow key={invitation.id} hover>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight="medium">
+                            {invitation.invited_email}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {invitation.location_name || `Location ${invitation.location_id}`}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {invitation.invited_by_name || 'Admin'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {formatInvitationDate(invitation.created_at)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {formatInvitationDate(invitation.expires_at)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={invitation.used_at ? "Accepted" : "Pending"}
+                            color={invitation.used_at ? "success" : "warning"}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell align="right">
+                          {!invitation.used_at && (
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => revokeInvitation(invitation.id, invitation.invited_email)}
+                              title="Revoke invitation"
+                            >
+                              <Cancel />
+                            </IconButton>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Action Menu */}
       <Menu
@@ -766,6 +1059,76 @@ export default function AdminUserManager() {
             Send Email
           </Button>
         </DialogActions>
+      </Dialog>
+
+      {/* Invitation Dialog */}
+      <Dialog 
+        open={invitationDialogOpen} 
+        onClose={() => {
+          setInvitationDialogOpen(false)
+          setInviteEmail('')
+          setSelectedLocationId(null)
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>📧 Send Location Invitation</DialogTitle>
+        <form onSubmit={sendInvitation}>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Send an invitation to add a new user to a specific location.
+            </Typography>
+            
+            <TextField
+              label="Email Address"
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              fullWidth
+              required
+              sx={{ mb: 3 }}
+              placeholder="user@example.com"
+            />
+
+            <FormControl fullWidth required>
+              <InputLabel>Select Location</InputLabel>
+              <Select
+                value={selectedLocationId || ''}
+                onChange={(e) => setSelectedLocationId(Number(e.target.value))}
+                label="Select Location"
+              >
+                {availableLocations.map((location) => (
+                  <MenuItem key={location.id} value={location.id}>
+                    {location.name}
+                    {location.description && (
+                      <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                        - {location.description}
+                      </Typography>
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </DialogContent>
+          <DialogActions>
+            <Button 
+              onClick={() => {
+                setInvitationDialogOpen(false)
+                setInviteEmail('')
+                setSelectedLocationId(null)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              variant="contained"
+              disabled={!inviteEmail.trim() || !selectedLocationId}
+            >
+              Send Invitation
+            </Button>
+          </DialogActions>
+        </form>
       </Dialog>
 
       {/* Modal Components */}
