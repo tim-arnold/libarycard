@@ -190,6 +190,11 @@ export default function AddBooks() {
   
   // Search state
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchDisplayedResults, setSearchDisplayedResults] = useState(10)
+  const [preserveSearchState, setPreserveSearchState] = useState(false)
+  const [cancelledBookKey, setCancelledBookKey] = useState<string | null>(null)
+  const [searchResults, setSearchResults] = useState<GoogleBookItem[]>([])
+  const [searchTotalResults, setSearchTotalResults] = useState(0)
   
   // Common state
   const [selectedBook, setSelectedBook] = useState<EnhancedBook | null>(null)
@@ -645,8 +650,20 @@ export default function AddBooks() {
             existingBooks={existingBooks}
             justAddedBooks={justAddedBooks}
             disabled={loadingData || isLoading}
-            shouldAutoSearch={preserveOcrResults || autoSearchAfterAdd}
-            onSearchComplete={() => setAutoSearchAfterAdd(false)}
+            shouldAutoSearch={(preserveOcrResults || autoSearchAfterAdd) && !preserveSearchState}
+            onSearchComplete={() => {
+              setAutoSearchAfterAdd(false)
+              setPreserveSearchState(false)
+            }}
+            displayedResults={searchDisplayedResults}
+            onDisplayedResultsChange={setSearchDisplayedResults}
+            lastAddedBookKey={lastAddedBookKey}
+            cancelledBookKey={cancelledBookKey}
+            onCancelledBookScrollComplete={() => setCancelledBookKey(null)}
+            searchResults={searchResults}
+            onSearchResultsChange={setSearchResults}
+            totalResults={searchTotalResults}
+            onTotalResultsChange={setSearchTotalResults}
           />
         )}
 
@@ -835,7 +852,13 @@ export default function AddBooks() {
               customTags={customTags}
               onCustomTagsChange={setCustomTags}
               onSave={saveBook}
-              onCancel={() => setSelectedBook(null)}
+              onCancel={() => {
+                const bookKey = selectedBook?.isbn || selectedBook?.title || null
+                setSelectedBook(null)
+                setPreserveSearchState(true)
+                setAutoSearchAfterAdd(false)
+                setCancelledBookKey(bookKey)
+              }}
               onMoreDetails={() => setShowMoreDetailsModal(true)}
               onAuthorClick={handleAuthorClick}
               onSeriesClick={handleSeriesClick}
@@ -870,7 +893,13 @@ export default function AddBooks() {
               <Button 
                 variant="outlined"
                 startIcon={<Cancel />}
-                onClick={() => setSelectedBook(null)}
+                onClick={() => {
+                  const bookKey = selectedBook?.isbn || selectedBook?.title || null
+                  setSelectedBook(null)
+                  setPreserveSearchState(true)
+                  setAutoSearchAfterAdd(false) // Prevent auto-search when returning
+                  setCancelledBookKey(bookKey)
+                }}
                 disabled={isLoading}
               >
                 Cancel

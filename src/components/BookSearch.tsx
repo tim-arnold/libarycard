@@ -57,6 +57,15 @@ interface BookSearchProps {
   disabled?: boolean
   shouldAutoSearch?: boolean
   onSearchComplete?: () => void
+  displayedResults?: number
+  onDisplayedResultsChange?: (count: number) => void
+  lastAddedBookKey?: string | null
+  cancelledBookKey?: string | null
+  onCancelledBookScrollComplete?: () => void
+  searchResults?: GoogleBookItem[]
+  onSearchResultsChange?: (results: GoogleBookItem[]) => void
+  totalResults?: number
+  onTotalResultsChange?: (total: number) => void
 }
 
 export default function BookSearch({
@@ -69,11 +78,22 @@ export default function BookSearch({
   disabled = false,
   shouldAutoSearch = false,
   onSearchComplete,
+  displayedResults: parentDisplayedResults,
+  onDisplayedResultsChange,
+  lastAddedBookKey,
+  cancelledBookKey,
+  onCancelledBookScrollComplete,
+  searchResults: parentSearchResults,
+  onSearchResultsChange,
+  totalResults: parentTotalResults,
+  onTotalResultsChange,
 }: BookSearchProps) {
-  const [searchResults, setSearchResults] = useState<GoogleBookItem[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const [displayedResults, setDisplayedResults] = useState(10)
-  const [totalResults, setTotalResults] = useState(0)
+  const [displayedResults, setDisplayedResults] = useState(parentDisplayedResults || 10)
+  
+  // Use parent state if provided, otherwise use local state
+  const searchResults = parentSearchResults || []
+  const totalResults = parentTotalResults || 0
   const [addAnywayDialog, setAddAnywayDialog] = useState<{
     isOpen: boolean
     book: GoogleBookItem | null
@@ -89,6 +109,51 @@ export default function BookSearch({
 
     return () => clearTimeout(timer)
   }, [])
+
+  // Sync displayedResults with parent prop when it changes
+  useEffect(() => {
+    if (parentDisplayedResults !== undefined && parentDisplayedResults !== displayedResults) {
+      setDisplayedResults(parentDisplayedResults)
+    }
+  }, [parentDisplayedResults])
+
+  // Scroll to newly added book when it appears in search results
+  useEffect(() => {
+    if (lastAddedBookKey && searchResults.length > 0) {
+      setTimeout(() => {
+        const bookCards = document.querySelectorAll('[data-book-key]')
+        Array.from(bookCards).forEach(card => {
+          if (card.getAttribute('data-book-key') === lastAddedBookKey) {
+            const elementTop = (card as HTMLElement).offsetTop - 20
+            window.scrollTo({
+              top: elementTop,
+              behavior: 'smooth'
+            })
+          }
+        })
+      }, 300)
+    }
+  }, [lastAddedBookKey, searchResults])
+
+  // Scroll to cancelled book when returning from book selection
+  useEffect(() => {
+    if (cancelledBookKey && searchResults.length > 0) {
+      setTimeout(() => {
+        const bookCards = document.querySelectorAll('[data-book-key]')
+        Array.from(bookCards).forEach(card => {
+          if (card.getAttribute('data-book-key') === cancelledBookKey) {
+            const elementTop = (card as HTMLElement).offsetTop - 20
+            window.scrollTo({
+              top: elementTop,
+              behavior: 'smooth'
+            })
+          }
+        })
+        // Clear the cancelled book key after scrolling
+        onCancelledBookScrollComplete?.()
+      }, 300)
+    }
+  }, [cancelledBookKey, searchResults, onCancelledBookScrollComplete])
 
   // Auto-search when searchQuery is provided from OCR results or after adding a book
   useEffect(() => {
@@ -109,9 +174,14 @@ export default function BookSearch({
       
       if (response.ok) {
         const data = await response.json()
-        setSearchResults(data.items || [])
-        setTotalResults(data.totalItems || 0)
-        setDisplayedResults(10) // Reset to show first 10
+        onSearchResultsChange?.(data.items || [])
+        onTotalResultsChange?.(data.totalItems || 0)
+        
+        // Only reset to 10 if parent doesn't have a specific displayedResults value
+        if (parentDisplayedResults === undefined) {
+          setDisplayedResults(10)
+          onDisplayedResultsChange?.(10)
+        }
         
         // Scroll to search field at top of viewport after results are loaded
         setTimeout(() => {
@@ -157,16 +227,19 @@ export default function BookSearch({
 
   const handleClearSearch = () => {
     onSearchQueryChange('')
-    setSearchResults([])
-    setTotalResults(0)
+    onSearchResultsChange?.([])
+    onTotalResultsChange?.(0)
     setDisplayedResults(10)
+    onDisplayedResultsChange?.(10)
     searchInputRef.current?.focus()
   }
 
   const handleLoadMore = () => {
     const remainingResults = searchResults.length - displayedResults
     const nextBatch = Math.min(remainingResults, 10)
-    setDisplayedResults(prev => prev + nextBatch)
+    const newDisplayedResults = displayedResults + nextBatch
+    setDisplayedResults(newDisplayedResults)
+    onDisplayedResultsChange?.(newDisplayedResults)
   }
 
   const handleAddAnyway = (book: GoogleBookItem) => {
@@ -308,8 +381,14 @@ export default function BookSearch({
             </Typography>
           </Box>
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 2 }}>
-            {searchResults.slice(0, displayedResults).map((item) => (
-              <Card key={item.id} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            {searchResults.slice(0, displayedResults).map((item) => {
+              const isbn = item.volumeInfo.industryIdentifiers?.find(
+                id => id.type === 'ISBN_13' || id.type === 'ISBN_10'
+              )?.identifier
+              const bookKey = isbn || item.volumeInfo.title
+              
+              return (
+              <Card key={item.id} data-book-key={bookKey} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardContent sx={{ flex: 1 }}>
                   {item.volumeInfo.imageLinks?.thumbnail && (
                     <CardMedia
@@ -430,7 +509,8 @@ export default function BookSearch({
                   })()}
                 </CardActions>
               </Card>
-            ))}
+              )
+            })}
           </Box>
           
           {/* Load More Button */}
