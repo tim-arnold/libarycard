@@ -7,8 +7,6 @@ import {
   Paper,
   Typography,
   Box,
-  Card,
-  CardContent,
   CircularProgress,
   Alert,
   Tabs,
@@ -139,115 +137,6 @@ export default function AdminDashboard() {
           </Button>
         </Box>
 
-        {/* Overview Cards */}
-        {overview && (
-          <Box sx={{ mb: 4 }}>
-            {/* First Row - Main Metrics */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 3, mb: 3 }}>
-              <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography variant="h3" color="primary" gutterBottom>
-                    {overview.totalBooks}
-                  </Typography>
-                  <Typography variant="h6" color="text.secondary">
-                    Total Books
-                  </Typography>
-                  {overview.recentBooks > 0 && (
-                    <Typography variant="body2" color="success.main">
-                      +{overview.recentBooks} this month
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography variant="h3" color="secondary" gutterBottom>
-                    {overview.totalUsers}
-                  </Typography>
-                  <Typography variant="h6" color="text.secondary">
-                    Total Users
-                  </Typography>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography variant="h3" color="info.main" gutterBottom>
-                    {overview.totalLocations}
-                  </Typography>
-                  <Typography variant="h6" color="text.secondary">
-                    Locations
-                  </Typography>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography 
-                    variant="h3" 
-                    color={overview.pendingRequests > 0 ? "warning.main" : "success.main"} 
-                    gutterBottom
-                  >
-                    {overview.pendingRequests}
-                  </Typography>
-                  <Typography variant="h6" color="text.secondary">
-                    Pending Requests
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Box>
-
-            {/* Second Row - Additional Metrics */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3 }}>
-              <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography 
-                    variant="h4" 
-                    color={overview.unorganizedBooks > 0 ? "warning.main" : "success.main"} 
-                    gutterBottom
-                  >
-                    {overview.unorganizedBooks}
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    Unorganized Books
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Books without shelves
-                  </Typography>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography variant="h4" color="success.main" gutterBottom>
-                    {overview.recentCheckouts}
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    Recent Checkouts
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Last 30 days
-                  </Typography>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography variant="h4" color="primary" gutterBottom>
-                    {Math.round((overview.totalBooks - overview.unorganizedBooks) / overview.totalBooks * 100) || 0}%
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    Organization Rate
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Books properly shelved
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Box>
-          </Box>
-        )}
 
         {/* Navigation Tabs */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
@@ -259,17 +148,17 @@ export default function AdminDashboard() {
             />
             <Tab 
               icon={<Analytics />} 
-              label="Analytics" 
+              label={`Analytics ${overview ? `(${overview.totalBooks} books)` : ''}`}
               iconPosition="start"
             />
             <Tab 
               icon={<People />} 
-              label="Users" 
+              label={`Users ${overview ? `(${overview.totalUsers})` : ''}`}
               iconPosition="start"
             />
             <Tab 
               icon={<LocationOn />} 
-              label="Locations" 
+              label={`Locations ${overview ? `(${overview.totalLocations})` : ''}`}
               iconPosition="start"
             />
             <Tab 
