@@ -1086,7 +1086,7 @@ async function revokeLocationInvitation(invitationId: number, userId: string, en
   const deleteResult = await deleteStmt.bind(invitationId).run();
 
   // Verify the deletion was successful
-  if (deleteResult.changes === 0) {
+  if (deleteResult.meta.changes === 0) {
     return new Response(JSON.stringify({ error: 'Failed to revoke invitation - invitation may have already been removed' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
