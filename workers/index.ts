@@ -383,7 +383,7 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
     invitation_token?: string;
   } = await request.json();
   
-  console.log('DEBUG registerUser - email:', email, 'invitation_token:', invitation_token);
+  console.log('🔧 DEBUG registerUser called - email:', email, 'has invitation_token:', !!invitation_token);
   
   // Validate password strength
   const passwordValidation = validatePasswordStrength(password);
@@ -428,7 +428,6 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
   let invitation = null;
   
   if (invitation_token) {
-    console.log('DEBUG looking up invitation by token:', invitation_token);
     // If invitation token is provided, look up by token
     invitation = await env.DB.prepare(`
       SELECT li.id, li.location_id, l.name as location_name
@@ -436,9 +435,7 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
       LEFT JOIN locations l ON li.location_id = l.id
       WHERE li.invitation_token = ? AND li.used_at IS NULL AND li.expires_at > datetime('now')
     `).bind(invitation_token).first();
-    console.log('DEBUG invitation found by token:', !!invitation);
   } else {
-    console.log('DEBUG looking up invitation by email:', email);
     // Fall back to email lookup
     invitation = await env.DB.prepare(`
       SELECT li.id, li.location_id, l.name as location_name
@@ -446,7 +443,6 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
       LEFT JOIN locations l ON li.location_id = l.id
       WHERE li.invited_email = ? AND li.used_at IS NULL AND li.expires_at > datetime('now')
     `).bind(email).first();
-    console.log('DEBUG invitation found by email:', !!invitation);
   }
 
   // Hash password for storage
