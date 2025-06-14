@@ -98,7 +98,7 @@ export default function BookPreview({
                 component="img"
                 src={book.thumbnail}
                 alt={book.title}
-                sx={{ width: 120, height: 'auto', flexShrink: 0 }}
+                sx={{ width: 120, height: 'auto' }}
               />
             )}
             <Box sx={{ flex: 1 }}>
