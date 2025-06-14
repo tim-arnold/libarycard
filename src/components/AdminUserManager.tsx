@@ -594,7 +594,6 @@ export default function AdminUserManager() {
           variant: 'success'
         })
         // Force refresh invitations list
-        setInvitations([]) // Clear first to force re-render
         await loadInvitations()
       } else {
         const errorData = await response.json()
@@ -679,7 +678,6 @@ export default function AdminUserManager() {
         message: `Successfully sent ${successCount} invitation(s)!`,
         variant: 'success'
       })
-      setInvitations([]) // Clear first to force re-render
       await loadInvitations()
     } else {
       await alert({
@@ -689,7 +687,6 @@ export default function AdminUserManager() {
       })
       // Don't close dialog so user can see results and retry failed ones
       if (successCount > 0) {
-        setInvitations([]) // Clear first to force re-render
         await loadInvitations()
       }
     }
@@ -721,7 +718,6 @@ export default function AdminUserManager() {
             variant: 'success'
           })
           // Force refresh invitations list
-          setInvitations([]) // Clear first to force re-render
           await loadInvitations()
         } else {
           const errorData = await response.json()
