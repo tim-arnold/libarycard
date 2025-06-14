@@ -33,6 +33,8 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
+    
+    console.log('🚀 Worker request:', request.method, path);
 
 
     const corsHeaders = {
@@ -383,7 +385,6 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
     invitation_token?: string;
   } = await request.json();
   
-  console.log('🔧 DEBUG registerUser called - email:', email, 'has invitation_token:', !!invitation_token);
   
   // Validate password strength
   const passwordValidation = validatePasswordStrength(password);
@@ -447,6 +448,7 @@ async function registerUser(request: Request, env: Env, corsHeaders: Record<stri
 
   // Hash password for storage
   const passwordHash = await hashPassword(password);
+  
   
   if (invitation) {
     // User has valid invitation - proceed with normal registration
