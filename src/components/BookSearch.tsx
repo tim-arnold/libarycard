@@ -72,6 +72,8 @@ export default function BookSearch({
 }: BookSearchProps) {
   const [searchResults, setSearchResults] = useState<GoogleBookItem[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [displayedResults, setDisplayedResults] = useState(10)
+  const [totalResults, setTotalResults] = useState(0)
   const [addAnywayDialog, setAddAnywayDialog] = useState<{
     isOpen: boolean
     book: GoogleBookItem | null
@@ -102,12 +104,14 @@ export default function BookSearch({
     
     try {
       const response = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`
+        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=40`
       )
       
       if (response.ok) {
         const data = await response.json()
         setSearchResults(data.items || [])
+        setTotalResults(data.totalItems || 0)
+        setDisplayedResults(10) // Reset to show first 10
         
         // Scroll to search field at top of viewport after results are loaded
         setTimeout(() => {
@@ -154,7 +158,15 @@ export default function BookSearch({
   const handleClearSearch = () => {
     onSearchQueryChange('')
     setSearchResults([])
+    setTotalResults(0)
+    setDisplayedResults(10)
     searchInputRef.current?.focus()
+  }
+
+  const handleLoadMore = () => {
+    const remainingResults = searchResults.length - displayedResults
+    const nextBatch = Math.min(remainingResults, 10)
+    setDisplayedResults(prev => prev + nextBatch)
   }
 
   const handleAddAnyway = (book: GoogleBookItem) => {
@@ -287,11 +299,16 @@ export default function BookSearch({
       {/* Search Results */}
       {searchResults.length > 0 && (
         <Box data-testid="search-results-section">
-          <Typography variant="h6" gutterBottom>
-            Search Results ({searchResults.length})
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">
+              Search Results
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Showing {Math.min(displayedResults, searchResults.length)} of {totalResults > searchResults.length ? `${searchResults.length}+ (${totalResults} total found)` : searchResults.length} results
+            </Typography>
+          </Box>
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 2 }}>
-            {searchResults.map((item) => (
+            {searchResults.slice(0, displayedResults).map((item) => (
               <Card key={item.id} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardContent sx={{ flex: 1 }}>
                   {item.volumeInfo.imageLinks?.thumbnail && (
@@ -415,6 +432,30 @@ export default function BookSearch({
               </Card>
             ))}
           </Box>
+          
+          {/* Load More Button */}
+          {displayedResults < searchResults.length && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 3, gap: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Showing {Math.min(displayedResults, searchResults.length)} of {totalResults > searchResults.length ? `${searchResults.length}+ (${totalResults} total found)` : searchResults.length} results
+              </Typography>
+              <Button 
+                variant="outlined"
+                onClick={handleLoadMore}
+                disabled={disabled}
+                size="large"
+                sx={{ minWidth: 200 }}
+              >
+                {(() => {
+                  const remaining = searchResults.length - displayedResults
+                  const toLoad = Math.min(remaining, 10)
+                  return toLoad < 10 
+                    ? `Load the last ${toLoad} book${toLoad === 1 ? '' : 's'}`
+                    : `Load ${toLoad} more books`
+                })()}
+              </Button>
+            </Box>
+          )}
         </Box>
       )}
 
