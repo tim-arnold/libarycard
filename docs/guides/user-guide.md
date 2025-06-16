@@ -1,6 +1,6 @@
 # User Guide
 
-This guide covers how to use LibaryCard to manage your personal book collection.
+This guide covers how to use LibraryCard to manage your personal book collection.
 
 ## Getting Started
 
@@ -9,13 +9,13 @@ This guide covers how to use LibaryCard to manage your personal book collection.
 You can sign in using either Google OAuth or email/password:
 
 #### Google OAuth
-1. Visit the LibaryCard app
+1. Visit the LibraryCard app
 2. Click **"Sign in with Google"**
 3. Grant permissions to access your email for account identification
 4. You'll be redirected to your personal library
 
 #### Email/Password
-1. Visit the LibaryCard app
+1. Visit the LibraryCard app
 2. Click **"Sign in with Email"**
 3. Enter your email and password
 4. If you don't have an account, click **"Create Account"** to register
@@ -32,7 +32,7 @@ The app has three main sections accessible via the top navigation:
 
 ### User Roles
 
-LibaryCard has two types of users:
+LibraryCard has two types of users:
 
 - **Admin Users**: Can create, edit, and delete locations and shelves
 - **Regular Users**: Can add, edit, and remove books from existing locations
@@ -102,7 +102,7 @@ After scanning or manual lookup:
 
 **Note**: Only admin users can create locations. If you're a regular user, contact an administrator to set up locations.
 
-For admin users, when you first use LibaryCard, you'll need to set up at least one location:
+For admin users, when you first use LibraryCard, you'll need to set up at least one location:
 
 1. Click **"🏠 Location Management"** tab
 2. Click **"Create Your First Location"** button

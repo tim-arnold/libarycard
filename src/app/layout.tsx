@@ -4,7 +4,7 @@ import { Providers } from './providers'
 import CookieNotice from '@/components/CookieNotice'
 
 export const metadata: Metadata = {
-  title: 'LibaryCard - Personal Book Collection',
+  title: 'LibraryCard - Personal Book Collection',
   description: 'Scan and manage your personal book library',
 }
 

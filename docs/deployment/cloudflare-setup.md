@@ -1,6 +1,6 @@
 # Cloudflare Setup Guide
 
-This guide walks you through setting up the complete Cloudflare infrastructure for LibaryCard, including D1 database, Workers API, and Pages deployment.
+This guide walks you through setting up the complete Cloudflare infrastructure for LibraryCard, including D1 database, Workers API, and Pages deployment.
 
 ## Prerequisites
 
@@ -20,7 +20,7 @@ This guide walks you through setting up the complete Cloudflare infrastructure f
 
 1. **Create the database**:
    ```bash
-   wrangler d1 create libarycard-db
+   wrangler d1 create librarycard-db
    ```
 
 2. **Save the database ID**: Copy the database ID from the output. You'll need it for the next step.
@@ -29,7 +29,7 @@ This guide walks you through setting up the complete Cloudflare infrastructure f
    ```toml
    [[d1_databases]]
    binding = "DB"
-   database_name = "libarycard-db"
+   database_name = "librarycard-db"
    database_id = "your-actual-database-id-here"
    ```
 
@@ -37,12 +37,12 @@ This guide walks you through setting up the complete Cloudflare infrastructure f
 
 1. **Apply the schema**:
    ```bash
-   wrangler d1 execute libarycard-db --file=./schema.sql
+   wrangler d1 execute librarycard-db --file=./schema.sql
    ```
 
 2. **Verify the setup**:
    ```bash
-   wrangler d1 execute libarycard-db --command="SELECT name FROM sqlite_master WHERE type='table';"
+   wrangler d1 execute librarycard-db --command="SELECT name FROM sqlite_master WHERE type='table';"
    ```
    You should see the `books` table listed.
 
@@ -62,14 +62,14 @@ This guide walks you through setting up the complete Cloudflare infrastructure f
 
 3. **Note the worker URL**: Save the worker URL from the deployment output. It will look like:
    ```
-   https://api.libarycard.tim52.io
+   https://api.librarycard.tim52.io
    ```
 
 ### Test the Worker
 
 1. **Test the API endpoint**:
    ```bash
-   curl https://api.libarycard.tim52.io/api/books
+   curl https://api.librarycard.tim52.io/api/books
    ```
    You should receive an empty array: `[]`
 
@@ -84,7 +84,7 @@ This guide walks you through setting up the complete Cloudflare infrastructure f
 
 2. **Update the API URL** in `.env.local`:
    ```
-   NEXT_PUBLIC_API_URL=https://api.libarycard.tim52.io
+   NEXT_PUBLIC_API_URL=https://api.librarycard.tim52.io
    ```
 
 ### Test Local Development
@@ -111,7 +111,7 @@ This guide walks you through setting up the complete Cloudflare infrastructure f
 
 2. **Connect your repository**:
    - Choose "Connect to Git"
-   - Select your GitHub account and the `libarycard` repository
+   - Select your GitHub account and the `librarycard` repository
 
 3. **Configure build settings**:
    - **Framework preset**: Next.js
@@ -121,7 +121,7 @@ This guide walks you through setting up the complete Cloudflare infrastructure f
 
 4. **Set environment variables**:
    - Add `NEXT_PUBLIC_API_URL` with your worker URL
-   - Value: `https://api.libarycard.tim52.io`
+   - Value: `https://api.librarycard.tim52.io`
 
 5. **Deploy**: Click "Save and Deploy"
 
@@ -134,7 +134,7 @@ This guide walks you through setting up the complete Cloudflare infrastructure f
 
 2. **Upload via Wrangler**:
    ```bash
-   wrangler pages deploy .next --project-name libarycard
+   wrangler pages deploy .next --project-name librarycard
    ```
 
 ## Step 5: Custom Domain (Optional)
@@ -142,7 +142,7 @@ This guide walks you through setting up the complete Cloudflare infrastructure f
 ### Add Custom Domain
 
 1. **In Cloudflare Pages dashboard**:
-   - Go to your LibaryCard project
+   - Go to your LibraryCard project
    - Click "Custom domains" tab
    - Click "Set up a custom domain"
 
@@ -204,13 +204,13 @@ To use a custom domain for your API:
 
 ```bash
 # Check worker logs
-wrangler tail libarycard-api
+wrangler tail librarycard-api
 
 # Test database connection
-wrangler d1 execute libarycard-db --command="SELECT COUNT(*) FROM books;"
+wrangler d1 execute librarycard-db --command="SELECT COUNT(*) FROM books;"
 
 # Verify environment variables
-wrangler pages deployment list --project-name libarycard
+wrangler pages deployment list --project-name librarycard
 ```
 
 ## Next Steps

@@ -31,7 +31,7 @@ export function ThemeContextProvider({ children }: ThemeContextProviderProps) {
 
   // Load theme preference from localStorage on mount
   useEffect(() => {
-    const savedTheme = getStorageItem('libarycard-theme', 'functional')
+    const savedTheme = getStorageItem('librarycard-theme', 'functional')
     if (savedTheme === 'dark') {
       setIsDarkMode(true)
     }
@@ -41,7 +41,7 @@ export function ThemeContextProvider({ children }: ThemeContextProviderProps) {
   // Save theme preference to localStorage when it changes
   useEffect(() => {
     if (isLoaded) {
-      setStorageItem('libarycard-theme', isDarkMode ? 'dark' : 'light', 'functional')
+      setStorageItem('librarycard-theme', isDarkMode ? 'dark' : 'light', 'functional')
     }
   }, [isDarkMode, isLoaded])
 

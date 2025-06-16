@@ -41,7 +41,7 @@ const handler = NextAuth({
 
         try {
           // Call our API to verify credentials
-          const baseUrl = process.env.NEXTAUTH_URL || 'https://libarycard.tim52.io'
+          const baseUrl = process.env.NEXTAUTH_URL || 'https://librarycard.tim52.io'
           const response = await fetch(`${baseUrl}/api/auth/verify`, {
             method: 'POST',
             headers: {
@@ -100,7 +100,7 @@ const handler = NextAuth({
 
 async function storeUserIfNotExists(user: { email: string; name?: string | null }, userId: string) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.librarycard.tim52.io'
     
     // First check if user exists
     const checkResponse = await fetch(`${apiUrl}/api/users/check?email=${encodeURIComponent(user.email)}`)

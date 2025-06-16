@@ -1,6 +1,6 @@
-# LibaryCard Features
+# LibraryCard Features
 
-A comprehensive overview of LibaryCard's capabilities and functionality.
+A comprehensive overview of LibraryCard's capabilities and functionality.
 
 ## Recent Highlights
 

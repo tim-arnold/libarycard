@@ -1,6 +1,6 @@
 # Local Development Guide
 
-This guide covers setting up LibaryCard for local development, including both frontend and backend components.
+This guide covers setting up LibraryCard for local development, including both frontend and backend components.
 
 ## Prerequisites
 
@@ -14,8 +14,8 @@ This guide covers setting up LibaryCard for local development, including both fr
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/tim-arnold/libarycard.git
-cd libarycard
+git clone https://github.com/tim-arnold/librarycard.git
+cd librarycard
 ```
 
 ### 2. Install Dependencies
@@ -82,10 +82,10 @@ wrangler dev
 
 ```bash
 # Create local D1 database
-wrangler d1 create libarycard-dev --local
+wrangler d1 create librarycard-dev --local
 
 # Apply schema
-wrangler d1 execute libarycard-dev --local --file=../schema.sql
+wrangler d1 execute librarycard-dev --local --file=../schema.sql
 ```
 
 ### Update wrangler.toml for Local Development
@@ -95,7 +95,7 @@ Add local database configuration:
 ```toml
 [[d1_databases]]
 binding = "DB"
-database_name = "libarycard-dev"
+database_name = "librarycard-dev"
 database_id = "local-database-id"
 preview_database_id = "local-database-id"
 ```
@@ -181,10 +181,10 @@ Query local database:
 
 ```bash
 # List all books
-wrangler d1 execute libarycard-dev --local --command="SELECT * FROM books;"
+wrangler d1 execute librarycard-dev --local --command="SELECT * FROM books;"
 
 # Count books
-wrangler d1 execute libarycard-dev --local --command="SELECT COUNT(*) FROM books;"
+wrangler d1 execute librarycard-dev --local --command="SELECT COUNT(*) FROM books;"
 ```
 
 ## Common Development Tasks
@@ -233,16 +233,16 @@ When updating schema:
 2. **Drop and recreate** local database:
    ```bash
    # Remove old database
-   rm -rf .wrangler/state/d1/libarycard-dev.sqlite
+   rm -rf .wrangler/state/d1/librarycard-dev.sqlite
    
    # Recreate with new schema
-   wrangler d1 execute libarycard-dev --local --file=../schema.sql
+   wrangler d1 execute librarycard-dev --local --file=../schema.sql
    ```
 
 ## File Structure for Development
 
 ```
-libarycard/
+librarycard/
 ├── src/                    # Frontend code
 │   ├── app/               # Next.js app directory
 │   ├── components/        # React components
@@ -299,8 +299,8 @@ npm run dev -- -p 3001
 #### Database Connection Issues
 ```bash
 # Reset local database
-wrangler d1 execute libarycard-dev --local --command="DROP TABLE IF EXISTS books;"
-wrangler d1 execute libarycard-dev --local --file=../schema.sql
+wrangler d1 execute librarycard-dev --local --command="DROP TABLE IF EXISTS books;"
+wrangler d1 execute librarycard-dev --local --file=../schema.sql
 ```
 
 #### TypeScript Errors

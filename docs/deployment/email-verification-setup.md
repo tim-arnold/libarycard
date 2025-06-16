@@ -1,10 +1,10 @@
 # Email Verification Setup Guide
 
-This guide walks you through implementing proper email verification for LibaryCard in production. We'll cover multiple options including Netlify's capabilities and dedicated email services.
+This guide walks you through implementing proper email verification for LibraryCard in production. We'll cover multiple options including Netlify's capabilities and dedicated email services.
 
 ## 🏆 Quick Recommendation
 
-**For LibaryCard (personal use)**: Use **Option B (Resend)** - it's the simplest and most reliable.
+**For LibraryCard (personal use)**: Use **Option B (Resend)** - it's the simplest and most reliable.
 
 **If you prefer Netlify ecosystem**: Use **Option A.1 (Netlify Functions)** for full control.
 
@@ -46,7 +46,7 @@ exports.handler = async (event, context) => {
     body: JSON.stringify({
       from: process.env.FROM_EMAIL,
       to: [email],
-      subject: 'Verify your LibaryCard account',
+      subject: 'Verify your LibraryCard account',
       html: `<h1>Welcome ${firstName}!</h1>...`
     })
   });
@@ -125,7 +125,7 @@ For better performance and simplicity, integrate directly with an email service:
 
 ### 1.3 Get API Key
 1. **In Resend Dashboard** → **API Keys** → **Create API Key**
-2. **Name it**: `LibaryCard Production`
+2. **Name it**: `LibraryCard Production`
 3. **Copy the API key** (starts with `re_...`)
 
 ## Step 2: Configure Cloudflare Workers
@@ -136,8 +136,8 @@ Update your `wrangler.toml` with your actual URLs:
 ```toml
 [env.production.vars]
 ENVIRONMENT = "production"
-APP_URL = "https://libarycard.tim52.io"
-FROM_EMAIL = "LibaryCard <noreply@libarycard.tim52.io>"
+APP_URL = "https://librarycard.tim52.io"
+FROM_EMAIL = "LibraryCard <noreply@librarycard.tim52.io>"
 ```
 
 ### 2.2 Add API Key Secret
@@ -164,8 +164,8 @@ In your Netlify dashboard:
 1. **Go to**: Site Settings → Environment Variables
 2. **Add these variables**:
    ```
-   NEXT_PUBLIC_API_URL = https://api.libarycard.tim52.io
-   NEXTAUTH_URL = https://libarycard.tim52.io
+   NEXT_PUBLIC_API_URL = https://api.librarycard.tim52.io
+   NEXTAUTH_URL = https://librarycard.tim52.io
    ```
 
 ### 3.2 Deploy Frontend
@@ -202,15 +202,15 @@ Look for:
 
 ### 5.1 Netlify Custom Domain
 1. **In Netlify Dashboard** → **Domain Settings** → **Add Custom Domain**
-2. **Enter your domain** (e.g., `libarycard.yourdomain.com`)
+2. **Enter your domain** (e.g., `librarycard.yourdomain.com`)
 3. **Update DNS** as instructed by Netlify
 4. **Wait for SSL** certificate (automatic)
 
 ### 5.2 Update Environment Variables
 After custom domain is active:
 ```
-NEXTAUTH_URL = https://libarycard.tim52.io
-APP_URL = https://libarycard.tim52.io
+NEXTAUTH_URL = https://librarycard.tim52.io
+APP_URL = https://librarycard.tim52.io
 ```
 
 ## Troubleshooting
@@ -227,7 +227,7 @@ APP_URL = https://libarycard.tim52.io
 3. **Use verified domain**: Don't use `@resend.dev` in production
 
 ### Verification Link Not Working
-1. **Check URL format**: Should be `https://libarycard.tim52.io/auth/signin?verified=true&token=...`
+1. **Check URL format**: Should be `https://librarycard.tim52.io/auth/signin?verified=true&token=...`
 2. **Check Workers endpoint**: Ensure `/api/auth/verify-email` is working
 3. **Check token expiration**: Tokens expire in 24 hours
 
@@ -247,7 +247,7 @@ const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
   body: JSON.stringify({
     personalizations: [{ to: [{ email }] }],
     from: { email: env.FROM_EMAIL },
-    subject: 'Verify your LibaryCard account',
+    subject: 'Verify your LibraryCard account',
     content: [{ type: 'text/html', value: htmlTemplate }]
   })
 });
@@ -265,7 +265,7 @@ const response = await fetch(`https://api.mailgun.net/v3/${env.MAILGUN_DOMAIN}/m
   body: new URLSearchParams({
     from: env.FROM_EMAIL,
     to: email,
-    subject: 'Verify your LibaryCard account',
+    subject: 'Verify your LibraryCard account',
     html: htmlTemplate
   })
 });
@@ -303,4 +303,4 @@ After email verification is working:
 3. **Analytics**: Track email open rates and click-through rates
 4. **Backup plan**: Consider backup email service for high availability
 
-Your LibaryCard app now has production-ready email verification! 🎉
+Your LibraryCard app now has production-ready email verification! 🎉

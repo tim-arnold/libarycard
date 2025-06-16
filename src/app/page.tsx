@@ -88,7 +88,7 @@ export default function Home() {
         .catch(err => console.error('Failed to fetch user role:', err))
 
       // Fetch user's locations to get the location name for regular users
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.librarycard.tim52.io'
       fetch(`${API_BASE}/api/locations`, {
         headers: {
           'Authorization': `Bearer ${session.user?.email}`,
@@ -107,7 +107,7 @@ export default function Home() {
   }, [session, searchParams])
 
   const handleInvitationAcceptance = async (token: string) => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.librarycard.tim52.io'
     
     try {
       const response = await fetch(`${API_BASE}/api/invitations/accept`, {
@@ -194,7 +194,7 @@ export default function Home() {
       <AppBar position="static" color="primary">
         <Toolbar>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-            📚 LibaryCard
+            📚 LibraryCard
           </Typography>
           
           <Typography variant="body2" sx={{ mr: 2 }}>
@@ -264,7 +264,7 @@ export default function Home() {
           >
             <Tab 
               value="library" 
-              label={userRole === 'admin' ? "Libaries" : (userLocation ? `${userLocation} Libary` : "My Libary")}
+              label={userRole === 'admin' ? "Libraries" : (userLocation ? `${userLocation} Library` : "My Library")}
               icon={<LibraryBooks />}
               iconPosition="start"
             />

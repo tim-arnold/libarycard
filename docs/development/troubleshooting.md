@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-This guide covers common issues you might encounter while using or deploying LibaryCard.
+This guide covers common issues you might encounter while using or deploying LibraryCard.
 
 ## OCR and Bookshelf Scanning Issues
 
@@ -18,7 +18,7 @@ This error occurs when OAuth client credentials are configured instead of servic
 1. **Check Current Credentials Type**
    ```bash
    # Test the OCR endpoint to see error details
-   curl -X POST https://api.libarycard.tim52.io/api/ocr-vision \
+   curl -X POST https://api.librarycard.tim52.io/api/ocr-vision \
      -H "Content-Type: application/json" \
      -d '{"image": "data:image/png;base64,test"}'
    ```
@@ -45,7 +45,7 @@ This error occurs when OAuth client credentials are configured instead of servic
 
 5. **Verify the Fix**
    ```bash
-   curl -X POST https://api.libarycard.tim52.io/api/ocr-vision \
+   curl -X POST https://api.librarycard.tim52.io/api/ocr-vision \
      -H "Content-Type: application/json" \
      -d '{"image": "data:image/png;base64,test"}'
    # Should return: {"detectedText":[],"processedCount":0}
@@ -155,7 +155,7 @@ Service account JSON should contain:
 1. **Check API Connection**
    ```bash
    # Test API endpoint directly
-   curl https://api.libarycard.tim52.io/api/books
+   curl https://api.librarycard.tim52.io/api/books
    ```
 
 2. **Verify Environment Variables**
@@ -171,7 +171,7 @@ Service account JSON should contain:
 4. **Database Connection**
    ```bash
    # Check database status
-   wrangler d1 execute libarycard-db --command="SELECT COUNT(*) FROM books;"
+   wrangler d1 execute librarycard-db --command="SELECT COUNT(*) FROM books;"
    ```
 
 ### Worker Deployment Issues
@@ -195,13 +195,13 @@ Service account JSON should contain:
    wrangler deploy
    
    # Check worker status
-   wrangler tail libarycard-api
+   wrangler tail librarycard-api
    ```
 
 3. **Schema Issues**
    ```bash
    # Reapply schema if needed
-   wrangler d1 execute libarycard-db --file=./schema.sql
+   wrangler d1 execute librarycard-db --file=./schema.sql
    ```
 
 ## Frontend Issues
@@ -299,16 +299,16 @@ Service account JSON should contain:
 1. **Schema Verification**
    ```bash
    # Check current schema
-   wrangler d1 execute libarycard-db --command="PRAGMA table_info(books);"
+   wrangler d1 execute librarycard-db --command="PRAGMA table_info(books);"
    ```
 
 2. **Manual Migration**
    ```bash
    # Backup data first
-   wrangler d1 execute libarycard-db --command="SELECT * FROM books;" > backup.json
+   wrangler d1 execute librarycard-db --command="SELECT * FROM books;" > backup.json
    
    # Reapply schema
-   wrangler d1 execute libarycard-db --file=./schema.sql
+   wrangler d1 execute librarycard-db --file=./schema.sql
    ```
 
 ## Performance Issues
@@ -465,16 +465,16 @@ localStorage.setItem('debug', 'true');
 
 ```bash
 # Check worker logs
-wrangler tail libarycard-api
+wrangler tail librarycard-api
 
 # Test database
-wrangler d1 execute libarycard-db --command="SELECT COUNT(*) FROM books;"
+wrangler d1 execute librarycard-db --command="SELECT COUNT(*) FROM books;"
 
 # Verify deployment
-curl -I https://libarycard.tim52.io
+curl -I https://librarycard.tim52.io
 
 # Check DNS
-nslookup libarycard.tim52.io
+nslookup librarycard.tim52.io
 ```
 
 ### Recovery Procedures

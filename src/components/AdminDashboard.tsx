@@ -28,7 +28,7 @@ import AdminNotificationCenter from './AdminNotificationCenter'
 import AdminSignupManager from './AdminSignupManager'
 import LocationManager from './LocationManager'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.librarycard.tim52.io'
 
 interface AdminOverview {
   totalBooks: number
@@ -182,7 +182,7 @@ export default function AdminDashboard() {
                 📊 Dashboard Overview
               </Typography>
               <Typography variant="body1" color="text.secondary" paragraph>
-                Welcome to the LibaryCard admin dashboard. Use the tabs above to navigate between different administrative functions:
+                Welcome to the LibraryCard admin dashboard. Use the tabs above to navigate between different administrative functions:
               </Typography>
               <Box component="ul" sx={{ pl: 2 }}>
                 <Typography component="li" variant="body2" paragraph>

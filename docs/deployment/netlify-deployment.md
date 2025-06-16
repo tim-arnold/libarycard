@@ -1,11 +1,11 @@
 # Netlify Deployment Guide
 
-This guide walks you through deploying LibaryCard to Netlify with your existing Cloudflare Workers API.
+This guide walks you through deploying LibraryCard to Netlify with your existing Cloudflare Workers API.
 
 ## Prerequisites
 
 1. **Netlify Account**: [Sign up for free](https://app.netlify.com/signup)
-2. **GitHub Repository**: Your LibaryCard repo (already done ✅)
+2. **GitHub Repository**: Your LibraryCard repo (already done ✅)
 3. **Cloudflare Worker**: Your API should be deployed and working (already done ✅)
 
 ## Step 1: Connect Repository to Netlify
@@ -15,7 +15,7 @@ This guide walks you through deploying LibaryCard to Netlify with your existing 
 1. **Go to Netlify Dashboard**: [app.netlify.com](https://app.netlify.com)
 2. **Click "Add new site"** → **"Import an existing project"**
 3. **Connect to Git provider**: Choose GitHub
-4. **Select repository**: Choose your `libarycard` repository
+4. **Select repository**: Choose your `librarycard` repository
 5. **Configure build settings**:
    - **Branch to deploy**: `main`
    - **Build command**: `npm run build`
@@ -45,13 +45,13 @@ In your Netlify site dashboard:
 1. **Go to Site Settings** → **Environment Variables**
 2. **Add the following variable**:
    - **Key**: `NEXT_PUBLIC_API_URL`
-   - **Value**: `https://api.libarycard.tim52.io`
+   - **Value**: `https://api.librarycard.tim52.io`
 
 ## Step 3: Deploy
 
 1. **Trigger deployment**: Push to main branch or click "Deploy site"
 2. **Monitor build**: Check the deploy log for any errors
-3. **Get your URL**: Netlify will provide a URL like `https://libarycard.tim52.io`
+3. **Get your URL**: Netlify will provide a URL like `https://librarycard.tim52.io`
 
 ## Step 4: Custom Domain (Optional)
 
@@ -86,7 +86,7 @@ The repository includes these Netlify-specific files:
 
 ### .env.production
 ```env
-NEXT_PUBLIC_API_URL=https://api.libarycard.tim52.io
+NEXT_PUBLIC_API_URL=https://api.librarycard.tim52.io
 ```
 
 ## Verification Steps
@@ -161,7 +161,7 @@ git push origin main
 - Unlimited personal sites
 - Custom domains included
 
-**Perfect for personal use!** LibaryCard should easily fit within free limits.
+**Perfect for personal use!** LibraryCard should easily fit within free limits.
 
 ## Monitoring and Analytics
 
@@ -245,4 +245,4 @@ After successful deployment:
 4. **Monitor usage** and performance
 5. **Regular data exports** for backup
 
-Your LibaryCard app is now live and ready to manage your book collection! 🎉
+Your LibraryCard app is now live and ready to manage your book collection! 🎉

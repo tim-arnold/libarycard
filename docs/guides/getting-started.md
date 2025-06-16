@@ -1,14 +1,14 @@
-# Getting Started with LibaryCard
+# Getting Started with LibraryCard
 
-LibaryCard is a personal book library management system that lets you scan ISBN barcodes to automatically catalog your books with location tracking and custom tagging.
+LibraryCard is a personal book library management system that lets you scan ISBN barcodes to automatically catalog your books with location tracking and custom tagging.
 
 ## Quick Start
 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/tim-arnold/libarycard.git
-cd libarycard
+git clone https://github.com/tim-arnold/librarycard.git
+cd librarycard
 ```
 
 ### 2. Install Dependencies
@@ -47,7 +47,7 @@ Visit `http://localhost:3000` to see the app running locally.
 
 ## Core Features
 
-LibaryCard is a sophisticated library management platform with comprehensive features:
+LibraryCard is a sophisticated library management platform with comprehensive features:
 
 ### 📱 Book Scanning & Management
 - **ISBN Scanning**: Camera-based barcode scanning with Google Books API integration

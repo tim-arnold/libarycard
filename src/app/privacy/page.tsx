@@ -28,7 +28,7 @@ export default function PrivacyPage() {
           Information Collection and Use
         </Typography>
         <Typography variant="body1" paragraph>
-          LibaryCard is a personal library management application. We collect and store information 
+          LibraryCard is a personal library management application. We collect and store information 
           you provide to help you manage your book collection, including:
         </Typography>
         <ul>
@@ -123,7 +123,7 @@ export default function PrivacyPage() {
 
         <Box sx={{ mt: 4, pt: 2, borderTop: 1, borderColor: 'divider' }}>
           <Typography variant="body2" color="text.secondary">
-            This privacy policy is part of LibaryCard's commitment to transparency and user privacy.
+            This privacy policy is part of LibraryCard's commitment to transparency and user privacy.
           </Typography>
         </Box>
       </Paper>

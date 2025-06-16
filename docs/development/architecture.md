@@ -1,6 +1,6 @@
 # Architecture Overview
 
-LibaryCard is built as a modern, serverless web application using a hybrid architecture with Netlify for frontend hosting and Cloudflare Workers for the backend API.
+LibraryCard is built as a modern, serverless web application using a hybrid architecture with Netlify for frontend hosting and Cloudflare Workers for the backend API.
 
 ## System Architecture
 

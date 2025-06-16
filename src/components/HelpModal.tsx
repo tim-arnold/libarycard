@@ -74,7 +74,7 @@ export default function HelpModal({ open, onClose }: HelpModalProps) {
     >
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h5" component="h2">
-          LibaryCard Help
+          LibraryCard Help
         </Typography>
         <IconButton onClick={onClose} size="small">
           <Close />
@@ -91,7 +91,7 @@ export default function HelpModal({ open, onClose }: HelpModalProps) {
           <>
             <Box sx={{ mb: 3 }}>
               <Typography variant="h6" gutterBottom>
-                Welcome to LibaryCard!
+                Welcome to LibraryCard!
               </Typography>
               <Typography variant="body1" color="text.secondary">
                 Your personal book library management system. This guide will help you make the most of all features available to you.
@@ -119,7 +119,7 @@ export default function HelpModal({ open, onClose }: HelpModalProps) {
                 </AccordionSummary>
                 <AccordionDetails>
                   <Typography variant="body1" gutterBottom>
-                    LibaryCard has {isAdmin ? 'three' : 'two'} main sections accessible via the top navigation:
+                    LibraryCard has {isAdmin ? 'three' : 'two'} main sections accessible via the top navigation:
                   </Typography>
                   <List>
                     <ListItem>

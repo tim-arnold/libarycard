@@ -258,7 +258,7 @@ export default function BookshelfScanner({
       const base64Image = await fileToBase64(rotatedImage)
       
       // Call Cloudflare Worker OCR endpoint
-      const response = await fetch('https://libarycard-api.tim-arnold.workers.dev/api/ocr-vision', {
+      const response = await fetch('https://librarycard-api.tim-arnold.workers.dev/api/ocr-vision', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,6 +1,6 @@
-# LibaryCard Development Todos
+# LibraryCard Development Todos
 
-This file tracks active development tasks and future enhancements for the LibaryCard project.
+This file tracks active development tasks and future enhancements for the LibraryCard project.
 
 > **Note**: For completed features and fixes, see [CHANGELOG.md](./CHANGELOG.md)
 

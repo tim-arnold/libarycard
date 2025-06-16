@@ -1135,33 +1135,33 @@ async function sendInvitationEmail(env: Env, email: string, locationName: string
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          from: env.FROM_EMAIL || 'LibaryCard <noreply@resend.dev>',
+          from: env.FROM_EMAIL || 'LibraryCard <noreply@resend.dev>',
           to: [email],
-          subject: `You're invited to join ${locationName} on LibaryCard`,
+          subject: `You're invited to join ${locationName} on LibraryCard`,
           html: `
             <!DOCTYPE html>
             <html>
             <head>
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>LibaryCard Invitation</title>
+              <title>LibraryCard Invitation</title>
             </head>
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
               <div style="background: #f8f9fa; padding: 30px; border-radius: 10px; text-align: center;">
-                <h1 style="color: #007bff; margin-bottom: 10px;">📚 LibaryCard</h1>
+                <h1 style="color: #007bff; margin-bottom: 10px;">📚 LibraryCard</h1>
                 <h2 style="color: #333; margin-bottom: 20px;">You're Invited!</h2>
                 <p style="font-size: 16px; margin-bottom: 20px;">
-                  ${inviterName} has invited you to join the <strong>${locationName}</strong> library on LibaryCard.
+                  ${inviterName} has invited you to join the <strong>${locationName}</strong> library on LibraryCard.
                 </p>
                 <p style="font-size: 16px; margin-bottom: 30px;">
-                  LibaryCard helps you organize and share book collections. Join to browse books and add your own to the shared library.
+                  LibraryCard helps you organize and share book collections. Join to browse books and add your own to the shared library.
                 </p>
                 <a href="${invitationUrl}" 
                    style="display: inline-block; background: #007bff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
                   Accept Invitation
                 </a>
                 <p style="font-size: 14px; color: #666; margin-top: 30px;">
-                  This invitation will expire in 7 days. If you don't have a LibaryCard account, you can create one when you accept the invitation.
+                  This invitation will expire in 7 days. If you don't have a LibraryCard account, you can create one when you accept the invitation.
                 </p>
                 <p style="font-size: 14px; color: #666; margin-top: 20px;">
                   If the button doesn't work, copy and paste this link into your browser:<br>
@@ -1256,30 +1256,30 @@ async function sendVerificationEmail(env: Env, email: string, firstName: string,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          from: env.FROM_EMAIL || 'LibaryCard <noreply@resend.dev>',
+          from: env.FROM_EMAIL || 'LibraryCard <noreply@resend.dev>',
           to: [email],
-          subject: 'Verify your LibaryCard account',
+          subject: 'Verify your LibraryCard account',
           html: `
             <!DOCTYPE html>
             <html>
             <head>
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>Verify your LibaryCard account</title>
+              <title>Verify your LibraryCard account</title>
             </head>
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
               <div style="background: #f8f9fa; padding: 30px; border-radius: 10px; text-align: center;">
-                <h1 style="color: #007bff; margin-bottom: 10px;">📚 LibaryCard</h1>
+                <h1 style="color: #007bff; margin-bottom: 10px;">📚 LibraryCard</h1>
                 <h2 style="color: #333; margin-bottom: 20px;">Welcome, ${firstName}!</h2>
                 <p style="font-size: 16px; margin-bottom: 30px;">
-                  Thanks for joining LibaryCard. To complete your registration, please verify your email address by clicking the button below:
+                  Thanks for joining LibraryCard. To complete your registration, please verify your email address by clicking the button below:
                 </p>
                 <a href="${verificationUrl}" 
                    style="display: inline-block; background: #007bff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
                   Verify Email Address
                 </a>
                 <p style="font-size: 14px; color: #666; margin-top: 30px;">
-                  This link will expire in 24 hours. If you didn't create an account with LibaryCard, you can safely ignore this email.
+                  This link will expire in 24 hours. If you didn't create an account with LibraryCard, you can safely ignore this email.
                 </p>
                 <p style="font-size: 14px; color: #666; margin-top: 20px;">
                   If the button doesn't work, copy and paste this link into your browser:<br>
@@ -1342,18 +1342,18 @@ async function notifyAdminsOfSignupRequest(env: Env, email: string, firstName: s
             'X-Postmark-Server-Token': env.POSTMARK_API_TOKEN,
           },
           body: JSON.stringify({
-            From: env.FROM_EMAIL || 'noreply@libarycard.com',
+            From: env.FROM_EMAIL || 'noreply@librarycard.com',
             To: adminEmail,
-            Subject: 'LibaryCard: New Signup Request Pending Approval',
+            Subject: 'LibraryCard: New Signup Request Pending Approval',
             HtmlBody: `
               <html>
                 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
                   <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h2 style="color: #673ab7;">📚 LibaryCard Signup Request</h2>
+                    <h2 style="color: #673ab7;">📚 LibraryCard Signup Request</h2>
                     
                     <p>Hello ${adminFirstName},</p>
                     
-                    <p>A new user has requested to join LibaryCard and is waiting for admin approval:</p>
+                    <p>A new user has requested to join LibraryCard and is waiting for admin approval:</p>
                     
                     <div style="background-color: #f8f9fa; border-left: 4px solid #673ab7; padding: 15px; margin: 20px 0;">
                       <p><strong>Email:</strong> ${email}</p>
@@ -1361,10 +1361,10 @@ async function notifyAdminsOfSignupRequest(env: Env, email: string, firstName: s
                       <p><strong>Requested At:</strong> ${new Date().toLocaleString()}</p>
                     </div>
                     
-                    <p>Please log in to the LibaryCard admin panel to review and approve or deny this signup request.</p>
+                    <p>Please log in to the LibraryCard admin panel to review and approve or deny this signup request.</p>
                     
                     <div style="margin: 30px 0; text-align: center;">
-                      <a href="${env.FRONTEND_URL || 'https://libarycard.com'}" 
+                      <a href="${env.FRONTEND_URL || 'https://librarycard.com'}" 
                          style="background-color: #673ab7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
                         Review Signup Request
                       </a>
@@ -1372,28 +1372,28 @@ async function notifyAdminsOfSignupRequest(env: Env, email: string, firstName: s
                     
                     <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
                     <p style="font-size: 12px; color: #666;">
-                      This is an automated message from LibaryCard. This user cannot access the system until approved by an admin.
+                      This is an automated message from LibraryCard. This user cannot access the system until approved by an admin.
                     </p>
                   </div>
                 </body>
               </html>
             `,
             TextBody: `
-LibaryCard Signup Request
+LibraryCard Signup Request
 
 Hello ${adminFirstName},
 
-A new user has requested to join LibaryCard and is waiting for admin approval:
+A new user has requested to join LibraryCard and is waiting for admin approval:
 
 Email: ${email}
 Name: ${firstName}${lastName ? ` ${lastName}` : ''}
 Requested At: ${new Date().toLocaleString()}
 
-Please log in to the LibaryCard admin panel to review and approve or deny this signup request.
+Please log in to the LibraryCard admin panel to review and approve or deny this signup request.
 
-Visit: ${env.FRONTEND_URL || 'https://libarycard.com'}
+Visit: ${env.FRONTEND_URL || 'https://librarycard.com'}
 
-This is an automated message from LibaryCard. This user cannot access the system until approved by an admin.
+This is an automated message from LibraryCard. This user cannot access the system until approved by an admin.
             `
           })
         });
@@ -1592,7 +1592,7 @@ async function sendSignupApprovalEmail(env: Env, email: string, firstName: strin
   try {
     if (env.POSTMARK_API_TOKEN) {
       const isProduction = env.ENVIRONMENT === 'production';
-      const baseUrl = env.FRONTEND_URL || 'https://libarycard.com';
+      const baseUrl = env.FRONTEND_URL || 'https://librarycard.com';
       
       let subject: string;
       let htmlBody: string;
@@ -1600,16 +1600,16 @@ async function sendSignupApprovalEmail(env: Env, email: string, firstName: strin
 
       if (approved && verificationToken) {
         const verificationUrl = `${baseUrl}/auth/verify-email?token=${verificationToken}`;
-        subject = 'LibaryCard: Account Approved - Please Verify Your Email';
+        subject = 'LibraryCard: Account Approved - Please Verify Your Email';
         htmlBody = `
           <html>
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
               <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h2 style="color: #673ab7;">📚 LibaryCard Account Approved!</h2>
+                <h2 style="color: #673ab7;">📚 LibraryCard Account Approved!</h2>
                 
                 <p>Hello ${firstName},</p>
                 
-                <p>Great news! Your LibaryCard signup request has been approved by our administrator.</p>
+                <p>Great news! Your LibraryCard signup request has been approved by our administrator.</p>
                 
                 <div style="background-color: #e8f5e8; border-left: 4px solid #4caf50; padding: 15px; margin: 20px 0;">
                   <p><strong>✅ Your account has been created!</strong></p>
@@ -1636,11 +1636,11 @@ async function sendSignupApprovalEmail(env: Env, email: string, firstName: strin
           </html>
         `;
         textBody = `
-LibaryCard Account Approved!
+LibraryCard Account Approved!
 
 Hello ${firstName},
 
-Great news! Your LibaryCard signup request has been approved by our administrator.
+Great news! Your LibraryCard signup request has been approved by our administrator.
 
 Your account has been created for: ${email}
 
@@ -1652,16 +1652,16 @@ Once verified, you can sign in and start managing your book collection!
 This verification link will expire in 24 hours. If you need assistance, please contact support.
         `;
       } else {
-        subject = 'LibaryCard: Signup Request Decision';
+        subject = 'LibraryCard: Signup Request Decision';
         htmlBody = `
           <html>
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
               <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h2 style="color: #673ab7;">📚 LibaryCard Signup Request Update</h2>
+                <h2 style="color: #673ab7;">📚 LibraryCard Signup Request Update</h2>
                 
                 <p>Hello ${firstName},</p>
                 
-                <p>Thank you for your interest in LibaryCard. After reviewing your signup request, we're unable to approve your account at this time.</p>
+                <p>Thank you for your interest in LibraryCard. After reviewing your signup request, we're unable to approve your account at this time.</p>
                 
                 <div style="background-color: #ffeaea; border-left: 4px solid #f44336; padding: 15px; margin: 20px 0;">
                   <p><strong>❌ Request Status: Denied</strong></p>
@@ -1673,18 +1673,18 @@ This verification link will expire in 24 hours. If you need assistance, please c
                 
                 <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
                 <p style="font-size: 12px; color: #666;">
-                  This is an automated message from LibaryCard.
+                  This is an automated message from LibraryCard.
                 </p>
               </div>
             </body>
           </html>
         `;
         textBody = `
-LibaryCard Signup Request Update
+LibraryCard Signup Request Update
 
 Hello ${firstName},
 
-Thank you for your interest in LibaryCard. After reviewing your signup request, we're unable to approve your account at this time.
+Thank you for your interest in LibraryCard. After reviewing your signup request, we're unable to approve your account at this time.
 
 Request Status: Denied
 Email: ${email}
@@ -1692,7 +1692,7 @@ ${comment ? `Admin Note: ${comment}` : ''}
 
 If you believe this is an error or have questions about this decision, please feel free to contact us.
 
-This is an automated message from LibaryCard.
+This is an automated message from LibraryCard.
         `;
       }
 
@@ -1704,7 +1704,7 @@ This is an automated message from LibaryCard.
           'X-Postmark-Server-Token': env.POSTMARK_API_TOKEN,
         },
         body: JSON.stringify({
-          From: env.FROM_EMAIL || 'noreply@libarycard.com',
+          From: env.FROM_EMAIL || 'noreply@librarycard.com',
           To: email,
           Subject: subject,
           HtmlBody: htmlBody,
@@ -1981,21 +1981,21 @@ async function sendContactEmail(request: Request, env: Env, corsHeaders: Record<
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            from: env.FROM_EMAIL || 'LibaryCard <noreply@tim52.io>',
+            from: env.FROM_EMAIL || 'LibraryCard <noreply@tim52.io>',
             to: ['libarian@tim52.io'],
             reply_to: [email],
-            subject: `LibaryCard Contact: Message from ${name}`,
+            subject: `LibraryCard Contact: Message from ${name}`,
             html: `
               <!DOCTYPE html>
               <html>
               <head>
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>LibaryCard Contact Form</title>
+                <title>LibraryCard Contact Form</title>
               </head>
               <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
                 <div style="background: #f8f9fa; padding: 30px; border-radius: 10px;">
-                  <h1 style="color: #007bff; margin-bottom: 10px;">📚 LibaryCard Contact</h1>
+                  <h1 style="color: #007bff; margin-bottom: 10px;">📚 LibraryCard Contact</h1>
                   <h2 style="color: #333; margin-bottom: 20px;">New message from ${name}</h2>
                   
                   <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0;">

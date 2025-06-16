@@ -1,4 +1,4 @@
-# LibaryCard 📚
+# LibraryCard 📚
 
 A personal book collection management app that allows you to scan ISBN barcodes to automatically add books to your digital library.
 
@@ -32,14 +32,14 @@ A personal book collection management app that allows you to scan ISBN barcodes 
 
 1. Create a D1 database:
    \`\`\`bash
-   wrangler d1 create libarycard-db
+   wrangler d1 create librarycard-db
    \`\`\`
 
 2. Update \`wrangler.toml\` with your database ID
 
 3. Initialize the database schema:
    \`\`\`bash
-   wrangler d1 execute libarycard-db --file=./schema.sql
+   wrangler d1 execute librarycard-db --file=./schema.sql
    \`\`\`
 
 ### Worker Deployment
@@ -56,7 +56,7 @@ A personal book collection management app that allows you to scan ISBN barcodes 
 
 1. Create \`.env.local\`:
    \`\`\`
-   NEXT_PUBLIC_API_URL=https://api.libarycard.tim52.io
+   NEXT_PUBLIC_API_URL=https://api.librarycard.tim52.io
    \`\`\`
 
 2. Build the frontend:

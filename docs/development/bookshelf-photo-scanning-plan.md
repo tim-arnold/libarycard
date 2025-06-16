@@ -60,7 +60,7 @@ BookshelfScanner.tsx (new)
 
 **Original Estimated Duration: 4 days (32 hours)**
 **Actual Development Time: 1 DAY! (June 7, 2025 - ~5 hours total)**
-*(LibaryCard "Vibe Coding" Reality: We built the entire feature in one morning!)*
+*(LibraryCard "Vibe Coding" Reality: We built the entire feature in one morning!)*
 
 ### ACTUAL TIMELINE - SINGLE DAY SPRINT! 🚀
 
@@ -403,8 +403,8 @@ if (!creds.private_key) {
 - ✅ **Architecture Migration**: Complete transition from Netlify Functions to Cloudflare Workers
 
 **Final Production Architecture**: 
-- **Frontend**: Next.js on Netlify (libarycard.tim52.io)
-- **Backend**: Cloudflare Workers with D1 database (api.libarycard.tim52.io)
+- **Frontend**: Next.js on Netlify (librarycard.tim52.io)
+- **Backend**: Cloudflare Workers with D1 database (api.librarycard.tim52.io)
 - **OCR Processing**: Google Vision API via Cloudflare Workers (80-90% accuracy)
 - **Google Cloud Integration**: Service account authentication with Web Crypto API
 

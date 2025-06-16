@@ -1,6 +1,6 @@
 # Database Schema
 
-LibaryCard uses Cloudflare D1, a distributed SQLite database, to store user accounts, locations, shelves, and book information in a multi-user architecture.
+LibraryCard uses Cloudflare D1, a distributed SQLite database, to store user accounts, locations, shelves, and book information in a multi-user architecture.
 
 ## Table Structure
 

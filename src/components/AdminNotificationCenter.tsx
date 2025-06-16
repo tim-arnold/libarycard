@@ -21,7 +21,7 @@ import {
 } from '@mui/icons-material'
 import RemovalRequestManager from './RemovalRequestManager'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.librarycard.tim52.io'
 
 interface NotificationCounts {
   pendingRemovalRequests: number

@@ -1,5 +1,5 @@
 // Cleanup script for tim@fiercefamly.com user
-const API_BASE = 'https://libarycard-api.tim-arnold.workers.dev'
+const API_BASE = 'https://librarycard-api.tim-arnold.workers.dev'
 
 const headers = {
   'Authorization': 'Bearer tim.arnold@gmail.com',

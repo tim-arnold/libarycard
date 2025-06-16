@@ -35,7 +35,7 @@ import {
   Cancel,
 } from '@mui/icons-material'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.librarycard.tim52.io'
 
 interface SignupRequest {
   id: number
@@ -379,7 +379,7 @@ export default function AdminSignupManager() {
             onChange={(e) => setReviewComment(e.target.value)}
             placeholder={
               reviewAction === 'approve' 
-                ? 'Welcome to LibaryCard! You can now start managing your book collection.'
+                ? 'Welcome to LibraryCard! You can now start managing your book collection.'
                 : 'Please provide a brief reason for denying this request...'
             }
             sx={{ mt: 2 }}

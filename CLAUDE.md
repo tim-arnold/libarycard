@@ -1,12 +1,12 @@
-# LibaryCard AI Assistant Context
+# LibraryCard AI Assistant Context
 
-This file contains AI-specific context and working preferences for Claude Code when working on LibaryCard.
+This file contains AI-specific context and working preferences for Claude Code when working on LibraryCard.
 
 **Project Resources**: [Active Todos](./docs/reference/TODO.md) • [Change History](./docs/reference/CHANGELOG.md) • [Architecture Guide](./docs/development/architecture.md) • [Getting Started](./docs/guides/getting-started.md)
 
 ## Project Context for AI
 
-**What is LibaryCard**: Personal library management platform with ISBN scanning, Google Books API integration, and multi-user support  
+**What is LibraryCard**: Personal library management platform with ISBN scanning, Google Books API integration, and multi-user support  
 **Architecture**: Next.js frontend on Netlify + Cloudflare Workers API + D1 database  
 **Tech Stack**: TypeScript, Material UI, NextAuth.js, Google Books API  
 **Environment**: Development with mock auth, production with email verification

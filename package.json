@@ -1,5 +1,5 @@
 {
-  "name": "libarycard",
+  "name": "librarycard",
   "version": "1.0.1",
   "description": "Personal library management app with ISBN scanning",
   "scripts": {

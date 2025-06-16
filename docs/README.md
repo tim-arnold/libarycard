@@ -1,13 +1,13 @@
-# LibaryCard Documentation
+# LibraryCard Documentation
 
-This directory contains comprehensive documentation for the LibaryCard project, organized into focused subdirectories.
+This directory contains comprehensive documentation for the LibraryCard project, organized into focused subdirectories.
 
 ## Documentation Structure
 
 ### 📚 [Guides](./guides/) - User & Feature Documentation
 - **[Getting Started](./guides/getting-started.md)** - Quick start guide for new users
 - **[Features Overview](./guides/features.md)** - Comprehensive feature documentation with recent highlights
-- **[User Guide](./guides/user-guide.md)** - Complete user manual for LibaryCard features
+- **[User Guide](./guides/user-guide.md)** - Complete user manual for LibraryCard features
 
 ### 🛠️ [Development](./development/) - Technical Documentation
 - **[Architecture Overview](./development/architecture.md)** - System design and technology stack

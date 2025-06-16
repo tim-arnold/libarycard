@@ -30,7 +30,7 @@ import AlertModal from '@/components/AlertModal'
 import Footer from '@/components/Footer'
 import { useModal } from '@/hooks/useModal'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.librarycard.tim52.io'
 
 interface ProfileData {
   id: string

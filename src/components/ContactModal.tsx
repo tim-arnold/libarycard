@@ -137,7 +137,7 @@ export default function ContactModal({ open, onClose }: ContactModalProps) {
             rows={4}
             required
             disabled={isSubmitting}
-            placeholder="Tell the Libarian about your question, feedback, or how LibaryCard is working for you..."
+            placeholder="Tell the Librarian about your question, feedback, or how LibraryCard is working for you..."
           />
         </Box>
       </DialogContent>

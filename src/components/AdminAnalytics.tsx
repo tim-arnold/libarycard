@@ -29,7 +29,7 @@ import {
   Category,
 } from '@mui/icons-material'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.librarycard.tim52.io'
 
 interface AnalyticsData {
   overview: {

@@ -1,6 +1,6 @@
-# LibaryCard Changelog
+# LibraryCard Changelog
 
-This file documents all completed features, fixes, and improvements to the LibaryCard project.
+This file documents all completed features, fixes, and improvements to the LibraryCard project.
 
 ## June 14, 2025 - Search Result Pagination & UX Enhancements
 
@@ -246,7 +246,7 @@ This file documents all completed features, fixes, and improvements to the Libar
 
 ### Infrastructure & User Experience
 - **CREATED**: Complete contact workflow from frontend form to email delivery with reply-to functionality
-- **MAINTAINED**: Consistent Material UI styling and LibaryCard brand voice throughout contact system
+- **MAINTAINED**: Consistent Material UI styling and LibraryCard brand voice throughout contact system
 - **IMPLEMENTED**: Professional email template matching existing invitation system styling
 - **OPTIMIZED**: User experience with immediate feedback and graceful error handling
 
@@ -487,7 +487,7 @@ This file documents all completed features, fixes, and improvements to the Libar
 - **ADDED**: DELETE `/api/invitations/{id}/revoke` endpoint for admin users
 - **UPDATED**: Invitation UI to show revoke buttons only for pending invitations
 - **ENHANCED**: Error handling for invitation acceptance with new user registration
-- **MIGRATED**: Production URLs to new domain - App: https://libarycard.tim52.io, API: https://api.libarycard.tim52.io
+- **MIGRATED**: Production URLs to new domain - App: https://librarycard.tim52.io, API: https://api.librarycard.tim52.io
 - **UPDATED**: All frontend components and documentation to use new production URLs
 
 ### Smart UI & UX Improvements (Options A, B & C)
@@ -608,4 +608,4 @@ This file documents all completed features, fixes, and improvements to the Libar
 
 ---
 
-This changelog documents the evolution of LibaryCard from a basic book management system to a sophisticated library management platform with role-based permissions, comprehensive book tracking, and modern Material UI design.
+This changelog documents the evolution of LibraryCard from a basic book management system to a sophisticated library management platform with role-based permissions, comprehensive book tracking, and modern Material UI design.

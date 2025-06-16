@@ -74,7 +74,7 @@ function SignInForm() {
 
 
   const fetchInvitationDetails = async (token: string) => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.librarycard.tim52.io'
     
     try {
       const response = await fetch(`${API_BASE}/api/invitations/details?token=${token}`)
@@ -98,7 +98,7 @@ function SignInForm() {
   const handleInvitationAcceptance = async (token: string) => {
     setError('')
     
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.libarycard.tim52.io'
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.librarycard.tim52.io'
     
     try {
       const session = await getSession()
@@ -240,7 +240,7 @@ function SignInForm() {
         // Check if admin approval is required
         if (data.requires_approval) {
           // Admin approval required - show appropriate message
-          setMessage('Your signup request has been submitted for admin approval. You will receive an email notification once your request is reviewed. Thank you for your interest in LibaryCard!')
+          setMessage('Your signup request has been submitted for admin approval. You will receive an email notification once your request is reviewed. Thank you for your interest in LibraryCard!')
           setShowRegisterForm(false)
           setShowEmailForm(false)
           // Clear form
@@ -316,7 +316,7 @@ function SignInForm() {
     <Container maxWidth="sm" sx={{ py: 4 }}>
       <Paper sx={{ p: 4, textAlign: 'center' }}>
         <Typography variant="h3" component="h1" gutterBottom sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-          📚 LibaryCard
+          📚 LibraryCard
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
           Sign in to start managing your book collection
