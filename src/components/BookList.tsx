@@ -6,13 +6,11 @@ import {
   ListItem,
   Typography,
   Chip,
-  Button,
 } from '@mui/material'
-import { Info } from '@mui/icons-material'
 import type { EnhancedBook } from '@/lib/types'
 import BookActions from './BookActions'
 
-interface BookListProps {
+interface BookTextProps {
   books: EnhancedBook[]
   userRole: string | null
   currentUserId: string | null
@@ -29,7 +27,7 @@ interface BookListProps {
   onSeriesClick: (seriesName: string) => void
 }
 
-export default function BookList({
+export default function BookText({
   books,
   userRole,
   currentUserId,
@@ -44,273 +42,132 @@ export default function BookList({
   onMoreDetailsClick,
   onAuthorClick,
   onSeriesClick,
-}: BookListProps) {
+}: BookTextProps) {
   return (
-    <List sx={{ width: '100%' }}>
+    <List sx={{ width: '100%', p: 0 }}>
       {books.map(book => (
         <ListItem
           key={book.id}
           sx={{
             display: 'flex',
-            flexDirection: { xs: 'column', sm: 'row' },
-            alignItems: { xs: 'stretch', sm: 'flex-start' },
+            alignItems: 'center',
             border: 1,
             borderColor: 'divider',
             borderRadius: 1,
-            mb: 2,
-            p: { xs: 1.5, sm: 2, md: 3 },
+            mb: 0.5,
+            p: 1,
             backgroundColor: 'background.paper',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
             '&:hover': {
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              backgroundColor: 'action.hover',
               borderColor: 'primary.main'
             },
-            transition: 'all 0.2s ease-in-out'
+            transition: 'all 0.2s ease-in-out',
+            minHeight: 48
           }}
         >
-          {/* Book Content Container - Image + Info */}
+          {/* Book Information - Single Line */}
           <Box sx={{ 
             display: 'flex',
-            alignItems: { xs: 'center', sm: 'flex-start' },
-            gap: { xs: 2, sm: 3 },
+            alignItems: 'center',
+            gap: 2,
             flex: 1,
-            mb: { xs: 2, sm: 0 },
-            width: { xs: '100%', sm: 'auto' }
+            minWidth: 0,
+            overflow: 'hidden'
           }}>
-            {/* Book Image */}
-            {book.thumbnail ? (
-              <Box
-                component="img"
-                src={book.thumbnail}
-                alt={book.title}
-                sx={{ 
-                  width: { xs: 60, sm: 70 }, 
-                  height: { xs: 90, sm: 105 }, 
-                  objectFit: 'cover',
-                  borderRadius: 1,
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                  flexShrink: 0
-                }}
-              />
-            ) : (
-              <Box sx={{ 
-                width: { xs: 60, sm: 70 }, 
-                height: { xs: 90, sm: 105 }, 
-                borderRadius: 1, 
-                bgcolor: 'grey.300',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                fontSize: '1.5rem'
-              }}>
-                📖
-              </Box>
-            )}
-            
-            {/* Book Information Container */}
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              {/* Book Title */}
+            {/* Title and Author */}
+            <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
               <Typography 
-                variant="h6" 
-                component="h3" 
+                variant="body2" 
                 sx={{ 
-                  fontWeight: 600, 
-                  mb: 1.5, 
-                  fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' },
-                  lineHeight: 1.3,
-                  wordBreak: 'break-word'
+                  fontWeight: 600,
+                  display: 'inline',
+                  mr: 1
                 }}
+                noWrap
               >
                 {book.title}
               </Typography>
-              
-              {/* Author */}
               <Typography 
                 variant="body2" 
-                color="text.secondary" 
-                gutterBottom 
-                sx={{ mb: 1.5, fontSize: { xs: '0.8rem', sm: '0.875rem', md: '0.9rem' } }}
+                color="text.secondary"
+                sx={{ 
+                  display: 'inline',
+                  fontStyle: 'italic'
+                }}
               >
-                <Typography component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>
-                  By: 
-                </Typography>
-                {book.authors.map((author, index) => (
-                  <span key={index}>
-                    <Typography 
-                      component="span" 
-                      sx={{ 
-                        color: 'primary.main', 
-                        cursor: 'pointer',
-                        textDecoration: 'underline',
-                        '&:hover': { textDecoration: 'none', color: 'primary.dark' },
-                        fontWeight: 500,
-                        ml: 0.5
-                      }}
-                      onClick={() => onAuthorClick(author)}
-                    >
-                      {author}
-                    </Typography>
-                    {index < book.authors.length - 1 && ', '}
-                  </span>
-                ))}
+                by {book.authors.join(', ')}
               </Typography>
-              
-              {/* Publication info and Series */}
-              {(book.publishedDate || book.series) && (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1, sm: 1.5, md: 2 }, mb: 1.5 }}>
-                  {book.publishedDate && (
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary"
-                      sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem', md: '0.875rem' } }}
-                    >
-                      <Typography component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>
-                        Published: 
-                      </Typography>
-                      {new Date(book.publishedDate).getFullYear()}
-                    </Typography>
-                  )}
-                  
-                  {book.series && (
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary"
-                      sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem', md: '0.875rem' } }}
-                    >
-                      <Typography component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>
-                        Series: 
-                      </Typography>
-                      <Typography 
-                        component="span" 
-                        sx={{ 
-                          color: 'primary.main', 
-                          cursor: 'pointer',
-                          textDecoration: 'underline',
-                          ml: 0.5,
-                          '&:hover': { textDecoration: 'none', color: 'primary.dark' },
-                          fontWeight: 500
-                        }}
-                        onClick={() => onSeriesClick(book.series!)}
-                      >
-                        {book.series}
-                      </Typography>
-                      {book.seriesNumber && (
-                        <Typography component="span" sx={{ color: 'text.secondary', ml: 0.5 }}>
-                          #{book.seriesNumber}
-                        </Typography>
-                      )}
-                    </Typography>
-                  )}
-                </Box>
-              )}
+            </Box>
 
-              {/* Genre - only show for regular users */}
-              {userRole !== 'admin' && (book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
-                <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Chip 
-                    label={book.enhancedGenres?.[0] || book.categories?.[0]} 
-                    size="small" 
-                    color={book.enhancedGenres ? 'primary' : 'default'}
-                    sx={{ 
-                      fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8125rem' },
-                      height: { xs: 20, sm: 24, md: 28 }
-                    }} 
-                  />
-                  {/* More Details button moved to right of genre */}
-                  {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
-                    <Button
-                      size="small"
-                      startIcon={<Info />}
-                      onClick={() => onMoreDetailsClick(book)}
-                      sx={{ 
-                        textTransform: 'none',
-                        fontSize: { xs: '0.75rem', sm: '0.8125rem' },
-                        color: 'primary.main',
-                        '&:hover': {
-                          backgroundColor: 'primary.50'
-                        }
-                      }}
-                    >
-                      More Details
-                    </Button>
-                  )}
-                </Box>
-              )}
-
-              {/* More Details button for when no genre is shown */}
-              {(userRole === 'admin' || (!book.enhancedGenres?.[0] && !book.categories?.[0])) && (book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
-                <Box sx={{ mb: 1.5 }}>
-                  <Button
-                    size="small"
-                    startIcon={<Info />}
-                    onClick={() => onMoreDetailsClick(book)}
-                    sx={{ 
-                      textTransform: 'none',
-                      fontSize: { xs: '0.75rem', sm: '0.8125rem' },
-                      color: 'primary.main',
-                      '&:hover': {
-                        backgroundColor: 'primary.50'
-                      }
-                    }}
-                  >
-                    More Details
-                  </Button>
-                </Box>
-              )}
-
-              {/* Checkout status display */}
+            {/* Compact info chips */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+              {/* Checkout status */}
               {book.status === 'checked_out' && (
-                <Box sx={{ 
-                  mt: 1.5, 
-                  p: { xs: 1, sm: 1.5 }, 
-                  borderRadius: 1,
-                  border: 1,
-                  borderColor: 'warning.main'
-                }}>
-                  <Typography 
-                    variant="body2" 
-                    color="text.primary"
-                    sx={{ fontWeight: 500, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
-                  >
-                    📖 Checked out by {book.checked_out_by === currentUserId ? 'you' : (book.checked_out_by_name || 'Unknown')}
-                    {book.checked_out_date && (() => {
-                      const checkoutDate = new Date(book.checked_out_date)
-                      const today = new Date()
-                      const diffTime = Math.abs(today.getTime() - checkoutDate.getTime())
-                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-                      return ` since ${checkoutDate.toLocaleDateString()} (${diffDays} day${diffDays !== 1 ? 's' : ''})`
-                    })()}
-                  </Typography>
-                </Box>
+                <Chip 
+                  label={book.checked_out_by === currentUserId ? 'Checked out by you' : `Checked out by ${book.checked_out_by_name || 'Unknown'}`}
+                  size="small"
+                  color="warning"
+                  sx={{ fontSize: '0.7rem', height: 20 }}
+                />
               )}
-
               
-              {/* Show shelf info for all users */}
-              <Box sx={{ mt: 1.5 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.8125rem' } }}>
-                  <strong>Shelf:</strong> {book.shelf_name || 'No shelf assigned'}
+              {/* Genre - only show for regular users */}
+              {userRole !== 'admin' && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
+                <Chip 
+                  label={book.enhancedGenres?.[0] || book.categories?.[0]} 
+                  size="small" 
+                  color={book.enhancedGenres ? 'primary' : 'default'}
+                  sx={{ fontSize: '0.7rem', height: 20 }}
+                />
+              )}
+              
+              {/* Shelf info */}
+              <Typography 
+                variant="caption" 
+                color="text.secondary"
+                sx={{ 
+                  fontSize: '0.7rem',
+                  whiteSpace: 'nowrap',
+                  display: { xs: 'none', sm: 'block' }
+                }}
+              >
+                {book.shelf_name}
+              </Typography>
+
+              {/* Publication year */}
+              {book.publishedDate && (
+                <Typography 
+                  variant="caption" 
+                  color="text.secondary"
+                  sx={{ 
+                    fontSize: '0.7rem',
+                    whiteSpace: 'nowrap',
+                    display: { xs: 'none', md: 'block' }
+                  }}
+                >
+                  {new Date(book.publishedDate).getFullYear()}
                 </Typography>
-              </Box>
+              )}
             </Box>
           </Box>
 
-          {/* Action Controls Container */}
-          <BookActions
-            book={book}
-            userRole={userRole}
-            currentUserId={currentUserId}
-            shelves={shelves}
-            pendingRemovalRequests={pendingRemovalRequests}
-            viewMode="list"
-            onCheckout={onCheckout}
-            onCheckin={onCheckin}
-            onDelete={onDelete}
-            onRelocate={onRelocate}
-            onRequestRemoval={onRequestRemoval}
-            onCancelRemovalRequest={onCancelRemovalRequest}
-          />
+          {/* Action Controls - Compact */}
+          <Box sx={{ ml: 2, flexShrink: 0 }}>
+            <BookActions
+              book={book}
+              userRole={userRole}
+              currentUserId={currentUserId}
+              shelves={shelves}
+              pendingRemovalRequests={pendingRemovalRequests}
+              viewMode="list"
+              onCheckout={onCheckout}
+              onCheckin={onCheckin}
+              onDelete={onDelete}
+              onRelocate={onRelocate}
+              onRequestRemoval={onRequestRemoval}
+              onCancelRemovalRequest={onCancelRemovalRequest}
+            />
+          </Box>
         </ListItem>
       ))}
     </List>

@@ -22,6 +22,7 @@ import {
 import { 
   GridView,
   ViewList,
+  FormatListBulleted,
 } from '@mui/icons-material'
 import type { EnhancedBook } from '@/lib/types'
 import { getBooks, updateBook, deleteBook as deleteBookAPI } from '@/lib/api'
@@ -29,6 +30,7 @@ import ConfirmationModal from './ConfirmationModal'
 import AlertModal from './AlertModal'
 import BookFilters, { SortField, SortDirection } from './BookFilters'
 import BookGrid from './BookGrid'
+import BookCompact from './BookCompact'
 import BookList from './BookList'
 import RemovalReasonModal from './RemovalReasonModal'
 import { useModal } from '@/hooks/useModal'
@@ -234,7 +236,7 @@ export default function BookLibrary() {
   const [pendingRemovalRequests, setPendingRemovalRequests] = useState<Record<string, number>>({})
   const [showMoreDetailsModal, setShowMoreDetailsModal] = useState(false)
   const [selectedBookForDetails, setSelectedBookForDetails] = useState<EnhancedBook | null>(null)
-  const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
+  const [viewMode, setViewMode] = useState<'card' | 'compact' | 'list'>('card')
   const [currentPage, setCurrentPage] = useState(1)
   const [booksPerPage] = useState(10)
   const [showRelocateModal, setShowRelocateModal] = useState(false)
@@ -256,13 +258,13 @@ export default function BookLibrary() {
 
   // Load saved view mode from localStorage
   useEffect(() => {
-    const savedViewMode = getStorageItem('library-view-mode', 'functional') as 'card' | 'list'
-    if (savedViewMode && (savedViewMode === 'card' || savedViewMode === 'list')) {
+    const savedViewMode = getStorageItem('library-view-mode', 'functional') as 'card' | 'compact' | 'list'
+    if (savedViewMode && (savedViewMode === 'card' || savedViewMode === 'compact' || savedViewMode === 'list')) {
       setViewMode(savedViewMode)
     }
   }, [])
 
-  const handleViewModeChange = (newViewMode: 'card' | 'list') => {
+  const handleViewModeChange = (newViewMode: 'card' | 'compact' | 'list') => {
     setViewMode(newViewMode)
     setStorageItem('library-view-mode', newViewMode, 'functional')
   }
@@ -1282,8 +1284,12 @@ export default function BookLibrary() {
                 <GridView sx={{ mr: 1 }} />
                 Cards
               </ToggleButton>
-              <ToggleButton value="list" aria-label="list view">
+              <ToggleButton value="compact" aria-label="compact view">
                 <ViewList sx={{ mr: 1 }} />
+                Compact
+              </ToggleButton>
+              <ToggleButton value="list" aria-label="list view">
+                <FormatListBulleted sx={{ mr: 1 }} />
                 List
               </ToggleButton>
             </ToggleButtonGroup>
@@ -1302,9 +1308,9 @@ export default function BookLibrary() {
         <Box>
           {/* Conditional rendering based on view mode */}
           {viewMode === 'list' ? (
-            // List view
+            // Ultra-compact list view (text only)
             userRole === 'admin' ? (
-              // Admin list view with location grouping (paginated)
+              // Admin ultra-compact view with location grouping (paginated)
               <div>
                 {getPaginatedBooksForView().map((location: any) => (
                   <div key={location.id} style={{ marginBottom: '2rem' }}>
@@ -1352,8 +1358,77 @@ export default function BookLibrary() {
                 ))}
               </div>
             ) : (
-              // Regular user list view (paginated)
+              // Regular user ultra-compact view (paginated)
               <BookList
+                books={paginatedBooks}
+                userRole={userRole}
+                currentUserId={currentUserId}
+                shelves={shelves}
+                pendingRemovalRequests={pendingRemovalRequests}
+                onCheckout={checkoutBook}
+                onCheckin={checkinBook}
+                onDelete={deleteBook}
+                onRelocate={openRelocateModal}
+                onRequestRemoval={requestBookRemoval}
+                onCancelRemovalRequest={cancelRemovalRequest}
+                onMoreDetailsClick={handleMoreDetailsClick}
+                onAuthorClick={handleAuthorClick}
+                onSeriesClick={handleSeriesClick}
+              />
+            )
+          ) : viewMode === 'compact' ? (
+            // Compact list view (with images)
+            userRole === 'admin' ? (
+              // Admin compact list view with location grouping (paginated)
+              <div>
+                {getPaginatedBooksForView().map((location: any) => (
+                  <div key={location.id} style={{ marginBottom: '2rem' }}>
+                    {/* Only show location header when viewing all locations (no location filter active) */}
+                    {!locationFilter && (
+                      <Box sx={{ 
+                        bgcolor: 'action.hover',
+                        p: '0.75rem 1rem', 
+                        borderRadius: 1, 
+                        mb: 2,
+                        border: 1,
+                        borderColor: 'divider',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <Typography variant="h6" sx={{ m: 0, fontSize: '1.1rem' }}>
+                          📍 {location.name} ({location.books.length} book{location.books.length !== 1 ? 's' : ''})
+                        </Typography>
+                        {location.description && (
+                          <Typography variant="body2" color="text.secondary" sx={{ m: 0, fontStyle: 'italic' }}>
+                            {location.description}
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                    
+                    <BookCompact
+                      books={location.books}
+                      userRole={userRole}
+                      currentUserId={currentUserId}
+                      shelves={shelves}
+                      pendingRemovalRequests={pendingRemovalRequests}
+                      onCheckout={checkoutBook}
+                      onCheckin={checkinBook}
+                      onDelete={deleteBook}
+                      onRelocate={openRelocateModal}
+                      onRequestRemoval={requestBookRemoval}
+                      onCancelRemovalRequest={cancelRemovalRequest}
+                      onMoreDetailsClick={handleMoreDetailsClick}
+                      onAuthorClick={handleAuthorClick}
+                      onSeriesClick={handleSeriesClick}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // Regular user compact list view (paginated)
+              <BookCompact
                 books={paginatedBooks}
                 userRole={userRole}
                 currentUserId={currentUserId}

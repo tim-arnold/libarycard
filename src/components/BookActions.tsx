@@ -17,7 +17,7 @@ export interface BookActionsProps {
   currentUserId: string | null
   shelves: Array<{ id: number; name: string; location_id: number; created_at: string }>
   pendingRemovalRequests: Record<string, number>
-  viewMode: 'card' | 'list'
+  viewMode: 'card' | 'compact' | 'list'
   onCheckout: (bookId: string, bookTitle: string) => Promise<void>
   onCheckin: (bookId: string, bookTitle: string) => Promise<void>
   onDelete: (bookId: string, bookTitle: string) => Promise<void>
@@ -51,6 +51,82 @@ export default function BookActions({
   const canRelocate = !isCheckedOut && hasMultipleShelves
 
   if (viewMode === 'list') {
+    // Ultra-compact list view - icon-only buttons in horizontal layout
+    return (
+      <Box sx={{ display: 'flex', gap: 0.5 }}>
+        {userRole === 'admin' ? (
+          <Button
+            size="small"
+            variant="outlined"
+            color="error"
+            onClick={() => onDelete(book.id, book.title)}
+            sx={{ minWidth: 'auto', p: 0.5 }}
+          >
+            <Delete fontSize="small" />
+          </Button>
+        ) : (
+          <>
+            {!isCheckedOut ? (
+              <Button
+                size="small"
+                variant="contained"
+                color="primary"
+                onClick={() => onCheckout(book.id, book.title)}
+                sx={{ minWidth: 'auto', p: 0.5 }}
+              >
+                <CheckCircle fontSize="small" />
+              </Button>
+            ) : canReturn ? (
+              <Button
+                size="small"
+                variant="outlined"
+                color="secondary"
+                onClick={() => onCheckin(book.id, book.title)}
+                sx={{ minWidth: 'auto', p: 0.5 }}
+              >
+                <Undo fontSize="small" />
+              </Button>
+            ) : null}
+            
+            {canRelocate && (
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => onRelocate(book)}
+                sx={{ minWidth: 'auto', p: 0.5 }}
+              >
+                <SwapHoriz fontSize="small" />
+              </Button>
+            )}
+            
+            {!hasPendingRemovalRequest ? (
+              <Button
+                size="small"
+                variant="outlined"
+                color="warning"
+                onClick={() => onRequestRemoval(book.id, book.title)}
+                sx={{ minWidth: 'auto', p: 0.5 }}
+              >
+                <ReportProblem fontSize="small" />
+              </Button>
+            ) : (
+              <Button
+                size="small"
+                variant="outlined"
+                color="info"
+                onClick={() => onCancelRemovalRequest(book.id, book.title)}
+                sx={{ minWidth: 'auto', p: 0.5 }}
+              >
+                <Cancel fontSize="small" />
+              </Button>
+            )}
+          </>
+        )}
+      </Box>
+    )
+  }
+
+  if (viewMode === 'compact') {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         <Box sx={{ display: 'flex', gap: 1 }}>
