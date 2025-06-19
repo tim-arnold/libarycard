@@ -2,7 +2,6 @@ import {
   Env,
   User,
 } from './types';
-import { processOCR } from './ocr';
 import {
   getUserLocations,
   createLocation,
@@ -73,10 +72,6 @@ export default {
         return await checkUserExists(request, env, corsHeaders);
       }
 
-      // OCR endpoint for bookshelf scanning (public)
-      if (path === '/api/ocr-vision' && request.method === 'POST') {
-        return await processOCR(request, env, corsHeaders);
-      }
 
       // Contact form endpoint (public)
       if (path === '/api/contact' && request.method === 'POST') {

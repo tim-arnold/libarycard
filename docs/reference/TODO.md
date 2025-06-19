@@ -33,12 +33,12 @@ This file tracks active development tasks and future enhancements for the Librar
 - [x] **Enhanced Genre Filtering**: Improved genre filtering to find books with Fantasy in OpenLibrary subjects
 - [x] **Genre System Balance**: Optimized balance between dropdown simplicity and comprehensive search
 
-### OCR Migration to Cloudflare Workers - COMPLETE!
-- [x] **Bookshelf Photo Scanning Migration**: Successfully migrated Google Vision API OCR processing from Netlify Functions to Cloudflare Workers
-- [x] **Production Deployment**: OCR feature now fully functional in production with 80-90% accuracy
-- [x] **Infrastructure Enhancement**: Complete transition to Cloudflare Workers backend architecture
-- [x] **Service Account Authentication**: Implemented proper Google Cloud service account credentials with JWT authentication
-- [x] **Cross-Environment Testing**: Verified functionality in both local development and production environments
+### OCR Feature Removal - COMPLETE!
+- [x] **Strategic Decision**: Removed OCR bookshelf scanning feature due to reliability issues and complexity concerns
+- [x] **Frontend Cleanup**: Removed BookshelfScanner component and all OCR-related state from AddBooks.tsx
+- [x] **Code Simplification**: Eliminated ~700+ lines of OCR-related code for better maintainability
+- [x] **User Experience Focus**: Streamlined book addition to two reliable methods (ISBN scanning and search)
+- [x] **Resource Reallocation**: Development focus shifted to Enhanced Book Features multi-select system
 
 ### Google OAuth Invitation Support - COMPLETE!
 - [x] **Google OAuth Invitation Flow**: Implemented complete Google OAuth support for invitation acceptance workflow
@@ -97,7 +97,7 @@ This file tracks active development tasks and future enhancements for the Librar
   - [ ] Add bulk actions for admin users (bulk book approval, multi-user invitations, etc.)
 
 - [ ] **Enhanced Book Features**
-  - [ ] Create "multi-select" capability in search results (test, isbn, ocr) so multiple books can be selected and added in bulk.
+  - [ ] Create "multi-select" capability in search results (ISBN scan and search) so multiple books can be selected and added in bulk.
   - [ ] Bulk adding books should share a single shelf selector and action buttons
   - [ ] Add star rating system, just display average rating for each book from scoped to the location
 
