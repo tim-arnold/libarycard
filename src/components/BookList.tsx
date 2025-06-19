@@ -118,7 +118,7 @@ export default function BookText({
               />
               
               {/* Rate this book button - ultra compact */}
-              {!(book.userRating || book.averageRating) && onRateBook && (
+              {!book.userRating && onRateBook && (
                 <IconButton
                   size="small"
                   onClick={() => onRateBook(book)}

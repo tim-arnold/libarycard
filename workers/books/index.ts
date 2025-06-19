@@ -6,7 +6,7 @@ export async function getUserBooks(userId: string, env: Env, corsHeaders: Record
     SELECT DISTINCT b.id, b.isbn, b.title, b.authors, b.description, b.thumbnail, b.published_date,
            b.categories, b.shelf_id, b.tags, b.added_by, b.created_at, b.status,
            b.checked_out_by, b.checked_out_date, b.due_date,
-           b.extended_description, b.subjects, b.page_count, b.average_rating as google_average_rating, b.rating_count as google_rating_count, b.rating_updated_at,
+           b.extended_description, b.subjects, b.page_count, b.google_average_rating, b.google_ratings_count, b.rating_updated_at,
            b.publisher_info, b.open_library_key, b.enhanced_genres, b.series, b.series_number,
            s.name as shelf_name, l.name as location_name,
            br.rating as user_rating, br.review_text as user_review,
@@ -60,7 +60,7 @@ export async function getUserBooks(userId: string, env: Env, corsHeaders: Record
     ratingCount: book.library_rating_count,
     // Keep Google Books ratings available for "More Details" modal
     googleAverageRating: book.google_average_rating,
-    googleRatingCount: book.google_rating_count,
+    googleRatingCount: book.google_ratings_count,
     ratingUpdatedAt: book.rating_updated_at,
     userRating: book.user_rating,
     userReview: book.user_review,
@@ -774,9 +774,9 @@ export async function deleteBookRemovalRequest(requestId: number, userId: string
 export async function rateBook(request: Request, bookId: number, userId: string, env: Env, corsHeaders: Record<string, string>) {
   const { rating, reviewText }: { rating: number, reviewText?: string } = await request.json();
 
-  // Validate rating
-  if (!rating || rating < 1 || rating > 5 || !Number.isInteger(rating)) {
-    return new Response(JSON.stringify({ error: 'Rating must be an integer between 1 and 5' }), {
+  // Validate rating (allow 0 for deletion, 1-5 for rating)
+  if (rating < 0 || rating > 5 || !Number.isInteger(rating)) {
+    return new Response(JSON.stringify({ error: 'Rating must be an integer between 0 (to delete) and 5' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -802,16 +802,24 @@ export async function rateBook(request: Request, bookId: number, userId: string,
       });
     }
 
-    // Insert or update rating in book_ratings table
-    const upsertRatingStmt = env.DB.prepare(`
-      INSERT OR REPLACE INTO book_ratings (book_id, user_id, rating, review_text, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 
-        COALESCE((SELECT created_at FROM book_ratings WHERE book_id = ? AND user_id = ?), datetime('now')),
-        datetime('now')
-      )
-    `);
-
-    await upsertRatingStmt.bind(bookId, userId, rating, reviewText || null, bookId, userId).run();
+    // Handle rating deletion (rating = 0) or insertion/update
+    if (rating === 0) {
+      // Delete the rating
+      const deleteRatingStmt = env.DB.prepare(`
+        DELETE FROM book_ratings WHERE book_id = ? AND user_id = ?
+      `);
+      await deleteRatingStmt.bind(bookId, userId).run();
+    } else {
+      // Insert or update rating in book_ratings table
+      const upsertRatingStmt = env.DB.prepare(`
+        INSERT OR REPLACE INTO book_ratings (book_id, user_id, rating, review_text, created_at, updated_at)
+        VALUES (?, ?, ?, ?, 
+          COALESCE((SELECT created_at FROM book_ratings WHERE book_id = ? AND user_id = ?), datetime('now')),
+          datetime('now')
+        )
+      `);
+      await upsertRatingStmt.bind(bookId, userId, rating, reviewText || null, bookId, userId).run();
+    }
 
     // Calculate new average rating for this book within the location
     const avgRatingStmt = env.DB.prepare(`
@@ -831,20 +839,20 @@ export async function rateBook(request: Request, bookId: number, userId: string,
     const averageRating = (ratingStats as any)?.average_rating || null;
     const ratingCount = (ratingStats as any)?.rating_count || 0;
 
-    // Update the books table with new average rating
+    // Update the books table with new average rating (library-wide average, not user-specific)
     const updateBookStmt = env.DB.prepare(`
       UPDATE books 
-      SET user_rating = ?, average_rating = ?, rating_count = ?, rating_updated_at = datetime('now')
+      SET rating_count = ?, rating_updated_at = datetime('now')
       WHERE id = ?
     `);
 
-    await updateBookStmt.bind(rating, averageRating, ratingCount, bookId).run();
+    await updateBookStmt.bind(ratingCount, bookId).run();
 
     return new Response(JSON.stringify({ 
-      message: 'Book rated successfully',
+      message: rating === 0 ? 'Rating deleted successfully' : 'Book rated successfully',
       book_id: bookId,
       book_title: (bookAccess as any).title,
-      user_rating: rating,
+      user_rating: rating === 0 ? null : rating,
       average_rating: averageRating,
       rating_count: ratingCount
     }), {

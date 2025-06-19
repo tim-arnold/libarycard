@@ -143,8 +143,8 @@ export default function BookGrid({
                     onClick={onRateBook ? () => onRateBook(book) : undefined}
                   />
                   
-                  {/* Rate this book button - only show when no rating exists */}
-                  {!(book.userRating || book.averageRating) && onRateBook && (
+                  {/* Rate this book button - only show when user hasn't rated yet */}
+                  {!book.userRating && onRateBook && (
                     <Button
                       size="small"
                       startIcon={<Star />}

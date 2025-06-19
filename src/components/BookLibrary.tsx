@@ -1083,6 +1083,8 @@ export default function BookLibrary() {
   const handleRatingSubmit = async (rating: number, reviewText?: string) => {
     if (!selectedBookForRating || !session?.user?.email) return
 
+    console.log('Submitting rating:', { rating, reviewText, typeof: typeof rating, API_BASE })
+
     try {
       const response = await fetch(`${API_BASE}/api/books/${selectedBookForRating.id}/rate`, {
         method: 'POST',
@@ -1119,20 +1121,14 @@ export default function BookLibrary() {
         book.id === selectedBookForRating.id 
           ? { 
               ...book, 
-              userRating: rating,
-              userReview: reviewText || null,
+              userRating: rating === 0 ? null : rating,
+              userReview: rating === 0 ? null : (reviewText || null),
               averageRating: result.averageRating,
               ratingCount: result.ratingCount
             }
           : book
       )
       setBooks(updatedBooks)
-      
-      await alert({
-        title: 'Rating Submitted',
-        message: `Your ${rating}-star rating for "${selectedBookForRating.title}" has been saved.`,
-        variant: 'success'
-      })
     } catch (error) {
       console.error('Error submitting rating:', error)
       throw error // Re-throw to let RatingModal handle the error display

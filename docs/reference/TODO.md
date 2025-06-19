@@ -103,14 +103,14 @@ This file tracks active development tasks and future enhancements for the Librar
 
 ### High Priority - Next Session Focus
 
+- [ ] **Enhanced Book Features - Bulk Operations (Phases 1-3)**
+  - [ ] Create "multi-select" capability in search results (ISBN scan and search) so multiple books can be selected and added in bulk.
+  - [ ] Bulk adding books should share a single shelf selector and action buttons
+  - [ ] Implement shopping cart UX approach with selection mode toggle and bulk review modal
+
 - [ ] **Additional Admin Features**
   - [ ] User permission granularity (allow users to delete books, add/delete shelves, etc.)
   - [ ] Add bulk actions for admin users (bulk book approval, multi-user invitations, etc.)
-
-- [ ] **Enhanced Book Features - Remaining**
-  - [ ] Create "multi-select" capability in search results (ISBN scan and search) so multiple books can be selected and added in bulk.
-  - [ ] Bulk adding books should share a single shelf selector and action buttons
-  - [x] ~~Add star rating system, just display average rating for each book from scoped to the location~~ ✅ COMPLETED
 
 ### Low Priority - Future Enhancements
 

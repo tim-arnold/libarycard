@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogTitle,
@@ -40,7 +40,8 @@ export default function RatingModal({
   const [error, setError] = useState<string>('')
 
   const handleSubmit = async () => {
-    if (rating === 0) {
+    // Only show error if trying to submit 0 rating when there's no existing rating to clear
+    if (rating === 0 && !currentRating) {
       setError('Please select a rating')
       return
     }
@@ -50,6 +51,7 @@ export default function RatingModal({
 
     try {
       await onRatingSubmit(rating, reviewText.trim() || undefined)
+      // Close modal immediately - user will see the rating update in the book list
       onClose()
     } catch (err) {
       setError('Failed to submit rating. Please try again.')
@@ -164,6 +166,7 @@ export default function RatingModal({
           </Alert>
         )}
 
+
         {/* Current Rating Info */}
         {book.averageRating && book.ratingCount && book.ratingCount > 0 && (
           <Box sx={{ p: 2, bgcolor: 'background.default', borderRadius: 1, mb: 2 }}>
@@ -185,7 +188,7 @@ export default function RatingModal({
         <Button 
           onClick={handleSubmit}
           variant="contained"
-          disabled={isSubmitting || rating === 0}
+          disabled={isSubmitting || (rating === 0 && !currentRating)}
           startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : <Star />}
         >
           {isSubmitting ? 'Submitting...' : currentRating ? 'Update Rating' : 'Submit Rating'}
