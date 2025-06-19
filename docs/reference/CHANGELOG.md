@@ -25,6 +25,8 @@ This file documents all completed features, fixes, and improvements to the Libra
 - **ADDED**: Proper field mapping in Workers API getUserBooks function for consistent data transformation
 - **VERIFIED**: Publication years now display correctly across Cards, Compact, and List view modes
 - **MAINTAINED**: Year-only display format (e.g., "Published: 2023") for clean, consistent presentation
+- **UPDATED**: BookSearch.tsx to display year-only format in Google Books search results and "Add Anyway" dialog
+- **STANDARDIZED**: Consistent year-only publication date formatting across all book display contexts
 
 ## June 14, 2025 - Search Result Pagination & UX Enhancements
 

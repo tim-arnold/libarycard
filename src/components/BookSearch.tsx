@@ -406,7 +406,7 @@ export default function BookSearch({
                   </Typography>
                   {item.volumeInfo.publishedDate && (
                     <Typography variant="caption" color="text.secondary">
-                      Published: {item.volumeInfo.publishedDate}
+                      Published: {new Date(item.volumeInfo.publishedDate).getFullYear()}
                     </Typography>
                   )}
                 </CardContent>
@@ -568,7 +568,7 @@ export default function BookSearch({
               </Typography>
               {addAnywayDialog.book.volumeInfo.publishedDate && (
                 <Typography variant="body2" color="text.secondary">
-                  Published: {addAnywayDialog.book.volumeInfo.publishedDate}
+                  Published: {new Date(addAnywayDialog.book.volumeInfo.publishedDate).getFullYear()}
                 </Typography>
               )}
               
