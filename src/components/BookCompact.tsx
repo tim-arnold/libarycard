@@ -133,9 +133,6 @@ export default function BookList({
                 gutterBottom 
                 sx={{ mb: 1.5, fontSize: { xs: '0.8rem', sm: '0.875rem', md: '0.9rem' } }}
               >
-                <Typography component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>
-                  By: 
-                </Typography>
                 {book.authors.map((author, index) => (
                   <span key={index}>
                     <Typography 
@@ -155,54 +152,44 @@ export default function BookList({
                     {index < book.authors.length - 1 && ', '}
                   </span>
                 ))}
+                {book.publishedDate && (
+                  <Typography component="span" sx={{ color: 'text.secondary' }}>
+                    , {new Date(book.publishedDate).getFullYear()}
+                  </Typography>
+                )}
               </Typography>
               
-              {/* Publication info and Series */}
-              {(book.publishedDate || book.series) && (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1, sm: 1.5, md: 2 }, mb: 1.5 }}>
-                  {book.publishedDate && (
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary"
-                      sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem', md: '0.875rem' } }}
-                    >
-                      <Typography component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>
-                        Published: 
-                      </Typography>
-                      {new Date(book.publishedDate).getFullYear()}
+              {/* Series info */}
+              {book.series && (
+                <Box sx={{ mb: 1.5 }}>
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem', md: '0.875rem' } }}
+                  >
+                    <Typography component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                      Series: 
                     </Typography>
-                  )}
-                  
-                  {book.series && (
                     <Typography 
-                      variant="body2" 
-                      color="text.secondary"
-                      sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem', md: '0.875rem' } }}
+                      component="span" 
+                      sx={{ 
+                        color: 'primary.main', 
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        ml: 0.5,
+                        '&:hover': { textDecoration: 'none', color: 'primary.dark' },
+                        fontWeight: 500
+                      }}
+                      onClick={() => onSeriesClick(book.series!)}
                     >
-                      <Typography component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>
-                        Series: 
-                      </Typography>
-                      <Typography 
-                        component="span" 
-                        sx={{ 
-                          color: 'primary.main', 
-                          cursor: 'pointer',
-                          textDecoration: 'underline',
-                          ml: 0.5,
-                          '&:hover': { textDecoration: 'none', color: 'primary.dark' },
-                          fontWeight: 500
-                        }}
-                        onClick={() => onSeriesClick(book.series!)}
-                      >
-                        {book.series}
-                      </Typography>
-                      {book.seriesNumber && (
-                        <Typography component="span" sx={{ color: 'text.secondary', ml: 0.5 }}>
-                          #{book.seriesNumber}
-                        </Typography>
-                      )}
+                      {book.series}
                     </Typography>
-                  )}
+                    {book.seriesNumber && (
+                      <Typography component="span" sx={{ color: 'text.secondary', ml: 0.5 }}>
+                        #{book.seriesNumber}
+                      </Typography>
+                    )}
+                  </Typography>
                 </Box>
               )}
 

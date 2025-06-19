@@ -19,14 +19,16 @@ This file documents all completed features, fixes, and improvements to the Libra
 - **RESOLVED**: Developer confusion where 'list' view was implemented by BookText.tsx and 'Compact' view by BookList.tsx
 - **STANDARDIZED**: Component conditional rendering logic to use descriptive, matching component names
 
-### Publication Date Display Fix
+### Publication Date Display Enhancement
 - **FIXED**: Missing publication dates in all view modes due to field name mismatch between frontend and backend
 - **RESOLVED**: Database field `published_date` (snake_case) not being mapped to frontend `publishedDate` (camelCase)
-- **ADDED**: Proper field mapping in Workers API getUserBooks function for consistent data transformation
-- **VERIFIED**: Publication years now display correctly across Cards, Compact, and List view modes
-- **MAINTAINED**: Year-only display format (e.g., "Published: 2023") for clean, consistent presentation
+- **MIGRATED**: All 67 existing books with publication dates from Google Books API using automated migration script
+- **UPDATED**: Publication date display format across all view modes to "By [author name], [year published]" format
+- **ENHANCED**: Consistent author and publication year presentation in single line across Cards, Compact, and List views
+- **STREAMLINED**: Removed separate "Published:" labels in favor of integrated author-year format
+- **VERIFIED**: Publication years now display correctly across all three view modes with improved readability
 - **UPDATED**: BookSearch.tsx to display year-only format in Google Books search results and "Add Anyway" dialog
-- **STANDARDIZED**: Consistent year-only publication date formatting across all book display contexts
+- **STANDARDIZED**: Unified publication date formatting approach throughout the application
 
 ## June 14, 2025 - Search Result Pagination & UX Enhancements
 

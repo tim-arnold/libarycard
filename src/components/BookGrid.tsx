@@ -85,7 +85,7 @@ export default function BookGrid({
                   {book.title}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  <strong>Author:</strong> {book.authors.map((author, index) => (
+                  {book.authors.map((author, index) => (
                     <span key={index}>
                       <Typography 
                         component="span" 
@@ -102,12 +102,12 @@ export default function BookGrid({
                       {index < book.authors.length - 1 && ', '}
                     </span>
                   ))}
+                  {book.publishedDate && (
+                    <Typography component="span" color="text.secondary">
+                      , {new Date(book.publishedDate).getFullYear()}
+                    </Typography>
+                  )}
                 </Typography>
-                {book.publishedDate && (
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    <strong>Published:</strong> {new Date(book.publishedDate).getFullYear()}
-                  </Typography>
-                )}
                 {book.series && (
                   <Typography variant="body2" color="text.secondary" gutterBottom>
                     <strong>Series:</strong> 

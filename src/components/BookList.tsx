@@ -6,7 +6,9 @@ import {
   ListItem,
   Typography,
   Chip,
+  IconButton,
 } from '@mui/material'
+import { Info } from '@mui/icons-material'
 import type { EnhancedBook } from '@/lib/types'
 import BookActions from './BookActions'
 
@@ -95,7 +97,8 @@ export default function BookText({
                   fontStyle: 'italic'
                 }}
               >
-                by {book.authors.join(', ')}
+                {book.authors.join(', ')}
+                {book.publishedDate && `, ${new Date(book.publishedDate).getFullYear()}`}
               </Typography>
             </Box>
 
@@ -134,20 +137,24 @@ export default function BookText({
                 {book.shelf_name}
               </Typography>
 
-              {/* Publication year */}
-              {book.publishedDate && (
-                <Typography 
-                  variant="caption" 
-                  color="text.secondary"
+              {/* More Details button */}
+              {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
+                <IconButton
+                  size="small"
+                  onClick={() => onMoreDetailsClick(book)}
                   sx={{ 
-                    fontSize: '0.7rem',
-                    whiteSpace: 'nowrap',
-                    display: { xs: 'none', md: 'block' }
+                    p: 0.5,
+                    color: 'primary.main',
+                    '&:hover': {
+                      backgroundColor: 'primary.50'
+                    }
                   }}
+                  title="More Details"
                 >
-                  {new Date(book.publishedDate).getFullYear()}
-                </Typography>
+                  <Info sx={{ fontSize: '1rem' }} />
+                </IconButton>
               )}
+
             </Box>
           </Box>
 
