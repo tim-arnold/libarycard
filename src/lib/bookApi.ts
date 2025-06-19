@@ -83,7 +83,7 @@ export async function fetchEnhancedBookData(isbn: string): Promise<EnhancedBook 
       publisherInfo: bookInfo.publisher,
       pageCount: bookInfo.pageCount,
       averageRating: bookInfo.averageRating,
-      ratingsCount: bookInfo.ratingsCount
+      ratingCount: bookInfo.ratingsCount
     }
 
     // Try to enhance with OpenLibrary data
@@ -186,7 +186,7 @@ export async function fetchEnhancedBookFromSearch(googleBookItem: any): Promise<
     publisherInfo: googleBookItem.volumeInfo.publisher,
     pageCount: googleBookItem.volumeInfo.pageCount,
     averageRating: googleBookItem.volumeInfo.averageRating,
-    ratingsCount: googleBookItem.volumeInfo.ratingsCount
+    ratingCount: googleBookItem.volumeInfo.ratingsCount
   }
 
   // Apply genre classification to the fallback data too

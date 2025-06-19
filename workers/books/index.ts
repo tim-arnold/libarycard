@@ -6,9 +6,28 @@ export async function getUserBooks(userId: string, env: Env, corsHeaders: Record
     SELECT DISTINCT b.id, b.isbn, b.title, b.authors, b.description, b.thumbnail, b.published_date,
            b.categories, b.shelf_id, b.tags, b.added_by, b.created_at, b.status,
            b.checked_out_by, b.checked_out_date, b.due_date,
-           b.extended_description, b.subjects, b.page_count, b.average_rating, b.ratings_count,
+           b.extended_description, b.subjects, b.page_count, b.average_rating as google_average_rating, b.rating_count as google_rating_count, b.rating_updated_at,
            b.publisher_info, b.open_library_key, b.enhanced_genres, b.series, b.series_number,
            s.name as shelf_name, l.name as location_name,
+           br.rating as user_rating, br.review_text as user_review,
+           -- Calculate library-specific average rating from book_ratings table
+           (SELECT AVG(CAST(rating AS REAL)) FROM book_ratings 
+            WHERE book_id = b.id AND user_id IN (
+              SELECT DISTINCT u.id FROM users u
+              LEFT JOIN location_members lm2 ON u.id = lm2.user_id
+              LEFT JOIN locations l2 ON lm2.location_id = l2.id OR l2.owner_id = u.id
+              WHERE l2.id = l.id
+            )
+           ) as library_average_rating,
+           -- Calculate library-specific rating count from book_ratings table
+           (SELECT COUNT(*) FROM book_ratings 
+            WHERE book_id = b.id AND user_id IN (
+              SELECT DISTINCT u.id FROM users u
+              LEFT JOIN location_members lm2 ON u.id = lm2.user_id
+              LEFT JOIN locations l2 ON lm2.location_id = l2.id OR l2.owner_id = u.id
+              WHERE l2.id = l.id
+            )
+           ) as library_rating_count,
            CASE 
              WHEN b.checked_out_by IS NOT NULL THEN 
                (SELECT first_name FROM users WHERE id = b.checked_out_by)
@@ -18,11 +37,12 @@ export async function getUserBooks(userId: string, env: Env, corsHeaders: Record
     LEFT JOIN shelves s ON b.shelf_id = s.id
     LEFT JOIN locations l ON s.location_id = l.id
     LEFT JOIN location_members lm ON l.id = lm.location_id
+    LEFT JOIN book_ratings br ON b.id = br.book_id AND br.user_id = ?
     WHERE b.added_by = ? OR l.owner_id = ? OR lm.user_id = ?
     ORDER BY b.created_at DESC
   `);
 
-  const result = await stmt.bind(userId, userId, userId).all();
+  const result = await stmt.bind(userId, userId, userId, userId).all();
   
   const books = result.results.map((book: any) => ({
     ...book,
@@ -35,8 +55,15 @@ export async function getUserBooks(userId: string, env: Env, corsHeaders: Record
     publishedDate: book.published_date,
     extendedDescription: book.extended_description,
     pageCount: book.page_count,
-    averageRating: book.average_rating,
-    ratingsCount: book.ratings_count,
+    // Use library-specific ratings for library views
+    averageRating: book.library_average_rating,
+    ratingCount: book.library_rating_count,
+    // Keep Google Books ratings available for "More Details" modal
+    googleAverageRating: book.google_average_rating,
+    googleRatingCount: book.google_rating_count,
+    ratingUpdatedAt: book.rating_updated_at,
+    userRating: book.user_rating,
+    userReview: book.user_review,
     publisherInfo: book.publisher_info,
     openLibraryKey: book.open_library_key,
     seriesNumber: book.series_number,
@@ -737,6 +764,162 @@ export async function deleteBookRemovalRequest(requestId: number, userId: string
   } catch (error) {
     console.error('Error cancelling book removal request:', error);
     return new Response(JSON.stringify({ error: 'Failed to cancel removal request' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+// Book Rating System Functions
+export async function rateBook(request: Request, bookId: number, userId: string, env: Env, corsHeaders: Record<string, string>) {
+  const { rating, reviewText }: { rating: number, reviewText?: string } = await request.json();
+
+  // Validate rating
+  if (!rating || rating < 1 || rating > 5 || !Number.isInteger(rating)) {
+    return new Response(JSON.stringify({ error: 'Rating must be an integer between 1 and 5' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  try {
+    // Check if user has access to this book
+    const bookAccessStmt = env.DB.prepare(`
+      SELECT b.id, b.title, s.location_id, l.name as location_name
+      FROM books b
+      LEFT JOIN shelves s ON b.shelf_id = s.id
+      LEFT JOIN locations l ON s.location_id = l.id
+      LEFT JOIN location_members lm ON l.id = lm.location_id
+      WHERE b.id = ? AND (b.added_by = ? OR l.owner_id = ? OR lm.user_id = ?)
+    `);
+
+    const bookAccess = await bookAccessStmt.bind(bookId, userId, userId, userId).first();
+    
+    if (!bookAccess) {
+      return new Response(JSON.stringify({ error: 'Book not found or access denied' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Insert or update rating in book_ratings table
+    const upsertRatingStmt = env.DB.prepare(`
+      INSERT OR REPLACE INTO book_ratings (book_id, user_id, rating, review_text, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 
+        COALESCE((SELECT created_at FROM book_ratings WHERE book_id = ? AND user_id = ?), datetime('now')),
+        datetime('now')
+      )
+    `);
+
+    await upsertRatingStmt.bind(bookId, userId, rating, reviewText || null, bookId, userId).run();
+
+    // Calculate new average rating for this book within the location
+    const avgRatingStmt = env.DB.prepare(`
+      SELECT 
+        AVG(br.rating) as average_rating,
+        COUNT(br.rating) as rating_count
+      FROM book_ratings br
+      INNER JOIN books b ON br.book_id = b.id
+      INNER JOIN shelves s ON b.shelf_id = s.id
+      INNER JOIN locations l ON s.location_id = l.id
+      LEFT JOIN location_members lm ON l.id = lm.location_id
+      WHERE br.book_id = ? 
+        AND (b.added_by = br.user_id OR l.owner_id = br.user_id OR lm.user_id = br.user_id)
+    `);
+
+    const ratingStats = await avgRatingStmt.bind(bookId).first();
+    const averageRating = (ratingStats as any)?.average_rating || null;
+    const ratingCount = (ratingStats as any)?.rating_count || 0;
+
+    // Update the books table with new average rating
+    const updateBookStmt = env.DB.prepare(`
+      UPDATE books 
+      SET user_rating = ?, average_rating = ?, rating_count = ?, rating_updated_at = datetime('now')
+      WHERE id = ?
+    `);
+
+    await updateBookStmt.bind(rating, averageRating, ratingCount, bookId).run();
+
+    return new Response(JSON.stringify({ 
+      message: 'Book rated successfully',
+      book_id: bookId,
+      book_title: (bookAccess as any).title,
+      user_rating: rating,
+      average_rating: averageRating,
+      rating_count: ratingCount
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error rating book:', error);
+    return new Response(JSON.stringify({ error: 'Failed to rate book' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+export async function getBookRating(bookId: number, userId: string, env: Env, corsHeaders: Record<string, string>) {
+  try {
+    // Check if user has access to this book and get rating info
+    const ratingStmt = env.DB.prepare(`
+      SELECT 
+        b.id, b.title, b.user_rating, b.average_rating, b.rating_count, s.location_id,
+        br.rating as current_user_rating, br.review_text as current_user_review
+      FROM books b
+      LEFT JOIN shelves s ON b.shelf_id = s.id
+      LEFT JOIN locations l ON s.location_id = l.id
+      LEFT JOIN location_members lm ON l.id = lm.location_id
+      LEFT JOIN book_ratings br ON b.id = br.book_id AND br.user_id = ?
+      WHERE b.id = ? AND (b.added_by = ? OR l.owner_id = ? OR lm.user_id = ?)
+    `);
+
+    const result = await ratingStmt.bind(userId, bookId, userId, userId, userId).first();
+    
+    if (!result) {
+      return new Response(JSON.stringify({ error: 'Book not found or access denied' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const bookRating = result as any;
+
+    // Get all reviews for this book in this location
+    const allReviewsStmt = env.DB.prepare(`
+      SELECT 
+        br.rating, br.review_text, br.created_at, br.updated_at,
+        u.first_name as user_name
+      FROM book_ratings br
+      INNER JOIN books b ON br.book_id = b.id
+      INNER JOIN shelves s ON b.shelf_id = s.id
+      INNER JOIN locations l ON s.location_id = l.id
+      LEFT JOIN location_members lm ON l.id = lm.location_id
+      INNER JOIN users u ON br.user_id = u.id
+      WHERE br.book_id = ? 
+        AND (b.added_by = br.user_id OR l.owner_id = br.user_id OR lm.user_id = br.user_id)
+        AND br.review_text IS NOT NULL AND br.review_text != ''
+      ORDER BY br.created_at DESC
+    `);
+
+    const reviewsResult = await allReviewsStmt.bind(bookId).all();
+
+    return new Response(JSON.stringify({
+      book_id: bookId,
+      user_rating: bookRating.current_user_rating || null,
+      user_review: bookRating.current_user_review || null,
+      average_rating: bookRating.average_rating || null,
+      rating_count: bookRating.rating_count || 0,
+      location_id: bookRating.location_id,
+      all_ratings: reviewsResult.results || []
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error getting book rating:', error);
+    return new Response(JSON.stringify({ error: 'Failed to get book rating' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

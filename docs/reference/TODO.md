@@ -6,6 +6,17 @@ This file tracks active development tasks and future enhancements for the Librar
 
 ## ✅ Recently Completed (June 2025)
 
+### Enhanced Book Features - Star Rating System - COMPLETE!
+- [x] **Library-Specific Star Rating System**: Implemented complete location-scoped star rating system with user ratings and library averages
+- [x] **Database Schema**: Added book_ratings table with user ratings, reviews, and rating calculation columns
+- [x] **Star Rating Components**: Created StarRating display component with 3 variants (display, mini, chip) for space-efficient UI
+- [x] **Interactive Rating Input**: Built StarRatingInput component with hover effects and clear functionality
+- [x] **Rating Modal Interface**: Developed RatingModal with book details, star input, and optional text reviews
+- [x] **API Endpoints**: Implemented POST /api/books/{id}/rate and rating calculation with location-specific averages
+- [x] **UI Integration**: Integrated ratings into all book views (Grid, Compact, List) with progressive disclosure design
+- [x] **Google Books Separation**: Separated library ratings from Google Books ratings (Google ratings only in "More Details" modal)
+- [x] **UX Design**: No empty stars shown initially, click-to-rate functionality, optional text reviews displayed in More Details
+
 ### Enhanced Duplicate Book Detection System - COMPLETE!
 - [x] **Sophisticated Duplicate Detection**: Implemented three-tier duplicate detection algorithm (exact, potential, non-duplicate)
 - [x] **Publication Date Comparison**: Added publication year comparison for accurate edition distinction
@@ -96,10 +107,10 @@ This file tracks active development tasks and future enhancements for the Librar
   - [ ] User permission granularity (allow users to delete books, add/delete shelves, etc.)
   - [ ] Add bulk actions for admin users (bulk book approval, multi-user invitations, etc.)
 
-- [ ] **Enhanced Book Features**
+- [ ] **Enhanced Book Features - Remaining**
   - [ ] Create "multi-select" capability in search results (ISBN scan and search) so multiple books can be selected and added in bulk.
   - [ ] Bulk adding books should share a single shelf selector and action buttons
-  - [ ] Add star rating system, just display average rating for each book from scoped to the location
+  - [x] ~~Add star rating system, just display average rating for each book from scoped to the location~~ ✅ COMPLETED
 
 ### Low Priority - Future Enhancements
 

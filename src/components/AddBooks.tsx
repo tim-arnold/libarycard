@@ -113,7 +113,7 @@ function MoreDetailsModal({ book, isOpen, onClose }: MoreDetailsModalProps) {
                   Average Rating
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {book.averageRating}/5 ({book.ratingsCount || 0} ratings)
+                  {book.averageRating}/5 ({book.ratingCount || 0} ratings)
                 </Typography>
               </Box>
             )}

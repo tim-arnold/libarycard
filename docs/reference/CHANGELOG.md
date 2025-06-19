@@ -2,6 +2,32 @@
 
 This file documents all completed features, fixes, and improvements to the LibraryCard project.
 
+## June 19, 2025 - Star Rating System Implementation
+
+### Library-Specific Star Rating System - COMPLETE!
+- **IMPLEMENTED**: Complete location-scoped star rating system with user ratings and calculated library averages
+- **CREATED**: Database migration with book_ratings table supporting user ratings, text reviews, and rating calculations
+- **BUILT**: StarRating.tsx display component with 3 space-efficient variants (display, mini, chip) for different view modes
+- **DEVELOPED**: StarRatingInput.tsx interactive component with hover effects, clear functionality, and large star interface
+- **DESIGNED**: RatingModal.tsx with book details, 5-star rating input, and optional text review area
+- **IMPLEMENTED**: POST /api/books/{id}/rate API endpoint with location-specific rating calculation and user review storage
+- **INTEGRATED**: Rating system into all book views (BookGrid, BookCompact, BookList) with progressive disclosure design
+- **SEPARATED**: Library ratings from Google Books ratings - library ratings in views, Google ratings only in "More Details" modal
+- **OPTIMIZED**: UX design with no empty stars shown initially, click-to-rate functionality opening modal interface
+- **ENHANCED**: Rating display logic to show user rating when available, library average otherwise, with rating count
+- **CREATED**: Library-specific rating averages calculated from book_ratings table, isolated per location
+- **ADDED**: Optional text reviews displayed in "More Details" modal alongside rating information
+
+### Star Rating Technical Implementation
+- **DATABASE**: Added user_rating, average_rating, rating_count columns to books table for efficient display
+- **SCHEMA**: Created book_ratings table with user_id, book_id, rating, review_text, timestamps for detailed tracking
+- **API**: Implemented location-scoped rating calculation using complex SQL subqueries for accurate library averages
+- **COMPONENTS**: Built 5 new rating components (StarRating, StarRatingInput, RatingModal) with Material UI integration
+- **INTEGRATION**: Updated BookLibrary.tsx with rating modal state and onRateBook handler propagation
+- **TYPESCRIPT**: Enhanced EnhancedBook interface with userRating, userReview, googleAverageRating fields
+- **UX**: Implemented space-efficient rating placement using existing genre chip areas and progressive disclosure
+- **PERFORMANCE**: Optimized SQL queries to fetch user ratings and calculate averages in single getUserBooks call
+
 ## June 19, 2025 - Enhanced Book Features (Multi-Select & Bulk Operations) Implementation
 
 ### Enhanced Book Features - Scenario C (Hybrid Approach)

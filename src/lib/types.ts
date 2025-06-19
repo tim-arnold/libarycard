@@ -27,6 +27,40 @@ export interface EnhancedBook extends Book {
   subjects?: string[]
   publisherInfo?: string
   pageCount?: number
-  averageRating?: number
-  ratingsCount?: number
+  // Rating system fields
+  userRating?: number | null      // Current user's rating (1-5 stars)
+  userReview?: string | null      // Current user's review text
+  averageRating?: number | null   // Library-specific average rating
+  ratingCount?: number            // Number of library-specific ratings
+  googleAverageRating?: number | null  // Google Books average rating (for More Details)
+  googleRatingCount?: number           // Google Books rating count (for More Details)
+  ratingUpdatedAt?: string        // Last rating update timestamp
+}
+
+// Rating-specific interfaces
+export interface BookRating {
+  id: number
+  bookId: number
+  userId: string
+  rating: number
+  reviewText?: string | null
+  userName?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface RateBookRequest {
+  rating: number // 1-5
+  reviewText?: string
+  bookId: number
+  userId: string
+}
+
+export interface BookRatingsResponse {
+  userRating: number | null
+  userReview?: string | null
+  averageRating: number | null
+  ratingCount: number
+  locationId: number
+  allRatings?: BookRating[]  // For showing all reviews in More Details
 }

@@ -25,7 +25,9 @@ import {
   getBookRemovalRequests,
   approveBookRemovalRequest,
   denyBookRemovalRequest,
-  deleteBookRemovalRequest
+  deleteBookRemovalRequest,
+  rateBook,
+  getBookRating
 } from './books';
 
 export default {
@@ -249,6 +251,16 @@ export default {
         return await deleteBookRemovalRequest(requestId, userId, env, corsHeaders);
       }
 
+      // Book rating endpoints
+      if (path.match(/^\/api\/books\/\d+\/rate$/) && request.method === 'POST') {
+        const bookId = parseInt(path.split('/')[3]);
+        return await rateBook(request, bookId, userId, env, corsHeaders);
+      }
+
+      if (path.match(/^\/api\/books\/\d+\/ratings$/) && request.method === 'GET') {
+        const bookId = parseInt(path.split('/')[3]);
+        return await getBookRating(bookId, userId, env, corsHeaders);
+      }
 
       // Profile endpoints
       if (path === '/api/profile' && request.method === 'GET') {

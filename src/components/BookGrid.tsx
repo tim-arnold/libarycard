@@ -9,9 +9,10 @@ import {
   Chip,
   Button,
 } from '@mui/material'
-import { Info } from '@mui/icons-material'
+import { Info, Star } from '@mui/icons-material'
 import type { EnhancedBook } from '@/lib/types'
 import BookActions from './BookActions'
+import StarRating from './StarRating'
 
 interface BookGridProps {
   books: EnhancedBook[]
@@ -28,6 +29,7 @@ interface BookGridProps {
   onMoreDetailsClick: (book: EnhancedBook) => void
   onAuthorClick: (authorName: string) => void
   onSeriesClick: (seriesName: string) => void
+  onRateBook?: (book: EnhancedBook) => void
 }
 
 export default function BookGrid({
@@ -45,6 +47,7 @@ export default function BookGrid({
   onMoreDetailsClick,
   onAuthorClick,
   onSeriesClick,
+  onRateBook,
 }: BookGridProps) {
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 2 }}>
@@ -127,17 +130,49 @@ export default function BookGrid({
                     {book.seriesNumber && ` (#${book.seriesNumber})`}
                   </Typography>
                 )}
-                {/* Genre - only show for regular users */}
-                {userRole !== 'admin' && (book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
-                  <Box sx={{ mt: 1, mb: 1 }}>
+                {/* Rating and Genre area - space-efficient layout */}
+                <Box sx={{ mt: 1, mb: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                  {/* Star rating - displays user rating or average rating */}
+                  <StarRating
+                    userRating={book.userRating}
+                    averageRating={book.averageRating}
+                    ratingCount={book.ratingCount}
+                    size="small"
+                    variant="display"
+                    showCount={true}
+                    onClick={onRateBook ? () => onRateBook(book) : undefined}
+                  />
+                  
+                  {/* Rate this book button - only show when no rating exists */}
+                  {!(book.userRating || book.averageRating) && onRateBook && (
+                    <Button
+                      size="small"
+                      startIcon={<Star />}
+                      onClick={() => onRateBook(book)}
+                      sx={{ 
+                        textTransform: 'none',
+                        fontSize: '0.75rem',
+                        color: 'warning.main',
+                        minHeight: 20,
+                        '&:hover': {
+                          backgroundColor: 'warning.50'
+                        }
+                      }}
+                    >
+                      Rate this book
+                    </Button>
+                  )}
+                  
+                  {/* Genre chip - only show for regular users and when there's space */}
+                  {userRole !== 'admin' && (book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
                     <Chip 
                       label={book.enhancedGenres?.[0] || book.categories?.[0]} 
                       size="small" 
                       color={book.enhancedGenres ? 'primary' : 'default'}
-                      sx={{ mr: 0.5, mb: 0.5 }} 
+                      sx={{ fontSize: '0.7rem', height: 20 }} 
                     />
-                  </Box>
-                )}
+                  )}
+                </Box>
                 {book.description && (
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                     {book.description.substring(0, 200)}...

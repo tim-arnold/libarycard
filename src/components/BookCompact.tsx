@@ -8,9 +8,10 @@ import {
   Chip,
   Button,
 } from '@mui/material'
-import { Info } from '@mui/icons-material'
+import { Info, Star } from '@mui/icons-material'
 import type { EnhancedBook } from '@/lib/types'
 import BookActions from './BookActions'
+import StarRating from './StarRating'
 
 interface BookListProps {
   books: EnhancedBook[]
@@ -27,6 +28,7 @@ interface BookListProps {
   onMoreDetailsClick: (book: EnhancedBook) => void
   onAuthorClick: (authorName: string) => void
   onSeriesClick: (seriesName: string) => void
+  onRateBook?: (book: EnhancedBook) => void
 }
 
 export default function BookList({
@@ -44,6 +46,7 @@ export default function BookList({
   onMoreDetailsClick,
   onAuthorClick,
   onSeriesClick,
+  onRateBook,
 }: BookListProps) {
   return (
     <List sx={{ width: '100%' }}>
@@ -193,19 +196,53 @@ export default function BookList({
                 </Box>
               )}
 
-              {/* Genre - only show for regular users */}
-              {userRole !== 'admin' && (book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
-                <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Chip 
-                    label={book.enhancedGenres?.[0] || book.categories?.[0]} 
-                    size="small" 
-                    color={book.enhancedGenres ? 'primary' : 'default'}
-                    sx={{ 
-                      fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8125rem' },
-                      height: { xs: 20, sm: 24, md: 28 }
-                    }} 
+              {/* Rating and Genre area - mini star chips alongside genre */}
+              {(userRole !== 'admin' && (book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0])) || (book.userRating || book.averageRating) || onRateBook ? (
+                <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                  {/* Star rating - mini variant for compact space */}
+                  <StarRating
+                    userRating={book.userRating}
+                    averageRating={book.averageRating}
+                    ratingCount={book.ratingCount}
+                    size="small"
+                    variant="mini"
+                    onClick={onRateBook ? () => onRateBook(book) : undefined}
                   />
-                  {/* More Details button moved to right of genre */}
+                  
+                  {/* Rate this book button - only show when no rating exists */}
+                  {!(book.userRating || book.averageRating) && onRateBook && (
+                    <Button
+                      size="small"
+                      startIcon={<Star />}
+                      onClick={() => onRateBook(book)}
+                      sx={{ 
+                        textTransform: 'none',
+                        fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                        color: 'warning.main',
+                        minHeight: { xs: 20, sm: 24 },
+                        '&:hover': {
+                          backgroundColor: 'warning.50'
+                        }
+                      }}
+                    >
+                      Rate
+                    </Button>
+                  )}
+                  
+                  {/* Genre chip - only show for regular users */}
+                  {userRole !== 'admin' && (book.enhancedGenres || book.categories) && (book.enhancedGenres?.[0] || book.categories?.[0]) && (
+                    <Chip 
+                      label={book.enhancedGenres?.[0] || book.categories?.[0]} 
+                      size="small" 
+                      color={book.enhancedGenres ? 'primary' : 'default'}
+                      sx={{ 
+                        fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8125rem' },
+                        height: { xs: 20, sm: 24, md: 28 }
+                      }} 
+                    />
+                  )}
+                  
+                  {/* More Details button moved to right of genre and rating */}
                   {(book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
                     <Button
                       size="small"
@@ -224,10 +261,10 @@ export default function BookList({
                     </Button>
                   )}
                 </Box>
-              )}
+              ) : null}
 
-              {/* More Details button for when no genre is shown */}
-              {(userRole === 'admin' || (!book.enhancedGenres?.[0] && !book.categories?.[0])) && (book.extendedDescription || book.subjects || book.pageCount || book.averageRating || book.publisherInfo || book.openLibraryKey) && (
+              {/* More Details button for when no genre or rating is shown */}
+              {(userRole === 'admin' || (!book.enhancedGenres?.[0] && !book.categories?.[0])) && !(book.userRating || book.averageRating) && (book.extendedDescription || book.subjects || book.pageCount || book.googleAverageRating || book.publisherInfo || book.openLibraryKey) && (
                 <Box sx={{ mb: 1.5 }}>
                   <Button
                     size="small"

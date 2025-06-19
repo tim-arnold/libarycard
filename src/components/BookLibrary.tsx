@@ -33,6 +33,7 @@ import BookGrid from './BookGrid'
 import BookCompact from './BookCompact'
 import BookList from './BookList'
 import RemovalReasonModal from './RemovalReasonModal'
+import RatingModal from './RatingModal'
 import { useModal } from '@/hooks/useModal'
 import { CURATED_GENRES } from '@/lib/genreClassifier'
 import { getStorageItem, setStorageItem } from '@/lib/storage'
@@ -186,13 +187,13 @@ function MoreDetailsModal({ book, isOpen, onClose }: MoreDetailsModalProps) {
               </Box>
             )}
             
-            {book.averageRating && (
+            {book.googleAverageRating && (
               <Box>
                 <Typography variant="subtitle2" color="primary">
                   Google Books Rating
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {book.averageRating}/5 ({book.ratingsCount || 0} ratings)
+                  {book.googleAverageRating}/5 ({book.googleRatingCount || 0} ratings)
                 </Typography>
               </Box>
             )}
@@ -246,6 +247,8 @@ export default function BookLibrary() {
   const [sortField, setSortField] = useState<SortField>('title')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [isLoading, setIsLoading] = useState(true)
+  const [showRatingModal, setShowRatingModal] = useState(false)
+  const [selectedBookForRating, setSelectedBookForRating] = useState<EnhancedBook | null>(null)
 
   useEffect(() => {
     if (session?.user) {
@@ -1072,6 +1075,75 @@ export default function BookLibrary() {
     }
   }
 
+  const handleRateBook = (book: EnhancedBook) => {
+    setSelectedBookForRating(book)
+    setShowRatingModal(true)
+  }
+
+  const handleRatingSubmit = async (rating: number, reviewText?: string) => {
+    if (!selectedBookForRating || !session?.user?.email) return
+
+    try {
+      const response = await fetch(`${API_BASE}/api/books/${selectedBookForRating.id}/rate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.user.email}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          rating,
+          reviewText: reviewText || null
+        })
+      })
+
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          try {
+            const errorText = await response.text()
+            errorMessage = errorText || errorMessage
+          } catch {
+            errorMessage = `Request failed with status ${response.status}`
+          }
+        }
+        throw new Error(errorMessage)
+      }
+
+      const result = await response.json()
+      
+      // Update local state with new rating data
+      const updatedBooks = books.map(book => 
+        book.id === selectedBookForRating.id 
+          ? { 
+              ...book, 
+              userRating: rating,
+              userReview: reviewText || null,
+              averageRating: result.averageRating,
+              ratingCount: result.ratingCount
+            }
+          : book
+      )
+      setBooks(updatedBooks)
+      
+      await alert({
+        title: 'Rating Submitted',
+        message: `Your ${rating}-star rating for "${selectedBookForRating.title}" has been saved.`,
+        variant: 'success'
+      })
+    } catch (error) {
+      console.error('Error submitting rating:', error)
+      throw error // Re-throw to let RatingModal handle the error display
+    }
+  }
+
+  const handleRatingModalClose = () => {
+    setShowRatingModal(false)
+    setSelectedBookForRating(null)
+  }
+
 
 
   // Use curated genres that actually have books mapped to them in the user's library (categories only for dropdown)
@@ -1384,6 +1456,7 @@ export default function BookLibrary() {
                       onMoreDetailsClick={handleMoreDetailsClick}
                       onAuthorClick={handleAuthorClick}
                       onSeriesClick={handleSeriesClick}
+                      onRateBook={handleRateBook}
                     />
                   </div>
                 ))}
@@ -1405,6 +1478,7 @@ export default function BookLibrary() {
                 onMoreDetailsClick={handleMoreDetailsClick}
                 onAuthorClick={handleAuthorClick}
                 onSeriesClick={handleSeriesClick}
+                onRateBook={handleRateBook}
               />
             )
           ) : viewMode === 'compact' ? (
@@ -1453,6 +1527,7 @@ export default function BookLibrary() {
                       onMoreDetailsClick={handleMoreDetailsClick}
                       onAuthorClick={handleAuthorClick}
                       onSeriesClick={handleSeriesClick}
+                      onRateBook={handleRateBook}
                     />
                   </div>
                 ))}
@@ -1474,6 +1549,7 @@ export default function BookLibrary() {
                 onMoreDetailsClick={handleMoreDetailsClick}
                 onAuthorClick={handleAuthorClick}
                 onSeriesClick={handleSeriesClick}
+                onRateBook={handleRateBook}
               />
             )
           ) : (
@@ -1522,6 +1598,7 @@ export default function BookLibrary() {
                       onMoreDetailsClick={handleMoreDetailsClick}
                       onAuthorClick={handleAuthorClick}
                       onSeriesClick={handleSeriesClick}
+                      onRateBook={handleRateBook}
                     />
                   </div>
                 ))}
@@ -1543,6 +1620,7 @@ export default function BookLibrary() {
                 onMoreDetailsClick={handleMoreDetailsClick}
                 onAuthorClick={handleAuthorClick}
                 onSeriesClick={handleSeriesClick}
+                onRateBook={handleRateBook}
               />
             )
           )}
@@ -1646,6 +1724,18 @@ export default function BookLibrary() {
         open={showRemovalReasonModal}
         onClose={handleRemovalReasonModalClose}
       />
+
+      {/* Rating Modal */}
+      {showRatingModal && selectedBookForRating && (
+        <RatingModal
+          book={selectedBookForRating}
+          isOpen={showRatingModal}
+          onClose={handleRatingModalClose}
+          onRatingSubmit={handleRatingSubmit}
+          currentRating={selectedBookForRating.userRating}
+          currentReview={selectedBookForRating.userReview}
+        />
+      )}
       </Paper>
     </Container>
   )

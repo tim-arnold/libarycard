@@ -8,9 +8,10 @@ import {
   Chip,
   IconButton,
 } from '@mui/material'
-import { Info } from '@mui/icons-material'
+import { Info, Star } from '@mui/icons-material'
 import type { EnhancedBook } from '@/lib/types'
 import BookActions from './BookActions'
+import StarRating from './StarRating'
 
 interface BookTextProps {
   books: EnhancedBook[]
@@ -27,6 +28,7 @@ interface BookTextProps {
   onMoreDetailsClick: (book: EnhancedBook) => void
   onAuthorClick: (authorName: string) => void
   onSeriesClick: (seriesName: string) => void
+  onRateBook?: (book: EnhancedBook) => void
 }
 
 export default function BookText({
@@ -44,6 +46,7 @@ export default function BookText({
   onMoreDetailsClick,
   onAuthorClick,
   onSeriesClick,
+  onRateBook,
 }: BookTextProps) {
   return (
     <List sx={{ width: '100%', p: 0 }}>
@@ -104,6 +107,34 @@ export default function BookText({
 
             {/* Compact info chips */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+              {/* Star rating - compact chip variant */}
+              <StarRating
+                userRating={book.userRating}
+                averageRating={book.averageRating}
+                ratingCount={book.ratingCount}
+                size="small"
+                variant="chip"
+                onClick={onRateBook ? () => onRateBook(book) : undefined}
+              />
+              
+              {/* Rate this book button - ultra compact */}
+              {!(book.userRating || book.averageRating) && onRateBook && (
+                <IconButton
+                  size="small"
+                  onClick={() => onRateBook(book)}
+                  sx={{ 
+                    p: 0.5,
+                    color: 'warning.main',
+                    '&:hover': {
+                      backgroundColor: 'warning.50'
+                    }
+                  }}
+                  title="Rate this book"
+                >
+                  <Star sx={{ fontSize: '1rem' }} />
+                </IconButton>
+              )}
+              
               {/* Checkout status */}
               {book.status === 'checked_out' && (
                 <Chip 
