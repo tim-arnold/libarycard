@@ -136,6 +136,7 @@ export default function ISBNScanner({
 
   const requestCameraPermission = async () => {
     try {
+      console.log('Requesting camera permission...')
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
@@ -144,11 +145,16 @@ export default function ISBNScanner({
         }
       })
       
+      console.log('Camera permission granted, stream obtained:', stream)
+      console.log('Video tracks:', stream.getVideoTracks())
+      
       // Stop the test stream immediately
       stream.getTracks().forEach(track => {
+        console.log('Stopping track:', track.label)
         track.stop()
       })
     } catch (error: any) {
+      console.error('Camera permission error:', error)
       throw error
     }
   }
@@ -159,7 +165,9 @@ export default function ISBNScanner({
     }
 
     try {
-      // Create video element for camera preview
+      console.log('Starting ZXing scanner...')
+      
+      // Create video element for ZXing to use
       const videoElement = document.createElement('video')
       videoElement.style.width = '100%'
       videoElement.style.maxWidth = '640px'
@@ -167,45 +175,53 @@ export default function ISBNScanner({
       videoElement.style.borderRadius = '8px'
       videoElement.playsInline = true
       
-      // Clear any existing content and add video
+      // Clear container and add video element
       scannerRef.current.innerHTML = ''
       scannerRef.current.appendChild(videoElement)
       
-      // Start continuous scanning with improved settings
+      console.log('Video element created, starting ZXing...')
+      
+      // Let ZXing handle stream management for the video element
       await codeReader.decodeFromVideoDevice(
         null, // Use default camera
-        videoElement,
+        videoElement, // Pass the video element directly
         (result) => {
           if (result) {
+            console.log('Barcode detected:', result.getText())
             stopScanner()
             onISBNDetected(result.getText())
           }
         }
       )
       
+      console.log('ZXing scanner started successfully')
       setIsScannerLoading(false)
       
     } catch (error) {
+      console.error('ZXing scanner error:', error)
       setIsScannerLoading(false)
       throw error
     }
   }
 
   const stopScanner = () => {
+    console.log('Stopping scanner...')
     setIsScanning(false)
     setIsScannerLoading(false)
     
     // Stop ZXing scanner
     if (codeReader) {
       try {
+        console.log('Resetting ZXing code reader...')
         codeReader.reset()
       } catch (e) {
-        // Ignore stop errors
+        console.log('ZXing reset error (expected):', e)
       }
     }
     
     // Clear the scanner element
     if (scannerRef.current) {
+      console.log('Clearing scanner container...')
       scannerRef.current.innerHTML = ''
     }
   }
