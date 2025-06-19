@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Fab,
   Badge,
@@ -18,23 +18,33 @@ import {
   Divider,
 } from '@mui/material'
 import {
-  ShoppingCart,
+  Inventory2,
   Delete,
   Visibility,
 } from '@mui/icons-material'
 import { useBookSelection } from '@/contexts/BookSelectionContext'
 
-interface CartIndicatorProps {
-  onViewCart?: () => void
+interface SelectionIndicatorProps {
+  onViewSelection?: () => void
 }
 
-export default function CartIndicator({ onViewCart }: CartIndicatorProps) {
+export default function CartIndicator({ onViewSelection }: SelectionIndicatorProps) {
   const { actions } = useBookSelection()
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null)
+  const [shouldPulse, setShouldPulse] = useState(false)
   
   const selectionCount = actions.getSelectionCount()
   const selectedBooks = actions.getSelectedBooks()
   const isOpen = Boolean(anchorEl)
+
+  // Trigger pulse animation when selection count increases
+  useEffect(() => {
+    if (selectionCount > 0) {
+      setShouldPulse(true)
+      const timer = setTimeout(() => setShouldPulse(false), 600) // Animation duration
+      return () => clearTimeout(timer)
+    }
+  }, [selectionCount])
 
   // Don't render if no selections
   if (selectionCount === 0) {
@@ -53,14 +63,14 @@ export default function CartIndicator({ onViewCart }: CartIndicatorProps) {
     actions.removeFromSelection(key)
   }
 
-  const handleViewCart = () => {
+  const handleViewSelection = () => {
     handleClose()
-    onViewCart?.()
+    onViewSelection?.()
   }
 
   return (
     <>
-      {/* Floating Cart Button */}
+      {/* Floating Selection Box Button */}
       <Tooltip title={`${selectionCount} book${selectionCount === 1 ? '' : 's'} selected`}>
         <Fab
           color="primary"
@@ -71,15 +81,19 @@ export default function CartIndicator({ onViewCart }: CartIndicatorProps) {
             bottom: 24,
             right: 24,
             zIndex: 1000,
+            transform: shouldPulse ? 'scale(2)' : 'scale(1)',
+            transition: shouldPulse 
+              ? 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' 
+              : 'transform 0.3s ease-out',
           }}
         >
           <Badge badgeContent={selectionCount} color="secondary">
-            <ShoppingCart />
+            <Inventory2 />
           </Badge>
         </Fab>
       </Tooltip>
 
-      {/* Cart Preview Popover */}
+      {/* Selection Preview Popover */}
       <Popover
         open={isOpen}
         anchorEl={anchorEl}
@@ -98,7 +112,7 @@ export default function CartIndicator({ onViewCart }: CartIndicatorProps) {
       >
         <Paper sx={{ p: 2 }}>
           <Typography variant="h6" gutterBottom>
-            📚 Selected Books ({selectionCount})
+            📦 Selected Books ({selectionCount})
           </Typography>
           
           <List dense sx={{ maxHeight: 200, overflow: 'auto', mb: 2 }}>
@@ -121,7 +135,7 @@ export default function CartIndicator({ onViewCart }: CartIndicatorProps) {
                     edge="end"
                     size="small"
                     onClick={() => handleRemoveBook(selectedBook.key)}
-                    aria-label="Remove from cart"
+                    aria-label="Remove from selection"
                   >
                     <Delete fontSize="small" />
                   </IconButton>
@@ -137,7 +151,7 @@ export default function CartIndicator({ onViewCart }: CartIndicatorProps) {
               variant="contained"
               size="small"
               startIcon={<Visibility />}
-              onClick={handleViewCart}
+              onClick={handleViewSelection}
               fullWidth
             >
               Review and Add ({selectionCount})

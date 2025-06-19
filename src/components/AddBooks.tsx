@@ -757,9 +757,9 @@ function AddBooksInternal() {
           onShelfChange={setSelectedShelfId}
         />
 
-        {/* Floating Cart Indicator */}
+        {/* Floating Selection Indicator */}
         <CartIndicator 
-          onViewCart={() => setShowBulkReviewModal(true)}
+          onViewSelection={() => setShowBulkReviewModal(true)}
         />
         </Paper>
       </Container>

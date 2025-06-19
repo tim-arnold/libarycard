@@ -25,7 +25,8 @@ import {
   CheckCircle,
   Clear,
   Warning,
-  AddShoppingCart,
+  CheckBox,
+  CheckBoxOutlineBlank,
 } from '@mui/icons-material'
 import type { EnhancedBook } from '@/lib/types'
 import { useBookSelection } from '@/contexts/BookSelectionContext'
@@ -540,7 +541,7 @@ export default function BookSearch({
                             <Button 
                               variant={isInCart ? "contained" : "outlined"}
                               size="small"
-                              startIcon={isInCart ? <CheckCircle /> : <AddShoppingCart />}
+                              startIcon={isInCart ? <CheckBox /> : <CheckBoxOutlineBlank />}
                               onClick={() => isInCart ? handleRemoveFromCart(item) : handleAddToCart(item)}
                               disabled={disabled}
                               fullWidth
@@ -549,7 +550,7 @@ export default function BookSearch({
                                 color: isInCart ? 'white' : 'primary.main'
                               }}
                             >
-                              {isInCart ? 'In Cart' : 'Add to Cart'}
+                              {isInCart ? 'Selected' : 'Select'}
                             </Button>
                             <Button 
                               variant="text"
@@ -564,7 +565,7 @@ export default function BookSearch({
                           </Box>
                         )
                       } else {
-                        // Normal mode: Immediate add is primary, cart is secondary
+                        // Normal mode: Immediate add is primary, selection is secondary
                         return (
                           <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
                             <Button 
@@ -580,7 +581,7 @@ export default function BookSearch({
                             <Button 
                               variant="outlined"
                               size="small"
-                              startIcon={isInCart ? <CheckCircle /> : <AddShoppingCart />}
+                              startIcon={isInCart ? <CheckBox /> : <CheckBoxOutlineBlank />}
                               onClick={() => isInCart ? handleRemoveFromCart(item) : handleAddToCart(item)}
                               disabled={disabled}
                               sx={{ 
@@ -589,7 +590,7 @@ export default function BookSearch({
                                 borderColor: isInCart ? 'success.main' : 'primary.main'
                               }}
                             >
-                              {isInCart ? 'In Cart' : 'Cart'}
+                              {isInCart ? 'Selected' : 'Select'}
                             </Button>
                           </Box>
                         )

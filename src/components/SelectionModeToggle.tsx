@@ -81,7 +81,7 @@ export default function SelectionModeToggle({ variant = 'expanded' }: SelectionM
       {/* Mode indicator text */}
       <Typography variant="caption" color="text.secondary">
         {state.isSelectionMode ? (
-          <>Select multiple books to add in bulk</>
+          <>Select multiple books to review and add together</>
         ) : (
           <>Click books to add one at a time</>
         )}
