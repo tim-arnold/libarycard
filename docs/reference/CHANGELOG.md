@@ -2,7 +2,17 @@
 
 This file documents all completed features, fixes, and improvements to the LibraryCard project.
 
-## June 19, 2025 - Component Architecture Improvements
+## June 19, 2025 - Component Architecture & Pagination Improvements
+
+### Books-Per-Page Pagination Enhancement
+- **CHANGED**: Default pagination from 10 to 25 books per page for improved browsing experience
+- **ADDED**: Material UI Select dropdown with books-per-page options: 10, 25, 50, 100 books
+- **IMPLEMENTED**: localStorage persistence for user's books-per-page preference with consent-aware storage
+- **ENHANCED**: UI layout with books-per-page dropdown on left and view mode toggle on right using space-between justification
+- **CREATED**: handleBooksPerPageChange function that updates setting and automatically resets to page 1
+- **APPLIED**: Books-per-page functionality across all three view modes (Cards, Compact, List) for consistent user experience
+- **VERIFIED**: TypeScript compatibility with proper string/number handling for localStorage integration
+- **MAINTAINED**: Existing pagination controls and functionality while adding new dropdown selector
 
 ### Book Display Component Naming Refactor
 - **RENAMED**: BookList.tsx → BookCompact.tsx to accurately reflect its compact view functionality with images

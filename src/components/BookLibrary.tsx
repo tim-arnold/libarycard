@@ -238,7 +238,7 @@ export default function BookLibrary() {
   const [selectedBookForDetails, setSelectedBookForDetails] = useState<EnhancedBook | null>(null)
   const [viewMode, setViewMode] = useState<'card' | 'compact' | 'list'>('card')
   const [currentPage, setCurrentPage] = useState(1)
-  const [booksPerPage] = useState(10)
+  const [booksPerPage, setBooksPerPage] = useState(25)
   const [showRelocateModal, setShowRelocateModal] = useState(false)
   const [selectedBookForRelocate, setSelectedBookForRelocate] = useState<EnhancedBook | null>(null)
   const [showRemovalReasonModal, setShowRemovalReasonModal] = useState(false)
@@ -256,11 +256,19 @@ export default function BookLibrary() {
     }
   }, [session])
 
-  // Load saved view mode from localStorage
+  // Load saved view mode and books per page from localStorage
   useEffect(() => {
     const savedViewMode = getStorageItem('library-view-mode', 'functional') as 'card' | 'compact' | 'list'
     if (savedViewMode && (savedViewMode === 'card' || savedViewMode === 'compact' || savedViewMode === 'list')) {
       setViewMode(savedViewMode)
+    }
+    
+    const savedBooksPerPage = getStorageItem('library-books-per-page', 'functional')
+    if (savedBooksPerPage) {
+      const numericValue = parseInt(savedBooksPerPage, 10)
+      if (!isNaN(numericValue) && [10, 25, 50, 100].includes(numericValue)) {
+        setBooksPerPage(numericValue)
+      }
     }
   }, [])
 
@@ -275,6 +283,13 @@ export default function BookLibrary() {
 
   const handleSortDirectionChange = (newSortDirection: SortDirection) => {
     setSortDirection(newSortDirection)
+  }
+
+  const handleBooksPerPageChange = (newBooksPerPage: number) => {
+    setBooksPerPage(newBooksPerPage)
+    setStorageItem('library-books-per-page', newBooksPerPage.toString(), 'functional')
+    // Reset to first page when changing books per page
+    setCurrentPage(1)
   }
 
   // Pagination functions (for admin view only now)
@@ -1266,9 +1281,25 @@ export default function BookLibrary() {
           allCategories={allCategories}
         />
 
-        {/* View Mode Toggle - Only show if there are books to display */}
+        {/* View Mode Toggle and Books Per Page - Only show if there are books to display */}
         {filteredBooks.length > 0 && (
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            {/* Books per page dropdown */}
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Books per page</InputLabel>
+              <Select
+                value={booksPerPage}
+                label="Books per page"
+                onChange={(e) => handleBooksPerPageChange(Number(e.target.value))}
+              >
+                <MenuItem value={10}>10 books</MenuItem>
+                <MenuItem value={25}>25 books</MenuItem>
+                <MenuItem value={50}>50 books</MenuItem>
+                <MenuItem value={100}>100 books</MenuItem>
+              </Select>
+            </FormControl>
+
+            {/* View mode toggle */}
             <ToggleButtonGroup
               value={viewMode}
               exclusive
