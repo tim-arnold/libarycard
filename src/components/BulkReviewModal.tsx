@@ -76,12 +76,12 @@ export default function BulkReviewModal({
   // Update bulk tags in context when changed
   useEffect(() => {
     actions.setBulkTags(bulkTags)
-  }, [bulkTags, actions])
+  }, [bulkTags])
 
   // Update bulk shelf in context when changed
   useEffect(() => {
     actions.setBulkShelf(selectedShelfId)
-  }, [selectedShelfId, actions])
+  }, [selectedShelfId])
 
   const handleRemoveBook = (key: string) => {
     actions.removeFromSelection(key)

@@ -48,7 +48,7 @@ export default function ISBNScanner({
         'error'
       )
     }
-  }, [onError])
+  }, [])
 
   useEffect(() => {
     // Auto-focus the ISBN input field when component mounts
