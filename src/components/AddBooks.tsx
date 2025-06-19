@@ -598,7 +598,7 @@ export default function AddBooks() {
     <Container maxWidth="lg" sx={{ py: 2 }}>
       <Paper sx={{ p: 3 }}>
         <Typography variant="h4" component="h2" gutterBottom>
-          📚  Books
+          📚  Add Books
         </Typography>
       
 
@@ -621,12 +621,14 @@ export default function AddBooks() {
               icon={<QrCodeScanner />}
               iconPosition="start"
             />
-            <Tab 
+            {/*
+            <Tab
               value="bookshelf" 
               label="Scan Shelf"
               icon={<PhotoLibrary />}
               iconPosition="start"
             />
+            */}
           </Tabs>
         </Paper>
 
