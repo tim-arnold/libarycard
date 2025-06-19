@@ -14,7 +14,6 @@ This directory contains comprehensive documentation for the LibraryCard project,
 - **[Local Development](./development/local-development.md)** - Development environment setup
 - **[API Reference](./development/api-reference.md)** - Complete API documentation
 - **[Database Schema](./development/database-schema.md)** - Data model and relationships
-- **[Bookshelf Photo Scanning Plan](./development/bookshelf-photo-scanning-plan.md)** - OCR feature implementation guide
 - **[Troubleshooting](./development/troubleshooting.md)** - Common development issues and solutions
 
 ### 🚀 [Deployment](./deployment/) - Infrastructure & Setup

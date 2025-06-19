@@ -2,6 +2,21 @@
 
 This file documents all completed features, fixes, and improvements to the LibraryCard project.
 
+## June 19, 2025 - OCR Removal & Component Architecture Improvements
+
+### OCR Feature Removal & Code Simplification
+- **REMOVED**: Complete OCR bookshelf scanning feature due to reliability issues and complexity concerns
+- **DELETED**: BookshelfScanner.tsx component (~200 lines) and all OCR-related UI elements
+- **CLEANED**: AddBooks.tsx by removing OCR state variables, handlers, and the entire "Bookshelf Scanner Tab" section (~175 lines)
+- **SIMPLIFIED**: Tab navigation from three tabs (Search, Scan, Bookshelf) to two reliable methods (Search, Scan ISBN)
+- **ELIMINATED**: Google Vision API dependencies and OCR processing complexity from frontend codebase
+- **STREAMLINED**: Book addition workflow to focus on two proven reliable methods: ISBN scanning and search
+- **ENHANCED**: Developer experience by removing ~400+ lines of complex OCR-related code
+- **PRESERVED**: All non-OCR functionality including ISBN scanning, search, and book addition workflows
+- **MAINTAINED**: autoSearchAfterAdd feature for post-addition search workflow across all book addition methods
+- **DOCUMENTED**: OCR removal rationale and process in specification documents for future reference
+- **VERIFIED**: Build and lint success after OCR code removal with no breaking changes
+
 ## June 19, 2025 - Component Architecture & Pagination Improvements
 
 ### Books-Per-Page Pagination Enhancement
