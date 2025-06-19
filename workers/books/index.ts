@@ -32,6 +32,7 @@ export async function getUserBooks(userId: string, env: Env, corsHeaders: Record
     subjects: book.subjects ? JSON.parse(book.subjects) : [],
     enhancedGenres: book.enhanced_genres ? JSON.parse(book.enhanced_genres) : [],
     // Map database field names to frontend field names
+    publishedDate: book.published_date,
     extendedDescription: book.extended_description,
     pageCount: book.page_count,
     averageRating: book.average_rating,

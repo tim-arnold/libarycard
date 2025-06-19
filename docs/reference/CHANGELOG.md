@@ -19,6 +19,13 @@ This file documents all completed features, fixes, and improvements to the Libra
 - **RESOLVED**: Developer confusion where 'list' view was implemented by BookText.tsx and 'Compact' view by BookList.tsx
 - **STANDARDIZED**: Component conditional rendering logic to use descriptive, matching component names
 
+### Publication Date Display Fix
+- **FIXED**: Missing publication dates in all view modes due to field name mismatch between frontend and backend
+- **RESOLVED**: Database field `published_date` (snake_case) not being mapped to frontend `publishedDate` (camelCase)
+- **ADDED**: Proper field mapping in Workers API getUserBooks function for consistent data transformation
+- **VERIFIED**: Publication years now display correctly across Cards, Compact, and List view modes
+- **MAINTAINED**: Year-only display format (e.g., "Published: 2023") for clean, consistent presentation
+
 ## June 14, 2025 - Search Result Pagination & UX Enhancements
 
 ### Advanced Pagination State Preservation System
