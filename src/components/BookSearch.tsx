@@ -403,12 +403,8 @@ export default function BookSearch({
                   </Typography>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
                     {item.volumeInfo.authors?.join(', ') || 'Unknown Author'}
+                    {item.volumeInfo.publishedDate && `, ${new Date(item.volumeInfo.publishedDate).getFullYear()}`}
                   </Typography>
-                  {item.volumeInfo.publishedDate && (
-                    <Typography variant="caption" color="text.secondary">
-                      Published: {new Date(item.volumeInfo.publishedDate).getFullYear()}
-                    </Typography>
-                  )}
                 </CardContent>
                 <CardActions>
                   {wasBookJustAdded(item) ? (
@@ -565,12 +561,8 @@ export default function BookSearch({
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 by {addAnywayDialog.book.volumeInfo.authors?.join(', ') || 'Unknown Author'}
+                {addAnywayDialog.book.volumeInfo.publishedDate && `, ${new Date(addAnywayDialog.book.volumeInfo.publishedDate).getFullYear()}`}
               </Typography>
-              {addAnywayDialog.book.volumeInfo.publishedDate && (
-                <Typography variant="body2" color="text.secondary">
-                  Published: {new Date(addAnywayDialog.book.volumeInfo.publishedDate).getFullYear()}
-                </Typography>
-              )}
               
               <Typography variant="body2" sx={{ mt: 2 }}>
                 Are you sure you want to add this book anyway? This might be a different edition or you may have accidentally deleted it earlier.

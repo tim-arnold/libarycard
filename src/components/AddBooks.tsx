@@ -494,12 +494,6 @@ export default function AddBooks() {
       if (activeTab === 'search' || searchQuery.trim()) {
         setAutoSearchAfterAdd(true)
       }
-      
-      await alert({
-        title: 'Book Added!',
-        message: `"${bookTitle}" has been successfully added to your library!`,
-        variant: 'success'
-      })
     } else {
       await alert({
         title: 'Save Failed',
