@@ -27,6 +27,15 @@ This file documents all completed features, fixes, and improvements to the Libra
 - **PERFORMANCE**: Optimistic UI updates and lazy loading of bulk components only when selection mode is activated
 - **ACCESSIBILITY**: Full keyboard support, proper ARIA labels, and logical tab order for all new selection features
 
+### UI/UX Refinements - Selection Interface Improvements
+- **REPLACED**: Shopping cart metaphors with selection/checkbox interface to eliminate user confusion about purchasing
+- **UPDATED**: All cart buttons to use CheckBox/CheckBoxOutlineBlank icons with "Select"/"Selected" text instead of cart terminology
+- **CHANGED**: Floating indicator from ShoppingCart to Inventory2 (box) icon for clearer visual metaphor
+- **ADDED**: Pulse animation scaling floating button to 200% when selections change using cubic-bezier easing for engaging feedback
+- **ENHANCED**: Component interface naming from CartIndicatorProps to SelectionIndicatorProps for code clarity
+- **IMPROVED**: Visual consistency with 📦 Selected Books header replacing 📚 cart terminology
+- **REFINED**: Help text clarity in selection mode toggle to "Select multiple books to review and add together"
+
 ## June 19, 2025 - OCR Removal & Component Architecture Improvements
 
 ### OCR Feature Removal & Code Simplification
