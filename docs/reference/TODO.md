@@ -92,17 +92,6 @@ This file tracks active development tasks and future enhancements for the Librar
 
 ### High Priority - Next Session Focus
 
-- [ ] **User Invitation System Refactoring - Remaining Phases** (See [detailed plan](../development/user-invitation-refactor-plan.md))
-  - [ ] **Phase 2**: Implement global invitation overview across all locations with filtering and search
-  - [ ] **Phase 4**: Create new API endpoints for admin-level invitation management and analytics
-
-- [ ] **Future Admin Enhancements**
-  - [ ] Implement automated email notifications for admin actions
-  - [ ] Add configurable notification preferences for admin users
-  - [ ] Expand notification system with more detailed reporting features
-
-### Low Priority - Future Enhancements
-
 - [ ] **Additional Admin Features**
   - [ ] User permission granularity (allow users to delete books, add/delete shelves, etc.)
   - [ ] Add bulk actions for admin users (bulk book approval, multi-user invitations, etc.)
@@ -111,6 +100,17 @@ This file tracks active development tasks and future enhancements for the Librar
   - [ ] Create "multi-select" capability in search results (test, isbn, ocr) so multiple books can be selected and added in bulk.
   - [ ] Bulk adding books should share a single shelf selector and action buttons
   - [ ] Add star rating system, just display average rating for each book from scoped to the location
+
+### Low Priority - Future Enhancements
+
+- [ ] **User Invitation System Refactoring - Remaining Phases** (See [detailed plan](../development/user-invitation-refactor-plan.md))
+  - [ ] **Phase 2**: Implement global invitation overview across all locations with filtering and search
+  - [ ] **Phase 4**: Create new API endpoints for admin-level invitation management and analytics
+
+- [ ] **Future Admin Enhancements**
+  - [ ] Implement automated email notifications for admin actions
+  - [ ] Add configurable notification preferences for admin users
+  - [ ] Expand notification system with more detailed reporting features
 
 ---
 
