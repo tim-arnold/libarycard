@@ -67,21 +67,21 @@ export async function createBook(request: Request, userId: string, env: Env, cor
     typeof book.authors === 'string' ? book.authors : JSON.stringify(book.authors || []),
     book.description || null,
     book.thumbnail || null,
-    book.published_date || null,
+    book.published_date || book.publishedDate || null,  // Accept both snake_case and camelCase
     typeof book.categories === 'string' ? book.categories : JSON.stringify(book.categories || []),
     book.shelf_id || null,
     typeof book.tags === 'string' ? book.tags : JSON.stringify(book.tags || []),
     userId,
-    book.extended_description || null,
+    book.extended_description || book.extendedDescription || null,  // Accept both formats
     typeof book.subjects === 'string' ? book.subjects : (book.subjects ? JSON.stringify(book.subjects) : null),
-    book.page_count || null,
-    book.average_rating || null,
-    book.ratings_count || null,
-    book.publisher_info || null,
-    book.open_library_key || null,
-    typeof book.enhanced_genres === 'string' ? book.enhanced_genres : (book.enhanced_genres ? JSON.stringify(book.enhanced_genres) : null),
+    book.page_count || book.pageCount || null,  // Accept both formats
+    book.average_rating || book.averageRating || null,  // Accept both formats
+    book.ratings_count || book.ratingsCount || null,  // Accept both formats
+    book.publisher_info || book.publisherInfo || null,  // Accept both formats
+    book.open_library_key || book.openLibraryKey || null,  // Accept both formats
+    typeof book.enhanced_genres === 'string' ? book.enhanced_genres : (book.enhanced_genres ? JSON.stringify(book.enhanced_genres) : book.enhancedGenres ? JSON.stringify(book.enhancedGenres) : null),  // Accept both formats
     book.series || null,
-    book.series_number || null
+    book.series_number || book.seriesNumber || null  // Accept both formats
   ).run();
 
   return new Response(JSON.stringify({ success: true }), {
