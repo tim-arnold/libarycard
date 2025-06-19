@@ -532,69 +532,37 @@ export default function BookSearch({
                       )
                     } else {
                       // Not a duplicate - show dual action buttons (Scenario C)
+                      // Always: "Add Now" primary, "Select" secondary
                       const isInCart = isBookInCart(item)
                       
-                      if (selectionState.isSelectionMode) {
-                        // Selection mode: Show checkbox-style behavior
-                        return (
-                          <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
-                            <Button 
-                              variant={isInCart ? "contained" : "outlined"}
-                              size="small"
-                              startIcon={isInCart ? <CheckBox /> : <CheckBoxOutlineBlank />}
-                              onClick={() => isInCart ? handleRemoveFromCart(item) : handleAddToCart(item)}
-                              disabled={disabled}
-                              fullWidth
-                              sx={{ 
-                                backgroundColor: isInCart ? 'primary.main' : 'transparent',
-                                color: isInCart ? 'white' : 'primary.main'
-                              }}
-                            >
-                              {isInCart ? 'Selected' : 'Select'}
-                            </Button>
-                            <Button 
-                              variant="text"
-                              size="small"
-                              startIcon={<Add />}
-                              onClick={() => handleBookSelect(item)}
-                              disabled={disabled}
-                              sx={{ minWidth: '100px' }}
-                            >
-                              Add Now
-                            </Button>
-                          </Box>
-                        )
-                      } else {
-                        // Normal mode: Immediate add is primary, selection is secondary
-                        return (
-                          <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
-                            <Button 
-                              variant="contained"
-                              size="small"
-                              startIcon={<Add />}
-                              onClick={() => handleBookSelect(item)}
-                              disabled={disabled}
-                              fullWidth
-                            >
-                              Add This Book
-                            </Button>
-                            <Button 
-                              variant="outlined"
-                              size="small"
-                              startIcon={isInCart ? <CheckBox /> : <CheckBoxOutlineBlank />}
-                              onClick={() => isInCart ? handleRemoveFromCart(item) : handleAddToCart(item)}
-                              disabled={disabled}
-                              sx={{ 
-                                minWidth: '100px',
-                                color: isInCart ? 'success.main' : 'primary.main',
-                                borderColor: isInCart ? 'success.main' : 'primary.main'
-                              }}
-                            >
-                              {isInCart ? 'Selected' : 'Select'}
-                            </Button>
-                          </Box>
-                        )
-                      }
+                      return (
+                        <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
+                          <Button 
+                            variant="contained"
+                            size="small"
+                            startIcon={<Add />}
+                            onClick={() => handleBookSelect(item)}
+                            disabled={disabled}
+                            fullWidth
+                          >
+                            Add This Book
+                          </Button>
+                          <Button 
+                            variant="outlined"
+                            size="small"
+                            startIcon={isInCart ? <CheckBox /> : <CheckBoxOutlineBlank />}
+                            onClick={() => isInCart ? handleRemoveFromCart(item) : handleAddToCart(item)}
+                            disabled={disabled}
+                            sx={{ 
+                              minWidth: '100px',
+                              color: isInCart ? 'success.main' : 'primary.main',
+                              borderColor: isInCart ? 'success.main' : 'primary.main'
+                            }}
+                          >
+                            {isInCart ? 'Selected' : 'Select'}
+                          </Button>
+                        </Box>
+                      )
                     }
                   })()}
                 </CardActions>

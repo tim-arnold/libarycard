@@ -31,7 +31,6 @@ import { useModal } from '@/hooks/useModal'
 import { getStorageItem, setStorageItem } from '@/lib/storage'
 import { BookSelectionProvider, useBookSelection } from '@/contexts/BookSelectionContext'
 import CartIndicator from './CartIndicator'
-import SelectionModeToggle from './SelectionModeToggle'
 import BulkReviewModal from './BulkReviewModal'
 import {
   Dialog,
@@ -574,10 +573,6 @@ function AddBooksInternal() {
             📚  Add Books
           </Typography>
 
-          {/* Selection Mode Toggle */}
-          <Box sx={{ mb: 3 }}>
-            <SelectionModeToggle />
-          </Box>
 
         {/* Tab Navigation */}
         <Paper sx={{ mb: 3 }}>
