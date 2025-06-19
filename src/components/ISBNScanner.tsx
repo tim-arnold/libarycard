@@ -136,7 +136,6 @@ export default function ISBNScanner({
 
   const requestCameraPermission = async () => {
     try {
-      console.log('Requesting camera permission...')
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
@@ -145,16 +144,11 @@ export default function ISBNScanner({
         }
       })
       
-      console.log('Camera permission granted, stream obtained:', stream)
-      console.log('Video tracks:', stream.getVideoTracks())
-      
       // Stop the test stream immediately
       stream.getTracks().forEach(track => {
-        console.log('Stopping track:', track.label)
         track.stop()
       })
     } catch (error: any) {
-      console.error('Camera permission error:', error)
       throw error
     }
   }
@@ -165,8 +159,6 @@ export default function ISBNScanner({
     }
 
     try {
-      console.log('Starting ZXing scanner...')
-      
       // Create video element for ZXing to use
       const videoElement = document.createElement('video')
       videoElement.style.width = '100%'
@@ -179,49 +171,41 @@ export default function ISBNScanner({
       scannerRef.current.innerHTML = ''
       scannerRef.current.appendChild(videoElement)
       
-      console.log('Video element created, starting ZXing...')
-      
       // Let ZXing handle stream management for the video element
       await codeReader.decodeFromVideoDevice(
         null, // Use default camera
         videoElement, // Pass the video element directly
         (result) => {
           if (result) {
-            console.log('Barcode detected:', result.getText())
             stopScanner()
             onISBNDetected(result.getText())
           }
         }
       )
       
-      console.log('ZXing scanner started successfully')
       setIsScannerLoading(false)
       
     } catch (error) {
-      console.error('ZXing scanner error:', error)
       setIsScannerLoading(false)
       throw error
     }
   }
 
   const stopScanner = () => {
-    console.log('Stopping scanner...')
     setIsScanning(false)
     setIsScannerLoading(false)
     
     // Stop ZXing scanner
     if (codeReader) {
       try {
-        console.log('Resetting ZXing code reader...')
         codeReader.reset()
       } catch (e) {
-        console.log('ZXing reset error (expected):', e)
+        // Ignore cleanup errors
       }
     }
     
     // Clear the scanner element
     if (scannerRef.current) {
-      console.log('Clearing scanner container...')
       scannerRef.current.innerHTML = ''
     }
   }
