@@ -29,6 +29,10 @@ import BookSearch from './BookSearch'
 import BookPreview from './BookPreview'
 import { useModal } from '@/hooks/useModal'
 import { getStorageItem, setStorageItem } from '@/lib/storage'
+import { BookSelectionProvider, useBookSelection } from '@/contexts/BookSelectionContext'
+import CartIndicator from './CartIndicator'
+import SelectionModeToggle from './SelectionModeToggle'
+import BulkReviewModal from './BulkReviewModal'
 import {
   Dialog,
   DialogTitle,
@@ -171,9 +175,11 @@ interface GoogleBookItem {
   }
 }
 
-export default function AddBooks() {
+// Internal component that has access to BookSelectionContext
+function AddBooksInternal() {
   const { data: session } = useSession()
   const { modalState, alert, closeModal } = useModal()
+  const { state: selectionState, actions: selectionActions } = useBookSelection()
   const [activeTab, setActiveTab] = useState<'scan' | 'search'>(() => {
     // Remember user's preferred tab choice
     const savedTab = getStorageItem('addBooks_preferredTab', 'functional') as 'scan' | 'search'
@@ -200,6 +206,7 @@ export default function AddBooks() {
   const [loadingData, setLoadingData] = useState(true)
   const [existingBooks, setExistingBooks] = useState<EnhancedBook[]>([])
   const [justAddedBooks, setJustAddedBooks] = useState<Set<string>>(new Set())
+  const [showBulkReviewModal, setShowBulkReviewModal] = useState(false)
 
   // Refs for scroll targets
   const bookSelectedRef = useRef<HTMLDivElement>(null)
@@ -428,6 +435,66 @@ export default function AddBooks() {
     }
   }
 
+  // Bulk save function for cart functionality
+  const handleBulkSave = async () => {
+    const selectedBooks = selectionActions.getSelectedBooks()
+    if (selectedBooks.length === 0 || !selectedShelfId) return
+
+    setIsLoading(true)
+    
+    try {
+      // Save each book individually for now (we'll optimize to bulk API later)
+      const results = []
+      
+      for (const selectedBook of selectedBooks) {
+        const bookToSave = {
+          ...selectedBook.book,
+          shelf_id: selectedShelfId,
+          tags: selectionState.bulkTags.split(',').map(tag => tag.trim()).filter(Boolean)
+        }
+
+        const success = await saveBookAPI(bookToSave)
+        results.push({ book: selectedBook.book, success })
+        
+        if (success) {
+          // Mark this book as just added for display purposes
+          const bookKey = selectedBook.book.isbn || selectedBook.book.title
+          setJustAddedBooks(prev => new Set(prev).add(bookKey))
+        }
+      }
+
+      // Clear selections after successful bulk save
+      selectionActions.clearSelections()
+      
+      // Close the bulk review modal
+      setShowBulkReviewModal(false)
+      
+      // Update existing books list
+      try {
+        const updatedBooks = await getBooks()
+        setExistingBooks(updatedBooks)
+      } catch (error) {
+        console.error('Failed to refresh books list:', error)
+      }
+
+      // Reset loading state 
+      setIsLoading(false)
+
+      // Trigger auto-search when returning to search screen
+      if (activeTab === 'search' || searchQuery.trim()) {
+        setAutoSearchAfterAdd(true)
+      }
+
+    } catch (error) {
+      setIsLoading(false)
+      await alert({
+        title: 'Bulk Save Failed',
+        message: 'Failed to save books. Please check your connection and try again.',
+        variant: 'error'
+      })
+    }
+  }
+
   const handleAuthorClick = (authorName: string) => {
     alert({
       title: 'Author Search',
@@ -501,12 +568,16 @@ export default function AddBooks() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 2 }}>
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h4" component="h2" gutterBottom>
-          📚  Add Books
-        </Typography>
-      
+      <Container maxWidth="lg" sx={{ py: 2 }}>
+        <Paper sx={{ p: 3 }}>
+          <Typography variant="h4" component="h2" gutterBottom>
+            📚  Add Books
+          </Typography>
+
+          {/* Selection Mode Toggle */}
+          <Box sx={{ mb: 3 }}>
+            <SelectionModeToggle />
+          </Box>
 
         {/* Tab Navigation */}
         <Paper sx={{ mb: 3 }}>
@@ -674,7 +745,32 @@ export default function AddBooks() {
             onClose={() => setShowMoreDetailsModal(false)}
           />
         )}
-      </Paper>
-    </Container>
+
+        {/* Bulk Review Modal */}
+        <BulkReviewModal
+          isOpen={showBulkReviewModal}
+          onClose={() => setShowBulkReviewModal(false)}
+          onBulkSave={handleBulkSave}
+          locations={locations}
+          shelves={allShelves}
+          selectedShelfId={selectedShelfId}
+          onShelfChange={setSelectedShelfId}
+        />
+
+        {/* Floating Cart Indicator */}
+        <CartIndicator 
+          onViewCart={() => setShowBulkReviewModal(true)}
+        />
+        </Paper>
+      </Container>
+  )
+}
+
+// Main component wrapper with provider
+export default function AddBooks() {
+  return (
+    <BookSelectionProvider>
+      <AddBooksInternal />
+    </BookSelectionProvider>
   )
 }
