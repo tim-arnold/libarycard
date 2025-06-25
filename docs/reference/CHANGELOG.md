@@ -2,6 +2,18 @@
 
 This file documents all completed features, fixes, and improvements to the LibraryCard project.
 
+## June 25, 2025 - Email Invitation System Fix
+
+### Worker URL Configuration Issue - RESOLVED!
+- **ISSUE**: Email invitations failing with 500 error after domain spelling migration from "libarycard" to "librarycard"
+- **ROOT CAUSE**: Frontend still configured to use old worker URL (libarycard-api.tim-arnold.workers.dev) while deployments created new worker (librarycard-api-production.tim-arnold.workers.dev)
+- **INVESTIGATION**: Added comprehensive debugging to sendInvitationEmail function revealing environment variable access issues
+- **RESOLUTION**: Updated NEXT_PUBLIC_API_URL in Netlify environment variables to point to correct worker endpoint
+- **TECHNICAL**: Worker name change from `libarycard-api` to `librarycard-api-production` due to wrangler.toml base name + production environment
+- **DEPLOYMENT**: Required new Netlify deployment for NEXT_PUBLIC_ environment variable changes to take effect at build time
+- **VERIFICATION**: Email invitations now working correctly with proper worker endpoint connectivity
+- **DEBUGGING**: Enhanced error logging in createLocationInvitation and sendInvitationEmail functions for future troubleshooting
+
 ## June 19, 2025 - Star Rating System Implementation
 
 ### Library-Specific Star Rating System - COMPLETE!

@@ -32,10 +32,12 @@ import {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
+    const url = new URL(request.url);  
     const path = url.pathname;
     
     console.log('🚀 Worker request:', request.method, path);
+    console.log('🔍 Full URL:', request.url);
+    console.log('📝 Headers:', Object.fromEntries(request.headers.entries()));
 
 
     const corsHeaders = {
@@ -859,7 +861,22 @@ async function createLocationInvitation(request: Request, locationId: number, us
   const location = await locationStmt.bind(locationId).first();
 
   // Send invitation email
-  await sendInvitationEmail(env, invited_email, (location as any)?.name || 'a location', invitationToken, userId);
+  try {
+    console.log('DEBUG: About to call sendInvitationEmail for:', invited_email);
+    await sendInvitationEmail(env, invited_email, (location as any)?.name || 'a location', invitationToken, userId);
+    console.log('DEBUG: sendInvitationEmail completed for:', invited_email);
+  } catch (emailError) {
+    console.error('ERROR: Failed to send invitation email:', {
+      error: emailError,
+      email: invited_email,
+      locationName: (location as any)?.name,
+      token: invitationToken,
+      invitedBy: userId,
+      errorMessage: emailError instanceof Error ? emailError.message : String(emailError),
+      errorStack: emailError instanceof Error ? emailError.stack : undefined
+    });
+    // Don't fail the invitation creation if email fails, but log the specific error
+  }
 
   return new Response(JSON.stringify({ 
     id: result.meta.last_row_id,
@@ -1123,7 +1140,16 @@ async function revokeLocationInvitation(invitationId: number, userId: string, en
 }
 
 async function sendInvitationEmail(env: Env, email: string, locationName: string, token: string, invitedBy: string) {
-  const invitationUrl = `${env.APP_URL.replace(/\/$/, '')}/auth/signin?invitation=${token}`;
+  console.log('DEBUG: env.APP_URL =', env.APP_URL);
+  const appUrl = env.APP_URL || 'https://librarycard.tim52.io';
+  console.log('DEBUG: appUrl =', appUrl);
+  
+  // Extra defensive check
+  if (!appUrl || typeof appUrl !== 'string') {
+    throw new Error(`Invalid APP_URL: ${appUrl} (type: ${typeof appUrl})`);
+  }
+  
+  const invitationUrl = `${appUrl.replace(/\/$/, '')}/auth/signin?invitation=${token}`;
   
   // Get inviter name
   const inviterStmt = env.DB.prepare(`
@@ -1135,6 +1161,10 @@ async function sendInvitationEmail(env: Env, email: string, locationName: string
   // Use Resend for production email sending
   if (env.RESEND_API_KEY) {
     try {
+      console.log('DEBUG: About to send email via Resend');
+      console.log('DEBUG: FROM_EMAIL =', env.FROM_EMAIL);
+      console.log('DEBUG: RESEND_API_KEY exists =', !!env.RESEND_API_KEY);
+      
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -1251,7 +1281,8 @@ function generateUUID(): string {
 }
 
 async function sendVerificationEmail(env: Env, email: string, firstName: string, token: string) {
-  const verificationUrl = `${env.APP_URL.replace(/\/$/, '')}/api/auth/verify-email?token=${token}`;
+  const appUrl = env.APP_URL || 'https://librarycard.tim52.io';
+  const verificationUrl = `${appUrl.replace(/\/$/, '')}/api/auth/verify-email?token=${token}`;
   
   // Use Resend for production email sending
   if (env.RESEND_API_KEY) {
