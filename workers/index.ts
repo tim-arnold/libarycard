@@ -49,8 +49,7 @@ import {
   createOrUpdateUser,
   registerUser,
   verifyCredentials,
-  verifyEmail,
-  getUserFromRequest
+  verifyEmail
 } from './auth-core';
 import {
   createLocationInvitation,
@@ -70,8 +69,7 @@ import {
   updateUserProfile
 } from './profile';
 import {
-  getUserRole,
-  isUserAdmin
+  getUserFromRequest
 } from './auth';
 
 export default {
