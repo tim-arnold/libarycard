@@ -77,14 +77,20 @@ The frontend follows a **modular component architecture** designed for:
 - **Total frontend token savings**: ~1,326 lines moved to focused sub-components
 
 #### Backend Refactoring Results
-- **workers/index.ts**: Reduced from 2,431 to 1,282 lines (47% reduction)
-- **Total backend token savings**: ~1,149 lines extracted to modular structure
+- **workers/index.ts**: Reduced from 2,351 to 366 lines (84% reduction) - **MASSIVE IMPROVEMENT!**
+- **Total backend token savings**: ~1,985 lines extracted to 8 specialized modules
 - **Module breakdown**:
-  - `types/` - 77 lines (shared interfaces)
-  - `auth/` - 34 lines (authentication & permissions)
-  - `locations/` - 467 lines (location & shelf management)
+  - `email/` - 544 lines (email and notification system with Resend/Postmark integration)
+  - `admin/` - 373 lines (admin-specific operations including signup approval and user cleanup)
+  - `auth-core/` - 372 lines (core authentication functions for registration, login, and verification)
+  - `invitations/` - 271 lines (complete location invitation system with email validation)
+  - `admin-extended/` - 154 lines (advanced admin analytics, user management, and role controls)
+  - `profile/` - 75 lines (user profile management with dynamic field validation)
+  - `auth/` - 37 lines (authentication utilities and permission helpers)
+  - `auth-utils/` - 35 lines (additional auth helper functions)
   - `books/` - 742 lines (book CRUD, checkout, removal requests)
-  - `ocr/` - 247 lines (Google Vision API integration)
+  - `locations/` - 467 lines (location & shelf management)
+  - `types/` - 77 lines (shared interfaces)
 
 ## Design Principles
 
@@ -188,17 +194,29 @@ src/
 ### Backend Structure
 ```
 workers/
-├── index.ts                # Main worker entry point and routing
+├── index.ts                # Main worker entry point and routing (366 lines)
 ├── types/
-│   └── index.ts           # Shared TypeScript interfaces
+│   └── index.ts           # Shared TypeScript interfaces (77 lines)
+├── email/
+│   └── index.ts           # Email and notification system (544 lines)
+├── admin/
+│   └── index.ts           # Admin operations and signup approval (373 lines)
+├── auth-core/
+│   └── index.ts           # Core authentication functions (372 lines)
+├── invitations/
+│   └── index.ts           # Location invitation system (271 lines)
+├── admin-extended/
+│   └── index.ts           # Advanced admin analytics and user management (154 lines)
+├── profile/
+│   └── index.ts           # User profile management (75 lines)
 ├── auth/
-│   └── index.ts           # Authentication and permissions
+│   └── index.ts           # Authentication utilities and permissions (37 lines)
+├── auth-utils/
+│   └── index.ts           # Additional auth helper functions (35 lines)
 ├── locations/
-│   └── index.ts           # Location and shelf management
+│   └── index.ts           # Location and shelf management (467 lines)
 ├── books/
-│   └── index.ts           # Book CRUD, checkout system, removal requests
-├── ocr/
-│   └── index.ts           # Google Vision API integration
+│   └── index.ts           # Book CRUD, checkout system, removal requests (742 lines)
 └── tsconfig.json          # TypeScript configuration
 
 Schema:
