@@ -1,274 +1,215 @@
-# Librarian Role Specification
+# Super Admin Role Specification
 
 ## Overview
 
-This specification defines the requirements for implementing a "Librarian" role in LibraryCard that provides location-scoped administrative privileges. Librarians can perform admin-level operations within their assigned locations but cannot access global system administration functions.
+This specification defines the requirements for implementing role separation in LibraryCard by creating a "Super Admin" role for global system administration while keeping the current "Admin" role for location-scoped management. This approach achieves the same functional separation as the original librarian proposal but leverages the existing admin infrastructure.
 
 ## User Roles
 
-### Current Roles
-- **Admin**: Global system administrator with all privileges
+### Current State
+- **Admin**: Mixed global and location-scoped administrative privileges
 - **User**: Regular library member with basic permissions
 
-### New Role
-- **Librarian**: Location-scoped administrator with admin privileges within assigned locations only
+### New Role Structure
+- **Super Admin**: Global system administrator with all privileges
+- **Admin**: Location-scoped administrator (current admin functionality minus global functions)
+- **User**: Regular library member with basic permissions (unchanged)
 
 ## Requirements
 
-### FR-LIB-001: Location-Scoped Permissions
-**Description**: Librarians must have admin-level permissions only within their assigned locations.
+### FR-SA-001: Role Separation
+**Description**: Separate global system administration from location-scoped management.
 
 **Acceptance Criteria**:
-- Librarians can manage books, shelves, and users within assigned locations
-- Librarians cannot access locations they are not assigned to
-- Librarians cannot perform global admin functions
-- Global admins retain all current privileges
+- Current admins retain all location management capabilities
+- Global system functions require super admin privileges
+- Clear distinction between location and system administration
+- Backward compatibility with existing admin workflows
 
-### FR-LIB-002: Librarian Assignment Management
-**Description**: Global admins must be able to assign and remove librarian privileges for specific locations.
-
-**Acceptance Criteria**:
-- Global admins can assign users as librarians to specific locations
-- Global admins can remove librarian assignments
-- Users can be assigned as librarians to multiple locations
-- Assignment changes are logged with timestamps and assigning admin
-
-### FR-LIB-003: Location Management Privileges
-**Description**: Librarians must be able to manage their assigned locations like global admins.
+### FR-SA-002: Super Admin Privileges
+**Description**: Super admins must have access to global system administration functions.
 
 **Acceptance Criteria**:
-- Create, edit, and delete shelves within assigned locations
-- Edit location details (name, description) for assigned locations
-- Cannot create or delete locations (global admin only)
-- Cannot transfer location ownership
+- Manage user roles across the entire system
+- Approve/deny signup requests system-wide
+- Access global analytics and reporting
+- Create and delete locations
+- Delete users and perform system cleanup
+- All existing admin location management capabilities
 
-### FR-LIB-004: Book Management Privileges
-**Description**: Librarians must have admin-level book management within their assigned locations.
-
-**Acceptance Criteria**:
-- Approve/deny book removal requests for books in assigned locations
-- Check in any book within assigned locations (not just own checkouts)
-- View checkout history for assigned locations
-- Cannot access book data from unassigned locations
-
-### FR-LIB-005: User Management Privileges
-**Description**: Librarians must be able to manage location membership and invitations.
+### FR-SA-003: Admin Role Scope
+**Description**: Regular admins must be limited to location-scoped operations.
 
 **Acceptance Criteria**:
-- Send invitations to join assigned locations
-- Manage location memberships for assigned locations
-- Cannot change user roles (promote/demote users)
-- Cannot delete users or perform global user management
-
-### FR-LIB-006: Dashboard and Analytics
-**Description**: Librarians must have access to location-specific analytics and management tools.
-
-**Acceptance Criteria**:
-- Location-scoped dashboard showing assigned locations only
-- Analytics limited to assigned locations
+- Manage books, shelves, and operations within owned/assigned locations
+- Send invitations to locations they manage
+- Approve/deny book removal requests for their locations
+- Cannot access global user management
+- Cannot approve/deny signup requests
 - Cannot access global system analytics
-- Cannot view unassigned location data
+- Cannot create or delete locations
+
+### FR-SA-004: Permission Boundaries
+**Description**: Enforce strict permission boundaries between admin levels.
+
+**Acceptance Criteria**:
+- Admins cannot access super admin functions
+- Clear error messages for unauthorized access attempts
+- UI hides unavailable functions based on role
+- API endpoints validate permission levels
 
 ## User Stories
 
-### Story 1: Librarian Assignment
-**As a** global admin  
-**I want to** assign a user as librarian to a specific location  
-**So that** I can delegate location management responsibilities
+### Story 1: Super Admin System Management
+**As a** super admin  
+**I want to** manage the entire LibraryCard system  
+**So that** I can maintain global system health and security
 
 **Acceptance Criteria**:
-- I can access a librarian management interface
-- I can select a user and assign them to one or more locations
-- The assignment is immediately effective
-- I can see all current librarian assignments
+- I can promote/demote users to any role
+- I can approve/deny signup requests for the entire system
+- I can view system-wide analytics and usage statistics
+- I can create new locations and delete existing ones
+- I can perform user cleanup and system maintenance
 
-### Story 2: Location Management
-**As a** librarian  
-**I want to** manage shelves in my assigned locations  
-**So that** I can organize the library effectively
-
-**Acceptance Criteria**:
-- I can create new shelves in my assigned locations
-- I can edit shelf names in my assigned locations
-- I can delete shelves in my assigned locations
-- I cannot access shelves in unassigned locations
-
-### Story 3: Book Approval
-**As a** librarian  
-**I want to** approve book removal requests in my assigned locations  
-**So that** I can maintain the book collection
+### Story 2: Admin Location Management
+**As an** admin  
+**I want to** manage my assigned locations effectively  
+**So that** I can provide excellent library services within my scope
 
 **Acceptance Criteria**:
-- I see removal requests for books in my assigned locations
-- I can approve or deny these requests
-- I cannot see requests for books in unassigned locations
-- My decisions are logged with my user information
+- I can manage books, shelves, and members in my locations
+- I can approve book removal requests for my locations
+- I can invite users to join my locations
+- I cannot access global system functions
+- My interface clearly shows my location-scoped role
 
-### Story 4: User Invitations
-**As a** librarian  
-**I want to** invite users to join my assigned locations  
-**So that** I can grow the library membership
-
-**Acceptance Criteria**:
-- I can send invitations to my assigned locations
-- I can manage pending invitations for my assigned locations
-- I cannot invite users to unassigned locations
-- Invitation emails clearly identify me as the inviting librarian
-
-### Story 5: Limited Dashboard
-**As a** librarian  
-**I want to** see analytics for my assigned locations  
-**So that** I can monitor library activity and usage
+### Story 3: Role Transition
+**As a** current admin  
+**I want to** continue my location management work seamlessly  
+**So that** my daily workflows are not disrupted
 
 **Acceptance Criteria**:
-- My dashboard shows only data from assigned locations
-- Analytics include book counts, user activity, and checkout statistics
-- I cannot see global system statistics
-- Data is clearly labeled with location context
+- All my current location management capabilities work unchanged
+- I understand which functions now require super admin access
+- The transition is communicated clearly
+- I can request super admin elevation if needed
 
 ## Technical Requirements
 
-### TR-LIB-001: Database Schema
-**Description**: Database must support librarian role and location assignments.
+### TR-SA-001: Database Schema
+**Description**: Support super admin role with minimal schema changes.
 
 **Requirements**:
-- `users.user_role` supports `'admin'`, `'librarian'`, `'user'`
-- New `location_librarians` table for assignments
-- Foreign key constraints maintain data integrity
-- Audit trail for assignment changes
+- `users.user_role` supports `'super_admin'`, `'admin'`, `'user'`
+- Migration path from current admin users
+- Preserve existing location ownership and membership structures
+- Audit trail for role changes
 
-### TR-LIB-002: Permission System
-**Description**: Backend permission system must support location-scoped checks.
-
-**Requirements**:
-- Location-aware permission functions
-- Backward compatibility with existing admin checks
-- Efficient permission queries
-- Clear permission hierarchy (admin > librarian > user)
-
-### TR-LIB-003: API Security
-**Description**: All API endpoints must respect librarian permission boundaries.
+### TR-SA-002: Permission System
+**Description**: Implement role-based permission checking.
 
 **Requirements**:
-- Location context validation on all requests
-- Permission checks before data access
-- Proper error responses for unauthorized access
-- Consistent permission patterns across endpoints
+- `isSuperAdmin(userId, env)` function
+- `isAdmin(userId, env)` function (current behavior)
+- `canManageLocation(userId, locationId, env)` function
+- Permission hierarchy: super_admin > admin > user
 
-### TR-LIB-004: Frontend Security
-**Description**: Frontend must hide unauthorized features and data.
+### TR-SA-003: API Security
+**Description**: Protect global functions with super admin checks.
 
 **Requirements**:
-- Role-based UI component visibility
-- Location context awareness
-- Permission hooks for component logic
-- Graceful degradation for limited permissions
+- Update global user management endpoints
+- Update system analytics endpoints
+- Update signup approval endpoints
+- Update location creation/deletion endpoints
+- Maintain backward compatibility for location-scoped functions
 
-## Non-Functional Requirements
+### TR-SA-004: Frontend Security
+**Description**: Role-based UI and feature access.
 
-### NFR-LIB-001: Performance
-- Permission checks must not significantly impact response times
-- Database queries must be optimized for location-scoped operations
-- Frontend permission checks must be efficient
+**Requirements**:
+- Hide super admin functions from regular admins
+- Clear role indication in navigation and headers
+- Permission-based component rendering
+- Graceful error handling for unauthorized access
 
-### NFR-LIB-002: Security
-- Location boundaries must be strictly enforced
-- No data leakage between unassigned locations
-- Audit trail for all librarian actions
-- Input validation on all assignment operations
+## Implementation Strategy
 
-### NFR-LIB-003: Usability
-- Clear indication of librarian role and assigned locations
-- Intuitive permission boundaries in UI
-- Helpful error messages for unauthorized actions
-- Consistent experience across all librarian functions
+### Phase 1: Database and Backend (Low Risk)
+1. Add `'super_admin'` to user_role enum
+2. Create permission checking functions
+3. Identify current admin users for role assignment
+4. Update API endpoints with super admin checks
 
-## Constraints
+### Phase 2: Frontend Updates (Medium Risk)
+1. Update navigation and role displays
+2. Hide super admin functions from regular admins
+3. Add role-based permission hooks
+4. Update error handling and messaging
 
-### Business Constraints
-- Global admins retain all current privileges
-- Existing user workflows must not be disrupted
-- Location ownership concept remains with admins only
-- User role changes remain admin-only function
+### Phase 3: Migration (High Risk)
+1. Assign super admin role to designated users
+2. Validate permission boundaries work correctly
+3. Communicate changes to affected users
+4. Monitor system behavior
 
-### Technical Constraints
-- Must maintain backward compatibility
-- Database migration must be reversible
-- Performance impact must be minimal
-- Implementation must be testable and maintainable
+### Phase 4: Testing and Validation (Critical)
+1. Test all permission boundaries
+2. Validate existing admin workflows
+3. Test super admin exclusive functions
+4. User acceptance testing
+
+## Migration Strategy
+
+### Super Admin Assignment
+- Identify users who need global system access
+- Promote to super_admin role during migration
+- Maintain current admin users as regular admins
+- Provide clear communication about role changes
+
+### Rollback Plan
+- Preserve current admin role capabilities
+- Quick promotion path back to super admin if needed
+- Database rollback for role assignments
+- Documentation of all changes
+
+## Benefits
+
+### Simplified Implementation
+- Leverages existing admin infrastructure
+- Minimal database schema changes
+- Preserves current location management workflows
+- Clear separation of concerns
+
+### Enhanced Security
+- Limits global system access to essential personnel
+- Maintains location-scoped admin capabilities
+- Clear permission boundaries
+- Audit trail for elevated privileges
+
+### Scalability
+- Admins can manage multiple locations effectively
+- Super admins focus on system-level concerns
+- Role-based delegation of responsibilities
+- Future expansion capabilities
 
 ## Success Criteria
 
 ### Functional Success
-- Librarians can manage assigned locations completely
+- Regular admins retain all location management capabilities
+- Super admins have exclusive access to global functions
 - Permission boundaries are strictly enforced
-- Global admins can assign/remove librarian privileges
-- All user stories are implemented and tested
+- All existing workflows continue to function
 
 ### Technical Success
-- Zero data leakage between location boundaries
-- Performance metrics remain within acceptable ranges
-- All existing functionality continues to work
-- Comprehensive test coverage for permission scenarios
+- Zero disruption to current admin users
+- Performance impact is minimal
+- Permission checking is efficient and reliable
+- Comprehensive test coverage
 
 ### Business Success
-- Admins can effectively delegate location management
-- Librarians feel empowered within their assigned locations
-- User experience is not negatively impacted
-- System scales better with multiple locations
-
-## Testing Strategy
-
-### Unit Testing
-- Permission function testing with various role combinations
-- Database constraint testing
-- API endpoint authorization testing
-
-### Integration Testing
-- End-to-end workflows for each user role
-- Cross-location permission boundary testing
-- Assignment and removal workflow testing
-
-### User Acceptance Testing
-- Real-world scenarios with multiple locations
-- Permission boundary edge cases
-- Usability testing with target users
-
-## Migration Strategy
-
-### Phase 1: Database Migration
-- Create new tables and columns
-- Validate existing data integrity
-- Set up rollback procedures
-
-### Phase 2: Backend Deployment
-- Deploy permission system updates
-- Validate API security
-- Monitor performance metrics
-
-### Phase 3: Frontend Deployment
-- Deploy UI updates
-- Test role-based visibility
-- Validate user experience
-
-### Phase 4: Data Migration
-- Assign initial librarian roles
-- Validate assignment accuracy
-- Monitor system behavior
-
-## Rollback Plan
-
-### Immediate Rollback
-- Revert database schema changes
-- Restore previous permission system
-- Disable librarian role assignments
-
-### Data Recovery
-- Preserve all existing admin privileges
-- Maintain location ownership integrity
-- Ensure no data loss during rollback
-
-### Communication Plan
-- Notify affected users of role changes
-- Provide clear documentation of new features
-- Support team training on librarian role functionality
+- Clear role separation improves system governance
+- Admins feel empowered within their scope
+- Super admins can effectively manage system growth
+- User experience remains consistent and intuitive
