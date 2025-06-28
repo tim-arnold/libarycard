@@ -1,7 +1,7 @@
 'use client'
 
 import { signIn, getSession } from 'next-auth/react'
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Container,
@@ -22,6 +22,7 @@ import {
   Login,
 } from '@mui/icons-material'
 import Footer from '@/components/Footer'
+import { Turnstile, TurnstileInstance } from '@marsidev/react-turnstile'
 
 function SignInForm() {
   const [loading, setLoading] = useState(false)
@@ -36,6 +37,8 @@ function SignInForm() {
   const [message, setMessage] = useState('')
   const [invitationToken, setInvitationToken] = useState<string | null>(null)
   const [invitationDetails, setInvitationDetails] = useState<{invited_email: string, location_name: string} | null>(null)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const turnstileRef = useRef<TurnstileInstance>()
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -219,6 +222,13 @@ function SignInForm() {
       return
     }
 
+    // Validate Turnstile token
+    if (!turnstileToken) {
+      setError('Please complete the security check')
+      setEmailLoading(false)
+      return
+    }
+
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
@@ -231,6 +241,7 @@ function SignInForm() {
           firstName,
           lastName,
           invitationToken,
+          turnstileToken,
         }),
       })
 
@@ -523,9 +534,23 @@ function SignInForm() {
                 required
                 slotProps={{ htmlInput: { minLength: 8 } }}
                 helperText="Must be at least 8 characters with uppercase, lowercase, number, and special character"
-                sx={{ mb: 3 }}
+                sx={{ mb: 2 }}
                 variant="outlined"
               />
+
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+                <Turnstile
+                  ref={turnstileRef}
+                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ''}
+                  onSuccess={setTurnstileToken}
+                  onError={() => setTurnstileToken(null)}
+                  onExpire={() => setTurnstileToken(null)}
+                  options={{
+                    theme: 'light',
+                    size: 'normal'
+                  }}
+                />
+              </Box>
               
               <Button
                 type="submit"
@@ -548,6 +573,8 @@ function SignInForm() {
                 setPassword('')
                 setFirstName('')
                 setLastName('')
+                setTurnstileToken(null)
+                turnstileRef.current?.reset()
               }}
               variant="body2"
               color="text.secondary"
