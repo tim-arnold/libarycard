@@ -140,7 +140,7 @@ This is an automated message from LibraryCard.
           'X-Postmark-Server-Token': env.POSTMARK_API_TOKEN,
         },
         body: JSON.stringify({
-          From: env.FROM_EMAIL || 'noreply@librarycard.com',
+          From: env.FROM_EMAIL || 'noreply@librarycard.tim52.io',
           To: email,
           Subject: 'Reset Your LibraryCard Password',
           HtmlBody: `
@@ -405,52 +405,79 @@ export async function notifyAdminsOfSignupRequest(env: Env, email: string, first
     
     // Don't fail the signup if email notification fails
     try {
-      if (env.POSTMARK_API_TOKEN) {
-        const response = await fetch('https://api.postmarkapp.com/email', {
+      if (env.RESEND_API_KEY) {
+        const response = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'X-Postmark-Server-Token': env.POSTMARK_API_TOKEN,
+            'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            From: env.FROM_EMAIL || 'noreply@librarycard.com',
-            To: adminEmail,
-            Subject: 'LibraryCard: New Signup Request Pending Approval',
-            HtmlBody: `
+            from: env.FROM_EMAIL || 'LibraryCard <noreply@resend.dev>',
+            to: [adminEmail],
+            subject: 'LibraryCard: New Signup Request Pending Approval',
+            html: `
+              <!DOCTYPE html>
               <html>
-                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h2 style="color: #673ab7;">📚 LibraryCard Signup Request</h2>
+              <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>LibraryCard Signup Request</title>
+              </head>
+              <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4;">
+                <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                  
+                  <!-- Header -->
+                  <div style="background: linear-gradient(135deg, #673ab7 0%, #9c27b0 100%); color: white; padding: 30px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 28px; font-weight: 300;">📚 LibraryCard</h1>
+                    <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">New Signup Request</p>
+                  </div>
+                  
+                  <!-- Content -->
+                  <div style="padding: 40px 30px;">
+                    <h2 style="color: #673ab7; margin-top: 0; font-size: 24px;">Approval Required</h2>
                     
-                    <p>Hello ${adminFirstName},</p>
+                    <p style="font-size: 16px; margin-bottom: 20px;">Hello ${adminFirstName},</p>
                     
-                    <p>A new user has requested to join LibraryCard and is waiting for admin approval:</p>
+                    <p style="font-size: 16px; margin-bottom: 20px;">
+                      A new user has requested to join LibraryCard and is waiting for admin approval:
+                    </p>
                     
-                    <div style="background-color: #f8f9fa; border-left: 4px solid #673ab7; padding: 15px; margin: 20px 0;">
-                      <p><strong>Email:</strong> ${email}</p>
-                      <p><strong>Name:</strong> ${firstName}${lastName ? ` ${lastName}` : ''}</p>
-                      <p><strong>Requested At:</strong> ${new Date().toLocaleString()}</p>
+                    <div style="background-color: #f8f9fa; border-left: 4px solid #673ab7; padding: 20px; margin: 25px 0; border-radius: 5px;">
+                      <p style="margin: 0 0 10px 0; font-size: 16px;"><strong>📧 Email:</strong> ${email}</p>
+                      <p style="margin: 0 0 10px 0; font-size: 16px;"><strong>👤 Name:</strong> ${firstName}${lastName ? ` ${lastName}` : ''}</p>
+                      <p style="margin: 0; font-size: 14px; color: #666;"><strong>🕒 Requested:</strong> ${new Date().toLocaleString()}</p>
                     </div>
                     
-                    <p>Please log in to the LibraryCard admin panel to review and approve or deny this signup request.</p>
+                    <p style="font-size: 16px; margin-bottom: 25px;">
+                      Please log in to the LibraryCard admin panel to review and approve or deny this signup request.
+                    </p>
                     
-                    <div style="margin: 30px 0; text-align: center;">
-                      <a href="${env.FRONTEND_URL || 'https://librarycard.com'}" 
-                         style="background-color: #673ab7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                    <div style="text-align: center; margin: 30px 0;">
+                      <a href="${env.FRONTEND_URL || env.APP_URL || 'https://librarycard.tim52.io'}" 
+                         style="display: inline-block; background-color: #673ab7; color: white; padding: 15px 30px; 
+                                text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;
+                                transition: background-color 0.3s ease;">
                         Review Signup Request
                       </a>
                     </div>
                     
-                    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-                    <p style="font-size: 12px; color: #666;">
-                      This is an automated message from LibraryCard. This user cannot access the system until approved by an admin.
+                    <p style="font-size: 14px; color: #666; margin-top: 25px;">
+                      This user cannot access the system until approved by an admin.
                     </p>
                   </div>
-                </body>
+                  
+                  <!-- Footer -->
+                  <div style="background-color: #f8f9fa; padding: 20px 30px; border-top: 1px solid #dee2e6;">
+                    <p style="margin: 0; font-size: 12px; color: #6c757d; text-align: center;">
+                      This is an automated message from LibraryCard. Please do not reply to this email.
+                    </p>
+                  </div>
+                </div>
+              </body>
               </html>
             `,
-            TextBody: `
+            text: `
 LibraryCard Signup Request
 
 Hello ${adminFirstName},
@@ -463,7 +490,7 @@ Requested At: ${new Date().toLocaleString()}
 
 Please log in to the LibraryCard admin panel to review and approve or deny this signup request.
 
-Visit: ${env.FRONTEND_URL || 'https://librarycard.com'}
+Visit: ${env.FRONTEND_URL || 'https://librarycard.tim52.io'}
 
 This is an automated message from LibraryCard. This user cannot access the system until approved by an admin.
             `
@@ -494,16 +521,16 @@ This is an automated message from LibraryCard. This user cannot access the syste
 
 export async function sendSignupApprovalEmail(env: Env, email: string, firstName: string, verificationToken: string | null, approved: boolean, comment?: string) {
   try {
-    if (env.POSTMARK_API_TOKEN) {
+    if (env.RESEND_API_KEY) {
       const isProduction = env.ENVIRONMENT === 'production';
-      const baseUrl = env.FRONTEND_URL || 'https://librarycard.com';
+      const baseUrl = env.FRONTEND_URL || 'https://librarycard.tim52.io';
       
       let subject: string;
       let htmlBody: string;
       let textBody: string;
 
       if (approved && verificationToken) {
-        const verificationUrl = `${baseUrl}/auth/verify-email?token=${verificationToken}`;
+        const verificationUrl = `${baseUrl}/api/auth/verify-email?token=${verificationToken}`;
         subject = 'LibraryCard: Account Approved - Please Verify Your Email';
         htmlBody = `
           <html>
@@ -600,19 +627,18 @@ This is an automated message from LibraryCard.
         `;
       }
 
-      const response = await fetch('https://api.postmarkapp.com/email', {
+      const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'X-Postmark-Server-Token': env.POSTMARK_API_TOKEN,
+          'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          From: env.FROM_EMAIL || 'noreply@librarycard.com',
-          To: email,
-          Subject: subject,
-          HtmlBody: htmlBody,
-          TextBody: textBody
+          from: env.FROM_EMAIL || 'LibraryCard <noreply@resend.dev>',
+          to: [email],
+          subject: subject,
+          html: htmlBody,
+          text: textBody
         })
       });
 

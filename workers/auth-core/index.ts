@@ -56,22 +56,33 @@ export async function registerUser(request: Request, env: Env, corsHeaders: Reco
     });
   }
 
-  // Check if there's already a pending signup request for this email
+  // Check if there's already a signup request for this email (pending or denied)
   let existingRequest = null;
   try {
     existingRequest = await env.DB.prepare(`
-      SELECT email FROM signup_approval_requests WHERE email = ? AND status = 'pending'
+      SELECT email, status FROM signup_approval_requests WHERE email = ? AND status IN ('pending', 'denied')
     `).bind(email).first();
     
     if (existingRequest) {
-      return new Response(JSON.stringify({ error: 'A signup request for this email is already pending admin approval' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      const status = (existingRequest as any).status;
+      if (status === 'pending') {
+        return new Response(JSON.stringify({ error: 'A signup request for this email is already pending admin approval' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } else if (status === 'denied') {
+        return new Response(JSON.stringify({ error: 'Your previous signup request was denied. Please contact an administrator if you believe this was an error.' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
   } catch (error) {
-    console.log('Signup approval table not found - proceeding with legacy registration');
-    // Table doesn't exist yet, proceed with legacy flow
+    console.error('Error checking signup approval requests:', error);
+    return new Response(JSON.stringify({ error: 'Unable to process signup request. Please try again later.' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
   
   // Check if user has a valid invitation
@@ -147,7 +158,7 @@ export async function registerUser(request: Request, env: Env, corsHeaders: Reco
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } else {
-    // No invitation - create signup approval request (if table exists)
+    // No invitation - create signup approval request
     try {
       const stmt = env.DB.prepare(`
         INSERT INTO signup_approval_requests (
@@ -179,53 +190,11 @@ export async function registerUser(request: Request, env: Env, corsHeaders: Reco
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } catch (error) {
-      console.log('Signup approval table not found - proceeding with legacy registration');
-      
-      // Fall back to legacy registration if approval table doesn't exist
-      // Generate verification token
-      const verificationToken = generateUUID();
-      const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
-      
-      // Generate user ID
-      const userId = generateUUID();
-      
-      // Always require email verification in production
-      const isProduction = env.ENVIRONMENT === 'production';
-      const emailVerified = false; // Always require verification for new accounts
-      
-      // Create user
-      const stmt = env.DB.prepare(`
-        INSERT INTO users (
-          id, email, first_name, last_name, password_hash, 
-          auth_provider, email_verified, email_verification_token, 
-          email_verification_expires, created_at, updated_at
-        )
-        VALUES (?, ?, ?, ?, ?, 'email', ?, ?, ?, datetime('now'), datetime('now'))
-      `);
-
-      await stmt.bind(
-        userId,
-        email,
-        first_name,
-        last_name || '',
-        passwordHash,
-        emailVerified,
-        verificationToken,
-        verificationExpires
-      ).run();
-
-      // Always send verification email for new accounts
-      await sendVerificationEmail(env, email, first_name, verificationToken);
-
-      const message = isProduction 
-        ? 'Registration successful. Please check your email to verify your account before signing in.'
-        : 'Registration successful. Please check your email to verify your account. (Development mode: email simulation)';
-
+      console.error('Failed to create signup approval request:', error);
       return new Response(JSON.stringify({ 
-        message,
-        userId,
-        requires_verification: true
+        error: 'Unable to process signup request. Please try again later or contact an administrator.' 
       }), {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
