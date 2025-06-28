@@ -426,7 +426,7 @@ function SignInForm() {
                     onClick={() => setShowRegisterForm(true)}
                     sx={{ cursor: 'pointer' }}
                   >
-                    Create one here
+                    Request one here
                   </Link>
                 </>
               )}
@@ -560,7 +560,7 @@ function SignInForm() {
                 startIcon={emailLoading ? <CircularProgress size={16} color="inherit" /> : <PersonAdd />}
                 sx={{ py: 1.5, mb: 2 }}
               >
-                {emailLoading ? 'Creating Account...' : 'Create Account'}
+                {emailLoading ? 'Requesting Access...' : 'Request Access'}
               </Button>
             </Box>
 
