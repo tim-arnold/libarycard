@@ -322,7 +322,7 @@ export default function RemovalRequestManager() {
       <Paper sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4" component="h2">
-            📋  FRequests ({filteredRequests.length})
+            📋  Requests ({filteredRequests.length})
           </Typography>
           <Button 
             variant="outlined"

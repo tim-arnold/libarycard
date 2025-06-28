@@ -699,7 +699,7 @@ export default function LocationManager() {
                     p: 1.5,
                     borderRadius: 1,
                     position: 'relative',
-                    backgroundColor: '#2e2e2e' // Same as book cards for consistency
+                    border: '1px solid #e0e0e0'
                   }}>
                     <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
                       <strong>{shelf.name}</strong>
