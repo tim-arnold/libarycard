@@ -66,7 +66,7 @@ export default function Footer() {
             }}
           >
             <Email fontSize="small" />
-            Contact the Libarian
+            Contact the Head Librarian
           </Link>
         </Box>
       </Box>
