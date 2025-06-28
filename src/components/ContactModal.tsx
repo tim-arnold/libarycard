@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   Dialog,
   DialogTitle,
@@ -13,6 +13,7 @@ import {
   Box,
 } from '@mui/material'
 import { Send, Close } from '@mui/icons-material'
+import { Turnstile, TurnstileInstance } from '@marsidev/react-turnstile'
 
 interface ContactModalProps {
   open: boolean
@@ -28,6 +29,8 @@ export default function ContactModal({ open, onClose }: ContactModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'success' | 'error' | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const turnstileRef = useRef<TurnstileInstance>()
 
   const handleInputChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -52,18 +55,26 @@ export default function ContactModal({ open, onClose }: ContactModalProps) {
     setIsSubmitting(true)
     setSubmitStatus(null)
 
+    if (!turnstileToken) {
+      setSubmitStatus('error')
+      setErrorMessage('Please complete the security check')
+      return
+    }
+
     try {
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, turnstileToken }),
       })
 
       if (response.ok) {
         setSubmitStatus('success')
         setFormData({ name: '', email: '', message: '' })
+        setTurnstileToken(null)
+        turnstileRef.current?.reset()
         setTimeout(() => {
           onClose()
           setSubmitStatus(null)
@@ -86,6 +97,8 @@ export default function ContactModal({ open, onClose }: ContactModalProps) {
       onClose()
       setSubmitStatus(null)
       setErrorMessage('')
+      setTurnstileToken(null)
+      turnstileRef.current?.reset()
     }
   }
 
@@ -139,6 +152,20 @@ export default function ContactModal({ open, onClose }: ContactModalProps) {
             disabled={isSubmitting}
             placeholder="Tell the Librarian about your question, feedback, or how LibraryCard is working for you..."
           />
+
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+            <Turnstile
+              ref={turnstileRef}
+              siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ''}
+              onSuccess={setTurnstileToken}
+              onError={() => setTurnstileToken(null)}
+              onExpire={() => setTurnstileToken(null)}
+              options={{
+                theme: 'light',
+                size: 'normal'
+              }}
+            />
+          </Box>
         </Box>
       </DialogContent>
 

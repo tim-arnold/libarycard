@@ -57,7 +57,7 @@ ls workers/
 ```bash
 node --version
 npm --version
-cat .env.local.example 2>/dev/null || echo "No .env.local.example found"
+cat .env.local 2>/dev/null || echo "No .env.local.example found"
 ```
 
 ## Recent Activity Context
