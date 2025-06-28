@@ -2,6 +2,38 @@
 
 This file documents all completed features, fixes, and improvements to the LibraryCard project.
 
+## June 28, 2025 - System Security and Role Management Updates
+
+### Critical Security Fixes
+- **FIXED**: Signup approval bypass vulnerability where denied users could re-register and bypass admin approval system
+- **REMOVED**: Dangerous fallback logic that created users directly when approval system failed, preventing security bypass
+- **STRENGTHENED**: Registration flow to properly enforce admin approval requirements for all new users
+- **ENHANCED**: Access control boundaries to prevent unauthorized account creation through system exploits
+
+### Email System Resolution
+- **FIXED**: Broken email verification URLs that were using incorrect path (/auth/verify-email → /api/auth/verify-email)
+- **CORRECTED**: Email domain references from deprecated librarycard.com to correct librarycard.tim52.io
+- **RESOLVED**: Signup approval notification emails not being delivered to administrators
+- **UNIFIED**: Email service configuration across all notification types for consistent delivery
+
+### Admin Interface Improvements
+- **FIXED**: User location count display in admin management showing incorrect "0 locations" for location owners
+- **ENHANCED**: SQL queries to include both location ownership and membership in user analytics
+- **GRANTED**: Admin user librarian@tim52.io owner-level access to all locations for system administration
+- **IMPROVED**: Database queries for comprehensive location access tracking and reporting
+
+### Role Architecture Documentation
+- **UPDATED**: Librarian role specification to use simplified Super Admin approach instead of complex assignment system
+- **REFINED**: Implementation plan to leverage existing admin infrastructure for faster deployment
+- **SIMPLIFIED**: Role separation strategy with super_admin/admin/user hierarchy for scalable delegation
+- **DOCUMENTED**: Technical requirements for role-based permission system with minimal schema changes
+
+### Technical Infrastructure
+- **OPTIMIZED**: Permission checking functions for multi-role scenarios and location-scoped operations
+- **STRENGTHENED**: Database constraints and validation for user role management
+- **ENHANCED**: Email service error handling and fallback configuration
+- **IMPROVED**: Admin analytics queries for accurate user activity and location statistics
+
 ## June 28, 2025 - Complete Password Reset System
 
 ### Complete Password Reset System Implementation
