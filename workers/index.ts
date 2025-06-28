@@ -49,7 +49,10 @@ import {
   createOrUpdateUser,
   registerUser,
   verifyCredentials,
-  verifyEmail
+  verifyEmail,
+  forgotPassword,
+  verifyResetToken,
+  resetPassword
 } from './auth-core';
 import {
   createLocationInvitation,
@@ -118,6 +121,18 @@ export default {
         return await checkUserExists(request, env, corsHeaders);
       }
 
+      // Password reset endpoints (public)
+      if (path === '/api/auth/forgot-password' && request.method === 'POST') {
+        return await forgotPassword(request, env, corsHeaders);
+      }
+
+      if (path === '/api/auth/verify-reset-token' && request.method === 'GET') {
+        return await verifyResetToken(request, env, corsHeaders);
+      }
+
+      if (path === '/api/auth/reset-password' && request.method === 'POST') {
+        return await resetPassword(request, env, corsHeaders);
+      }
 
       // Contact form endpoint (public)
       if (path === '/api/contact' && request.method === 'POST') {

@@ -29,6 +29,7 @@ function SignInForm() {
   const [emailLoading, setEmailLoading] = useState(false)
   const [showEmailForm, setShowEmailForm] = useState(false)
   const [showRegisterForm, setShowRegisterForm] = useState(false)
+  const [showForgotPasswordForm, setShowForgotPasswordForm] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [firstName, setFirstName] = useState('')
@@ -66,6 +67,12 @@ function SignInForm() {
     // Check for verification success
     if (searchParams.get('verified') === 'true') {
       setMessage('Email verified successfully! You can now sign in.')
+    }
+
+    // Check for general message parameter (e.g., from password reset)
+    const messageParam = searchParams.get('message')
+    if (messageParam) {
+      setMessage(decodeURIComponent(messageParam))
     }
 
     // Check for verification errors
@@ -206,6 +213,45 @@ function SignInForm() {
       return 'Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)'
     }
     return null
+  }
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setEmailLoading(true)
+    setError('')
+    setMessage('')
+
+    if (!email.trim()) {
+      setError('Please enter your email address')
+      setEmailLoading(false)
+      return
+    }
+
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email.trim() }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setMessage(data.message)
+        setShowForgotPasswordForm(false)
+        setShowEmailForm(false)
+        setEmail('')
+      } else {
+        setError(data.error || 'Failed to send reset email')
+      }
+    } catch (error) {
+      console.error('Forgot password error:', error)
+      setError('Network error. Please try again.')
+    } finally {
+      setEmailLoading(false)
+    }
   }
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -472,6 +518,22 @@ function SignInForm() {
               </Button>
             </Box>
 
+            <Box sx={{ textAlign: 'center', mb: 2 }}>
+              <Link
+                component="button"
+                onClick={() => {
+                  setShowForgotPasswordForm(true)
+                  setShowEmailForm(false)
+                  setError('')
+                  setPassword('')
+                }}
+                variant="body2"
+                sx={{ cursor: 'pointer', color: 'primary.main' }}
+              >
+                Forgot Password?
+              </Link>
+            </Box>
+
             <Link
               component="button"
               onClick={() => {
@@ -581,6 +643,58 @@ function SignInForm() {
               sx={{ cursor: 'pointer' }}
             >
               Back to sign in options
+            </Link>
+          </Box>
+        )}
+
+        {showForgotPasswordForm && (
+          <Box>
+            <Typography variant="h5" component="h2" sx={{ mb: 3, textAlign: 'center' }}>
+              Reset Your Password
+            </Typography>
+            
+            <Typography variant="body2" sx={{ mb: 3, textAlign: 'center', color: 'text.secondary' }}>
+              Enter your email address and we&apos;ll send you a link to reset your password.
+            </Typography>
+
+            <Box component="form" onSubmit={handleForgotPassword} sx={{ textAlign: 'left', mb: 2 }}>
+              <TextField
+                fullWidth
+                type="email"
+                label="Email Address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                sx={{ mb: 3 }}
+                variant="outlined"
+                placeholder="Enter your email address"
+              />
+              
+              <Button
+                type="submit"
+                variant="contained"
+                fullWidth
+                disabled={emailLoading}
+                startIcon={emailLoading ? <CircularProgress size={16} color="inherit" /> : <Email />}
+                sx={{ py: 1.5, mb: 2 }}
+              >
+                {emailLoading ? 'Sending Reset Link...' : 'Send Reset Link'}
+              </Button>
+            </Box>
+
+            <Link
+              component="button"
+              onClick={() => {
+                setShowForgotPasswordForm(false)
+                setShowEmailForm(true)
+                setError('')
+                setEmail('')
+              }}
+              variant="body2"
+              color="text.secondary"
+              sx={{ cursor: 'pointer' }}
+            >
+              Back to sign in
             </Link>
           </Box>
         )}

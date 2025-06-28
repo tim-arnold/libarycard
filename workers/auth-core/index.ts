@@ -1,5 +1,5 @@
 import { Env } from '../types';
-import { sendVerificationEmail, notifyAdminsOfSignupRequest } from '../email';
+import { sendVerificationEmail, notifyAdminsOfSignupRequest, sendPasswordResetEmail } from '../email';
 
 // Core authentication functions extracted from main worker
 
@@ -363,21 +363,283 @@ export function validatePasswordStrength(password: string): { isValid: boolean; 
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  // In a real Cloudflare Worker, you'd use the Web Crypto API
-  // For now, we'll use a simple hash (replace with proper bcrypt in production)
+  // Generate a random salt
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  
+  // Convert password to Uint8Array
   const encoder = new TextEncoder();
-  const data = encoder.encode(password + 'salt'); // Add proper salt in production
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+  const passwordData = encoder.encode(password);
+  
+  // Import the password as a key for PBKDF2
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    passwordData,
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  );
+  
+  // Derive 256 bits (32 bytes) using PBKDF2 with 100,000 iterations
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: salt,
+      iterations: 100000,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    256
+  );
+  
+  // Combine salt and hash for storage
+  const hashArray = new Uint8Array(derivedBits);
+  const combined = new Uint8Array(salt.length + hashArray.length);
+  combined.set(salt);
+  combined.set(hashArray, salt.length);
+  
+  // Return as base64 string for database storage
+  return btoa(String.fromCharCode(...combined));
 }
 
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const inputHash = await hashPassword(password);
-  return inputHash === hash;
+export async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
+  try {
+    // Try new PBKDF2 format first (base64 encoded)
+    if (isBase64(storedHash) && storedHash.length > 40) {
+      return await verifyPBKDF2Hash(password, storedHash);
+    }
+    
+    // Fall back to old SHA-256 format for backwards compatibility
+    return await verifyLegacyHash(password, storedHash);
+  } catch (error) {
+    console.error('Password verification error:', error);
+    return false;
+  }
+}
+
+async function verifyPBKDF2Hash(password: string, storedHash: string): Promise<boolean> {
+  try {
+    // Decode the stored hash
+    const combined = new Uint8Array(
+      atob(storedHash).split('').map(char => char.charCodeAt(0))
+    );
+    
+    // Extract salt (first 16 bytes) and hash (remaining bytes)
+    const salt = combined.slice(0, 16);
+    const storedHashBytes = combined.slice(16);
+    
+    // Convert password to Uint8Array
+    const encoder = new TextEncoder();
+    const passwordData = encoder.encode(password);
+    
+    // Import the password as a key for PBKDF2
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      passwordData,
+      'PBKDF2',
+      false,
+      ['deriveBits']
+    );
+    
+    // Derive bits using the same parameters
+    const derivedBits = await crypto.subtle.deriveBits(
+      {
+        name: 'PBKDF2',
+        salt: salt,
+        iterations: 100000,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      256
+    );
+    
+    const computedHash = new Uint8Array(derivedBits);
+    
+    // Compare hashes using constant-time comparison
+    return constantTimeEqual(storedHashBytes, computedHash);
+  } catch (error) {
+    console.error('PBKDF2 verification error:', error);
+    return false;
+  }
+}
+
+async function verifyLegacyHash(password: string, storedHash: string): Promise<boolean> {
+  // Legacy SHA-256 with simple salt for backwards compatibility
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + 'salt');
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const computedHash = Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  
+  return computedHash === storedHash;
+}
+
+function isBase64(str: string): boolean {
+  try {
+    return btoa(atob(str)) === str;
+  } catch (err) {
+    return false;
+  }
+}
+
+function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a[i] ^ b[i];
+  }
+  
+  return result === 0;
 }
 
 export function generateUUID(): string {
   return crypto.randomUUID();
+}
+
+export async function forgotPassword(request: Request, env: Env, corsHeaders: Record<string, string>) {
+  const { email }: { email: string } = await request.json();
+  
+  // Look up user by email
+  const user = await env.DB.prepare(`
+    SELECT id, email, first_name, auth_provider
+    FROM users 
+    WHERE email = ? AND auth_provider = 'email'
+  `).bind(email).first();
+  
+  // Always return success to prevent user enumeration
+  // even if email doesn't exist
+  if (!user) {
+    return new Response(JSON.stringify({ 
+      message: 'If an account with that email exists, you will receive a password reset link shortly.' 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  
+  // Generate reset token
+  const resetToken = generateUUID();
+  const resetExpires = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+  
+  // Update user with reset token
+  await env.DB.prepare(`
+    UPDATE users 
+    SET password_reset_token = ?, password_reset_expires = ?, updated_at = datetime('now')
+    WHERE id = ?
+  `).bind(resetToken, resetExpires, user.id).run();
+  
+  // Send reset email
+  try {
+    await sendPasswordResetEmail(env, user.email as string, user.first_name as string, resetToken);
+  } catch (error) {
+    console.error('Failed to send password reset email:', error);
+    // Still return success to prevent enumeration
+  }
+  
+  return new Response(JSON.stringify({ 
+    message: 'If an account with that email exists, you will receive a password reset link shortly.' 
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+export async function verifyResetToken(request: Request, env: Env, corsHeaders: Record<string, string>) {
+  const url = new URL(request.url);
+  const token = url.searchParams.get('token');
+  
+  if (!token) {
+    return new Response(JSON.stringify({ error: 'Reset token required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  
+  const user = await env.DB.prepare(`
+    SELECT id, email, password_reset_expires
+    FROM users 
+    WHERE password_reset_token = ?
+  `).bind(token).first();
+  
+  if (!user) {
+    return new Response(JSON.stringify({ error: 'Invalid reset token' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  
+  // Check if token is expired
+  if (new Date() > new Date(user.password_reset_expires as string)) {
+    return new Response(JSON.stringify({ error: 'Reset token has expired' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  
+  return new Response(JSON.stringify({ 
+    message: 'Reset token is valid',
+    email: user.email
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+export async function resetPassword(request: Request, env: Env, corsHeaders: Record<string, string>) {
+  const { token, password }: { token: string; password: string } = await request.json();
+  
+  // Validate password strength
+  const passwordValidation = validatePasswordStrength(password);
+  if (!passwordValidation.isValid) {
+    return new Response(JSON.stringify({ error: passwordValidation.error }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  
+  const user = await env.DB.prepare(`
+    SELECT id, password_hash, password_reset_expires
+    FROM users 
+    WHERE password_reset_token = ?
+  `).bind(token).first();
+  
+  if (!user) {
+    return new Response(JSON.stringify({ error: 'Invalid reset token' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  
+  // Check if token is expired
+  if (new Date() > new Date(user.password_reset_expires as string)) {
+    return new Response(JSON.stringify({ error: 'Reset token has expired' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  
+  // Check if new password is the same as current password
+  const isSamePassword = await verifyPassword(password, user.password_hash as string);
+  if (isSamePassword) {
+    return new Response(JSON.stringify({ error: 'New password cannot be the same as your current password' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  
+  // Hash new password
+  const newPasswordHash = await hashPassword(password);
+  
+  // Update user password and clear reset token
+  await env.DB.prepare(`
+    UPDATE users 
+    SET password_hash = ?, password_reset_token = NULL, password_reset_expires = NULL, updated_at = datetime('now')
+    WHERE id = ?
+  `).bind(newPasswordHash, user.id).run();
+  
+  return new Response(JSON.stringify({ 
+    message: 'Password has been reset successfully. You can now sign in with your new password.' 
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
 }
