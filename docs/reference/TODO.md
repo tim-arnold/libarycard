@@ -137,7 +137,7 @@ This file tracks active development tasks and future enhancements for the Librar
 
 ### Low Priority - Future Enhancements
 
-- [ ] **User Invitation System Refactoring - Remaining Phases** (See [detailed plan](../specs/user-invitation-refactor-plan.md))
+- [ ] **User Invitation System Refactoring - Remaining Phases** (See [detailed plan](../specs/complete-user-invitation-refactor-plan.md))
   - [ ] **Phase 2**: Implement global invitation overview across all locations with filtering and search
   - [ ] **Phase 4**: Create new API endpoints for admin-level invitation management and analytics
 
