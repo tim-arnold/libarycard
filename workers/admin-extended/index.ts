@@ -127,11 +127,12 @@ export async function getAdminUsers(userId: string, env: Env, corsHeaders: Recor
       SELECT u.id, u.email, u.first_name, u.last_name, u.auth_provider, 
              u.email_verified, u.user_role, u.created_at,
              COUNT(DISTINCT b.id) as books_added,
-             COUNT(DISTINCT lm.location_id) as locations_joined,
+             COUNT(DISTINCT COALESCE(lm.location_id, l.id)) as locations_joined,
              MAX(b.created_at) as last_book_added
       FROM users u
       LEFT JOIN books b ON u.id = b.added_by
       LEFT JOIN location_members lm ON u.id = lm.user_id
+      LEFT JOIN locations l ON u.id = l.owner_id
       GROUP BY u.id
       ORDER BY u.created_at DESC
     `).all();
