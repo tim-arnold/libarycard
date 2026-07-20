@@ -56,7 +56,7 @@
     "@simplewebauthn/types": "^12.0.0",
     "@tanstack/react-query": "^5.84.1",
     "@zxing/library": "^0.21.3",
-    "axios": "^1.15.2",
+    "axios": "^1.18.0",
     "bcryptjs": "^3.0.2",
     "dotenv": "^16.5.0",
     "jose": "^6.0.12",
